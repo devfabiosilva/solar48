@@ -55,6 +55,8 @@ SECTIONS
   /* Stack já definido pelo _estack */
 
   /* Endereço final do programa */
-  _end = .;
+
+  end = .;
+  _end = end;
 }
 

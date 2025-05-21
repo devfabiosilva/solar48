@@ -12,6 +12,8 @@ text.txt
 text_release.txt
 *.bin
 
+TODOS/
+
 # Linker output
 *.ilk
 *.map
