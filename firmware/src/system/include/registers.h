@@ -84,6 +84,7 @@
 
 //BEGIN Clock->RCC_APB1ENR (Page 115)
 #define RCC_APB1ENR (*(volatile uint32_t *)(RCC_BASE + 0x1C))
+#define USBEN (1<<23)
 //TODO implement read/sets for RCC_APB1ENR if neede
 //END Clock->RCC_APB1ENR
 

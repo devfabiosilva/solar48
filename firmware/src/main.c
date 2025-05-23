@@ -1,9 +1,12 @@
+#include <stddef.h>
+#include <usb_device.h>
 #include <gpios.h>
 #include <time.h>
 //#include <stdlib.h>
 
 void setup()
 {
+  init_usb_device(NULL);
   init_gpios();
 }
 
