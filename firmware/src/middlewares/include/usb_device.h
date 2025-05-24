@@ -6,6 +6,8 @@
 #include "usbd_def.h"
 */
 #include <errors.h>
+#include <hal.h>
+
 
 void init_usb_device(error_callback_t);
 
