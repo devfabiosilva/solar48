@@ -4,9 +4,10 @@
 #include <time.h>
 //#include <stdlib.h>
 
+void usb_error(int);
 void setup()
 {
-  init_usb_device(NULL);
+  init_usb_device(usb_error);
   init_gpios();
 }
 
@@ -20,3 +21,7 @@ void halt()
 // It would not happen
 }
 
+void usb_error(int value)
+{
+
+}
