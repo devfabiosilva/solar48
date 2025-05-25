@@ -3,7 +3,9 @@
 #include <gpios.h>
 #include <time.h>
 //#include <stdlib.h>
-
+//dmesg -w
+//sudo modprobe usbmon
+//sudo cat /sys/kernel/debug/usb/usbmon/1u
 void usb_error(int);
 void setup()
 {
