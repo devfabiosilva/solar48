@@ -1,6 +1,7 @@
 //#include <registers.h>
 #include <stdio.h>
 #include <usb_device.h>
+#include <gpios.h>
 //TODO enable RCC->APB1ENR |= RCC_APB1ENR_USBEN;
 /*
 sudo usermod -aG dialout $USER
@@ -16,6 +17,7 @@ extern char _eheap;
 
 void usb_print_memory_usage(void)
 {
+
     char buffer[200];
     uint32_t heap_used = (uint32_t)&_eheap - (uint32_t)&_sheap;
     uint32_t total_ram = (uint32_t)&_estack - (uint32_t)&_end;
@@ -23,14 +25,8 @@ void usb_print_memory_usage(void)
     int len = snprintf(buffer, sizeof(buffer),
         "RAM: heap used %lu bytes, total RAM: %lu bytes\r\n",
         heap_used, total_ram);
-    
-    //CDC_Transmit_FS((uint8_t*)buffer, len);
-}
 
-
-void init_usb_cdc()
-{
-  //RCC_APB1ENR |= USBEN;
-  //TODO configure correctly
+    CDC_Transmit_FS((uint8_t*)buffer, len);
+   //CDC_Transmit_FS((uint8_t*)"test", sizeof("test")-1);
 }
 

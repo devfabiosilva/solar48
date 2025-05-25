@@ -608,6 +608,8 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev,
 void init_usb_device(error_callback_t err_cb)
 {
 
+  usb_err_fn = err_cb;
+
   if (USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK) {
     USB_ERROR(E_USB_INIT);
     return;
@@ -629,6 +631,35 @@ void init_usb_device(error_callback_t err_cb)
     USB_ERROR(E_USB_START);
     return;
   }
+}
+
+/**
+  * @brief  CDC_Transmit_FS
+  *         Data to send over USB IN endpoint are sent over CDC interface
+  *         through this function.
+  *         @note
+  *
+  *
+  * @param  Buf: Buffer of data to be sent
+  * @param  Len: Number of data to be sent (in bytes)
+  * @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
+  */
+uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
+{
+  uint8_t result = USBD_OK;
+  /* USER CODE BEGIN 7 */
+  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+  if (hcdc->TxState != 0){
+    USB_ERROR(E_USB_TRANSMIT_BUSY);
+    return USBD_BUSY;
+  }
+  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
+  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
+  if (result != USBD_OK) {
+    USB_ERROR(E_USB_TRANSMIT_FAIL);
+  }
+  /* USER CODE END 7 */
+  return result;
 }
 
 #undef USB_ERROR

@@ -16,6 +16,10 @@ void error_handler(int error);
 #define E_USB_REGISTER_INTERFACE 102
 #define E_USB_START 103
 
+// USB TRANSMIT ERROR
+#define E_USB_TRANSMIT_BUSY 120
+#define E_USB_TRANSMIT_FAIL 121
+
 
 #define E_NOT_IMPLEMENTED -1
 

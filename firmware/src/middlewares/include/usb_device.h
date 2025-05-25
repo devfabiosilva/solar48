@@ -23,5 +23,6 @@ void *USBD_static_malloc(uint32_t size);
 USBD_StatusTypeDef USBD_SetClassConfig(USBD_HandleTypeDef  *pdev, uint8_t cfgidx);
 
 void init_usb_device(error_callback_t);
+uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 
 #endif

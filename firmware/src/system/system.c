@@ -22,7 +22,7 @@ void system_init(void)
   RCC_APB2ENR |= IOPCEN;
   
   //USB
-  RCC_APB1ENR |= USBEN;
+  //RCC_APB1ENR |= USBEN;
 }
 
 #endif

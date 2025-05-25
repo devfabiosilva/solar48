@@ -5,6 +5,10 @@
 #include <usbd_ctlreq.h>
 #include <usbd_ioreq.h>
 
+//TODO refactor to registers
+#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+#define READ_BIT(REG, BIT)    ((REG) & (BIT))
+
 #define USE_HAL_PCD_REGISTER_CALLBACKS 0U
 // TODO REMOVE
 
@@ -3014,12 +3018,12 @@ void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t Sub
 }
 
 //TODO WE DONT NEED THIS. Aready initialized
-#define __HAL_RCC_USB_CLK_ENABLE   /*do { \
+#define __HAL_RCC_USB_CLK_ENABLE   do { \
                                         __IO uint32_t tmpreg; \
                                         SET_BIT(RCC->APB1ENR, RCC_APB1ENR_USBEN);\
                                         tmpreg = READ_BIT(RCC->APB1ENR, RCC_APB1ENR_USBEN);\
                                         UNUSED(tmpreg); \
-                                      } while(0U) */
+                                      } while(0U)
 
 void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
 {
