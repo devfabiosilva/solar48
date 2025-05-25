@@ -2,6 +2,310 @@
  #define HAL_H
 
 #include <stm32f103x6.h>
+#include <usb_def.h>
+
+/********************  Bit definition for USB_COUNTn_RX register  *************/
+#define USB_CNTRX_NBLK_MSK                    (0x1FU << 10)
+#define USB_CNTRX_BLSIZE                      (0x1U << 15)
+
+/**
+  * @brief  sets counter for the tx/rx buffer.
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @param  wCount Counter value.
+  * @retval None
+  */
+#define PCD_SET_EP_TX_CNT(USBx, bEpNum, wCount) \
+  do { \
+    uint32_t _wRegBase = (uint32_t)(USBx); \
+    __IO uint16_t *_wRegVal; \
+    \
+    _wRegBase += (uint32_t)(USBx)->BTABLE; \
+    _wRegVal = (__IO uint16_t *)(_wRegBase + 0x400U + ((((uint32_t)(bEpNum) * 8U) + 2U) * PMA_ACCESS)); \
+    *_wRegVal = (uint16_t)(wCount); \
+  } while(0)
+
+/**
+  * @brief  sets the status for rx transfer (bits STAT_TX[1:0])
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @param  wState new state
+  * @retval None
+  */
+#define PCD_SET_EP_RX_STATUS(USBx, bEpNum,wState) \
+  do { \
+    uint16_t _wRegVal; \
+    \
+    _wRegVal = PCD_GET_ENDPOINT((USBx), (bEpNum)) & USB_EPRX_DTOGMASK; \
+    /* toggle first bit ? */ \
+    if ((USB_EPRX_DTOG1 & (wState))!= 0U) \
+    { \
+      _wRegVal ^= USB_EPRX_DTOG1; \
+    } \
+    /* toggle second bit ? */ \
+    if ((USB_EPRX_DTOG2 & (wState))!= 0U) \
+    { \
+      _wRegVal ^= USB_EPRX_DTOG2; \
+    } \
+    PCD_SET_ENDPOINT((USBx), (bEpNum), (_wRegVal | USB_EP_CTR_RX | USB_EP_CTR_TX)); \
+  } while(0) /* PCD_SET_EP_RX_STATUS */
+
+/**
+  * @brief  Toggles DTOG_RX / DTOG_TX bit in the endpoint register.
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @retval None
+  */
+#define PCD_RX_DTOG(USBx, bEpNum) \
+  do { \
+    uint16_t _wEPVal; \
+    \
+    _wEPVal = PCD_GET_ENDPOINT((USBx), (bEpNum)) & USB_EPREG_MASK; \
+    \
+    PCD_SET_ENDPOINT((USBx), (bEpNum), (_wEPVal | USB_EP_CTR_RX | USB_EP_CTR_TX | USB_EP_DTOG_RX)); \
+  } while(0) /* PCD_RX_DTOG */
+
+/**
+  * @brief  Clears DTOG_RX / DTOG_TX bit in the endpoint register.
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @retval None
+  */
+#define PCD_CLEAR_RX_DTOG(USBx, bEpNum) \
+  do { \
+    uint16_t _wRegVal; \
+    \
+    _wRegVal = PCD_GET_ENDPOINT((USBx), (bEpNum)); \
+    \
+    if ((_wRegVal & USB_EP_DTOG_RX) != 0U)\
+    { \
+      PCD_RX_DTOG((USBx), (bEpNum)); \
+    } \
+  } while(0) /* PCD_CLEAR_RX_DTOG */
+
+
+#define PCD_CALC_BLK2(pdwReg, wCount, wNBlocks) \
+  do { \
+    (wNBlocks) = (wCount) >> 1; \
+    if (((wCount) & 0x1U) != 0U) \
+    { \
+      (wNBlocks)++; \
+    } \
+    *(pdwReg) |= (uint16_t)((wNBlocks) << 10); \
+  } while(0) /* PCD_CALC_BLK2 */
+
+/**
+  * @brief  Sets counter of rx buffer with no. of blocks.
+  * @param  pdwReg Register pointer
+  * @param  wCount Counter.
+  * @param  wNBlocks no. of Blocks.
+  * @retval None
+  */
+#define PCD_CALC_BLK32(pdwReg, wCount, wNBlocks) \
+  do { \
+    (wNBlocks) = (wCount) >> 5; \
+    if (((wCount) & 0x1fU) == 0U) \
+    { \
+      (wNBlocks)--; \
+    } \
+    *(pdwReg) |= (uint16_t)(((wNBlocks) << 10) | USB_CNTRX_BLSIZE); \
+  } while(0) /* PCD_CALC_BLK32 */
+
+#define PCD_SET_EP_CNT_RX_REG(pdwReg, wCount) \
+  do { \
+    uint32_t wNBlocks; \
+    \
+    *(pdwReg) &= 0x3FFU; \
+    \
+    if ((wCount) > 62U) \
+    { \
+      PCD_CALC_BLK32((pdwReg), (wCount), wNBlocks); \
+    } \
+    else \
+    { \
+      if ((wCount) == 0U) \
+      { \
+        *(pdwReg) |= USB_CNTRX_BLSIZE; \
+      } \
+      else \
+      { \
+        PCD_CALC_BLK2((pdwReg), (wCount), wNBlocks); \
+      } \
+    } \
+  } while(0) /* PCD_SET_EP_CNT_RX_REG */
+
+#define PCD_SET_EP_RX_CNT(USBx, bEpNum, wCount) \
+  do { \
+    uint32_t _wRegBase = (uint32_t)(USBx); \
+    __IO uint16_t *_wRegVal; \
+    \
+    _wRegBase += (uint32_t)(USBx)->BTABLE; \
+    _wRegVal = (__IO uint16_t *)(_wRegBase + 0x400U + ((((uint32_t)(bEpNum) * 8U) + 6U) * PMA_ACCESS)); \
+    PCD_SET_EP_CNT_RX_REG(_wRegVal, (wCount)); \
+  } while(0)
+
+#define PCD_SET_EP_RX_ADDRESS(USBx, bEpNum, wAddr) \
+  do { \
+    __IO uint16_t *_wRegVal; \
+    uint32_t _wRegBase = (uint32_t)USBx; \
+    \
+    _wRegBase += (uint32_t)(USBx)->BTABLE; \
+    _wRegVal = (__IO uint16_t *)(_wRegBase + 0x400U + ((((uint32_t)(bEpNum) * 8U) + 4U) * PMA_ACCESS)); \
+    *_wRegVal = ((wAddr) >> 1) << 1; \
+  } while(0) /* PCD_SET_EP_RX_ADDRESS */
+
+#define PCD_CLEAR_TX_DTOG(USBx, bEpNum) \
+  do { \
+    uint16_t _wRegVal; \
+    \
+    _wRegVal = PCD_GET_ENDPOINT((USBx), (bEpNum)); \
+    \
+    if ((_wRegVal & USB_EP_DTOG_TX) != 0U)\
+    { \
+      PCD_TX_DTOG((USBx), (bEpNum)); \
+    } \
+  } while(0) /* PCD_CLEAR_TX_DTOG */
+
+/**
+  * @brief  sets the status for tx transfer (bits STAT_TX[1:0]).
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @param  wState new state
+  * @retval None
+  */
+#define PCD_SET_EP_TX_STATUS(USBx, bEpNum, wState) \
+  do { \
+    uint16_t _wRegVal; \
+    \
+    _wRegVal = PCD_GET_ENDPOINT((USBx), (bEpNum)) & USB_EPTX_DTOGMASK; \
+    /* toggle first bit ? */ \
+    if ((USB_EPTX_DTOG1 & (wState))!= 0U) \
+    { \
+      _wRegVal ^= USB_EPTX_DTOG1; \
+    } \
+    /* toggle second bit ?  */ \
+    if ((USB_EPTX_DTOG2 & (wState))!= 0U) \
+    { \
+      _wRegVal ^= USB_EPTX_DTOG2; \
+    } \
+    PCD_SET_ENDPOINT((USBx), (bEpNum), (_wRegVal | USB_EP_CTR_RX | USB_EP_CTR_TX)); \
+  } while(0) /* PCD_SET_EP_TX_STATUS */
+
+#define PCD_TX_DTOG(USBx, bEpNum) \
+  do { \
+    uint16_t _wEPVal; \
+    \
+    _wEPVal = PCD_GET_ENDPOINT((USBx), (bEpNum)) & USB_EPREG_MASK; \
+    \
+    PCD_SET_ENDPOINT((USBx), (bEpNum), (_wEPVal | USB_EP_CTR_RX | USB_EP_CTR_TX | USB_EP_DTOG_TX)); \
+  } while(0) /* PCD_TX_DTOG */
+
+#define PMA_ACCESS                             2U
+
+#define PCD_CLEAR_TX_DTOG(USBx, bEpNum) \
+  do { \
+    uint16_t _wRegVal; \
+    \
+    _wRegVal = PCD_GET_ENDPOINT((USBx), (bEpNum)); \
+    \
+    if ((_wRegVal & USB_EP_DTOG_TX) != 0U)\
+    { \
+      PCD_TX_DTOG((USBx), (bEpNum)); \
+    } \
+  } while(0) /* PCD_CLEAR_TX_DTOG */
+
+/* GetENDPOINT */
+#define PCD_GET_ENDPOINT(USBx, bEpNum)             (*(__IO uint16_t *)(&(USBx)->EP0R + ((bEpNum) * 2U)))
+/* SetENDPOINT */
+#define PCD_SET_ENDPOINT(USBx, bEpNum, wRegValue) \
+  (*(__IO uint16_t *)(&(USBx)->EP0R + ((bEpNum) * 2U)) = (uint16_t)(wRegValue))
+
+/**
+  * @brief  Sets address in an endpoint register.
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @param  bAddr Address.
+  * @retval None
+  */
+#define PCD_SET_EP_ADDRESS(USBx, bEpNum, bAddr) \
+  do { \
+    uint16_t _wRegVal; \
+    \
+    _wRegVal = (PCD_GET_ENDPOINT((USBx), (bEpNum)) & USB_EPREG_MASK) | (bAddr); \
+    \
+    PCD_SET_ENDPOINT((USBx), (bEpNum), (_wRegVal | USB_EP_CTR_RX | USB_EP_CTR_TX)); \
+  } while(0) /* PCD_SET_EP_ADDRESS */
+
+/**
+  * @brief  sets address of the tx/rx buffer.
+  * @param  USBx USB peripheral instance register address.
+  * @param  bEpNum Endpoint Number.
+  * @param  wAddr address to be set (must be word aligned).
+  * @retval None
+  */
+#define PCD_SET_EP_TX_ADDRESS(USBx, bEpNum, wAddr) \
+  do { \
+    __IO uint16_t *_wRegVal; \
+    uint32_t _wRegBase = (uint32_t)USBx; \
+    \
+    _wRegBase += (uint32_t)(USBx)->BTABLE; \
+    _wRegVal = (__IO uint16_t *)(_wRegBase + 0x400U + (((uint32_t)(bEpNum) * 8U) * PMA_ACCESS)); \
+    *_wRegVal = ((wAddr) >> 1) << 1; \
+  } while(0) /* PCD_SET_EP_TX_ADDRESS */
+
+#if (USE_RTOS == 1U)
+/* Reserved for future use */
+#error "USE_RTOS should be 0 in the current HAL release"
+#else
+#define __HAL_LOCK(__HANDLE__)                                           \
+                                do{                                        \
+                                    if((__HANDLE__)->Lock == HAL_LOCKED)   \
+                                    {                                      \
+                                       return HAL_BUSY;                    \
+                                    }                                      \
+                                    else                                   \
+                                    {                                      \
+                                       (__HANDLE__)->Lock = HAL_LOCKED;    \
+                                    }                                      \
+                                  }while (0U)
+
+#define __HAL_UNLOCK(__HANDLE__)                                          \
+                                  do{                                       \
+                                      (__HANDLE__)->Lock = HAL_UNLOCKED;    \
+                                    }while (0U)
+#endif /* USE_RTOS */
+
+/** @defgroup USB_LL_EP_Type USB Low Layer EP Type
+  * @{
+  */
+#define EP_TYPE_CTRL                           0U
+#define EP_TYPE_ISOC                           1U
+#define EP_TYPE_BULK                           2U
+#define EP_TYPE_INTR                           3U
+#define EP_TYPE_MSK                            3U
+
+
+#define EP_ADDR_MSK                            0x7U
+#define BTABLE_ADDRESS                         0x000U
+
+/** @defgroup PCD_ENDP_Kind PCD Endpoint Kind
+  * @{
+  */
+#define PCD_SNG_BUF                                                   0U
+#define PCD_DBL_BUF                                                   1U
+
+/**
+  * @brief  USB Mode definition
+  */
+
+typedef enum
+{
+  USB_DEVICE_MODE = 0,
+  USB_HOST_MODE   = 1,
+  USB_DRD_MODE    = 2
+} USB_ModeTypeDef;
+
+
 /**
   * @brief  HAL Lock structures definition
   */
@@ -86,13 +390,13 @@ typedef struct
   uint8_t   data_pid_start;       /*!< Initial data PID This parameter must be a number between Min_Data = 0 and Max_Data = 1    */
 
 #if defined (USB)
-//  uint16_t  pmaadress;            /*!< PMA Address This parameter can be any value between Min_addr = 0 and Max_addr = 1K   */
+  uint16_t  pmaadress;            /*!< PMA Address This parameter can be any value between Min_addr = 0 and Max_addr = 1K   */
 
-//  uint16_t  pmaaddr0;             /*!< PMA Address0 This parameter can be any value between Min_addr = 0 and Max_addr = 1K   */
+  uint16_t  pmaaddr0;             /*!< PMA Address0 This parameter can be any value between Min_addr = 0 and Max_addr = 1K   */
 
-//  uint16_t  pmaaddr1;             /*!< PMA Address1 This parameter can be any value between Min_addr = 0 and Max_addr = 1K   */
+  uint16_t  pmaaddr1;             /*!< PMA Address1 This parameter can be any value between Min_addr = 0 and Max_addr = 1K   */
 
-//  uint8_t   doublebuffer;         /*!< Double buffer enable This parameter can be 0 or 1                                             */
+  uint8_t   doublebuffer;         /*!< Double buffer enable This parameter can be 0 or 1                                             */
 #endif /* defined (USB) */
 
   uint32_t  maxpacket;            /*!< Endpoint Max packet size
@@ -115,9 +419,9 @@ typedef struct
 #endif /* defined (USB_OTG_FS) */
 
 #if defined (USB)
-//  uint32_t  xfer_len_db;          /*!< double buffer transfer length used with bulk double buffer in            */
+  uint32_t  xfer_len_db;          /*!< double buffer transfer length used with bulk double buffer in            */
 
-//  uint8_t   xfer_fill_db;         /*!< double buffer Need to Fill new buffer  used with bulk_in                 */
+  uint8_t   xfer_fill_db;         /*!< double buffer Need to Fill new buffer  used with bulk_in                 */
 #endif /* defined (USB) */
 } USB_EPTypeDef;
 
@@ -196,9 +500,8 @@ typedef struct
 //  PCD_EPTypeDef           OUT_ep[16];  /*!< OUT endpoint parameters           */
 #endif /* defined (USB_OTG_FS) */
 #if defined (USB)
-//TODO IS NECESSARY?
-//  PCD_EPTypeDef           IN_ep[8];    /*!< IN endpoint parameters            */
-//  PCD_EPTypeDef           OUT_ep[8];   /*!< OUT endpoint parameters           */
+  PCD_EPTypeDef           IN_ep[8];    /*!< IN endpoint parameters            */
+  PCD_EPTypeDef           OUT_ep[8];   /*!< OUT endpoint parameters           */
 #endif /* defined (USB) */
   HAL_LockTypeDef         Lock;        /*!< PCD peripheral status             */
   __IO PCD_StateTypeDef   State;       /*!< PCD communication state           */
@@ -257,6 +560,17 @@ void assert_failed(uint8_t *file, uint32_t line)
 #endif /* USE_FULL_ASSERT */
 
 HAL_StatusTypeDef USB_DisableGlobalInt(USB_TypeDef *USBx);
+HAL_StatusTypeDef  HAL_PCDEx_PMAConfig(PCD_HandleTypeDef *hpcd, uint16_t ep_addr, uint16_t ep_kind, uint32_t pmaadress);
+USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev);
+USBD_StatusTypeDef USBD_LL_OpenEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr, uint8_t ep_type, uint16_t ep_mps);
+USBD_StatusTypeDef USBD_LL_CloseEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
+USBD_StatusTypeDef USBD_LL_SetUSBAddress(USBD_HandleTypeDef *pdev, uint8_t dev_addr);
+USBD_StatusTypeDef USBD_LL_Transmit(USBD_HandleTypeDef *pdev, uint8_t ep_addr, uint8_t *pbuf, uint16_t size);
+HAL_StatusTypeDef HAL_PCD_EP_Transmit(PCD_HandleTypeDef *hpcd, uint8_t ep_addr, uint8_t *pBuf, uint32_t len);
+uint32_t USBD_LL_GetRxDataSize(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
+USBD_StatusTypeDef USBD_LL_ClearStallEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
+uint8_t USBD_LL_IsStallEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
+
 
 #define __HAL_PCD_ENABLE(__HANDLE__)                       (void)USB_EnableGlobalInt ((__HANDLE__)->Instance)
 #define __HAL_PCD_DISABLE(__HANDLE__)                      (void)USB_DisableGlobalInt ((__HANDLE__)->Instance)
