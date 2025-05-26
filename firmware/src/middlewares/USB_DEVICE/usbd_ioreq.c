@@ -1,80 +1,5 @@
-/**
-  ******************************************************************************
-  * @file    usbd_ioreq.c
-  * @author  MCD Application Team
-  * @brief   This file provides the IO requests APIs for control endpoints.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                      www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
 
-/* Includes ------------------------------------------------------------------*/
 #include <usbd_ioreq.h>
-
-/** @addtogroup STM32_USB_DEVICE_LIBRARY
-  * @{
-  */
-
-
-/** @defgroup USBD_IOREQ
-  * @brief control I/O requests module
-  * @{
-  */
-
-/** @defgroup USBD_IOREQ_Private_TypesDefinitions
-  * @{
-  */
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Defines
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Macros
-  * @{
-  */
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Variables
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_FunctionPrototypes
-  * @{
-  */
-/**
-  * @}
-  */
-
-
-/** @defgroup USBD_IOREQ_Private_Functions
-  * @{
-  */
 
 /**
 * @brief  USBD_CtlSendData
@@ -199,18 +124,3 @@ uint32_t USBD_GetRxCount(USBD_HandleTypeDef *pdev, uint8_t ep_addr)
   return USBD_LL_GetRxDataSize(pdev, ep_addr);
 }
 
-/**
-  * @}
-  */
-
-
-/**
-  * @}
-  */
-
-
-/**
-  * @}
-  */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

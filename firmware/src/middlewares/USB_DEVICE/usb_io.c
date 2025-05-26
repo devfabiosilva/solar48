@@ -1,8 +1,5 @@
-//#include <registers.h>
 #include <stdio.h>
 #include <usb_device.h>
-#include <gpios.h>
-//TODO enable RCC->APB1ENR |= RCC_APB1ENR_USBEN;
 /*
 sudo usermod -aG dialout $USER
 minicom -D /dev/ttyACM0 -b 115200
@@ -27,6 +24,5 @@ void usb_print_memory_usage(void)
         heap_used, total_ram);
 
     CDC_Transmit_FS((uint8_t*)buffer, len);
-   //CDC_Transmit_FS((uint8_t*)"test", sizeof("test")-1);
 }
 

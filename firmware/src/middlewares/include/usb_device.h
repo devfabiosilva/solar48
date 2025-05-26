@@ -1,10 +1,6 @@
 #ifndef USB_DEVICE_H
   #define USB_DEVICE_H
-/*
-#include "stm32f1xx.h"
-#include "stm32f1xx_hal.h"
-#include "usbd_def.h"
-*/
+
 #include <errors.h>
 #include <hal.h>
 

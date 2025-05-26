@@ -1,10 +1,4 @@
-/*
-#include "usb_device.h"
-#include "usbd_core.h"
-#include "usbd_desc.h"
-#include "usbd_cdc.h"
-#include "usbd_cdc_if.h"
-*/
+//may 26, 2025
 #include <stm32f103x6.h>
 #include <errors.h>
 #include <stddef.h>
@@ -14,39 +8,13 @@
 
 USBD_HandleTypeDef hUsbDeviceFS;
 
-
-#define USBD_VID     1155
-#define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "DevFabioSilva"
-#define USBD_PID_FS     22336
-#define USBD_PRODUCT_STRING_FS     "Solar48 Virtual ComPort"
-#define USBD_CONFIGURATION_STRING_FS     "CDC Config"
-#define USBD_INTERFACE_STRING_FS     "CDC Interface"
-
-/* USER CODE BEGIN PRIVATE_DEFINES */
-
-/* USER CODE END PRIVATE_DEFINES */
-
-/**
-  * @}
-  */
-
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/** @defgroup USBD_DESC_Private_Macros USBD_DESC_Private_Macros
-  * @brief Private macros.
-  * @{
-  */
-
-/* USER CODE BEGIN PRIVATE_MACRO */
-
-/* USER CODE END PRIVATE_MACRO */
-
-/**
-  * @}
-  */
+#define USBD_VID 1155
+#define USBD_LANGID_STRING 1033
+#define USBD_MANUFACTURER_STRING "DevFabioSilva"
+#define USBD_PID_FS 22336
+#define USBD_PRODUCT_STRING_FS "Solar48 Virtual ComPort"
+#define USBD_CONFIGURATION_STRING_FS "CDC Config"
+#define USBD_INTERFACE_STRING_FS "CDC Interface"
 
 /** @defgroup USBD_DESC_Private_FunctionPrototypes USBD_DESC_Private_FunctionPrototypes
   * @brief Private functions declaration.
@@ -55,10 +23,6 @@ USBD_HandleTypeDef hUsbDeviceFS;
 
 static void Get_SerialNum(void);
 static void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);
-
-/**
-  * @}
-  */
 
 /** @defgroup USBD_DESC_Private_FunctionPrototypes USBD_DESC_Private_FunctionPrototypes
   * @brief Private functions declaration for FS.
@@ -72,10 +36,6 @@ uint8_t * USBD_FS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
 uint8_t * USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t * USBD_FS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
 uint8_t * USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length);
-
-/**
-  * @}
-  */
 
 /** @defgroup USBD_DESC_Private_Variables USBD_DESC_Private_Variables
   * @brief Private variables.
@@ -119,11 +79,6 @@ __ALIGN_BEGIN uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END =
   USBD_MAX_NUM_CONFIGURATION  /*bNumConfigurations*/
 };
 
-/* USB_DeviceDescriptor */
-
-/**
-  * @}
-  */
 
 /** @defgroup USBD_DESC_Private_Variables USBD_DESC_Private_Variables
   * @brief Private variables.
@@ -156,15 +111,6 @@ __ALIGN_BEGIN uint8_t USBD_StringSerial[USB_SIZ_STRING_SERIAL] __ALIGN_END = {
   USB_SIZ_STRING_SERIAL,
   USB_DESC_TYPE_STRING,
 };
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_DESC_Private_Functions USBD_DESC_Private_Functions
-  * @brief Private functions.
-  * @{
-  */
 
 /**
   * @brief  Return the device descriptor
@@ -334,8 +280,6 @@ static void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len)
   }
 }
 
-//USBD_DescriptorsTypeDef FS_Desc;
-
 error_callback_t usb_err_fn = NULL;
 
 #define USB_ERROR(error) ERROR_CALLBACK(usb_err_fn, error)
@@ -491,11 +435,6 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE END 6 */
 }
 
-
-/**
-  * @}
-  */
-
 USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
 {
   CDC_Init_FS,
@@ -563,10 +502,6 @@ USBD_StatusTypeDef  USBD_RegisterClass(USBD_HandleTypeDef *pdev, USBD_ClassTypeD
 
   return status;
 }
-
-/** @defgroup USBD_CORE_Private_Functions
-* @{
-*/
 
 /**
 * @brief  USBD_Init

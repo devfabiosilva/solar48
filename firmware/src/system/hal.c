@@ -25,7 +25,6 @@ USBD_StatusTypeDef USBD_LL_DevConnected(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_LL_DevDisconnected(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep_addr, uint8_t *pbuf, uint16_t size);
 USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
-//static void PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_NVIC_EnableIRQ(IRQn_Type IRQn);
 void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle);
 HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
@@ -62,66 +61,6 @@ USBD_StatusTypeDef USBD_Get_USB_Status(HAL_StatusTypeDef hal_status)
   }
   return usb_status;
 }
-
-/**
-* @brief  USBD_SetFeature
-*         Handle Set device feature request
-* @param  pdev: device instance
-* @param  req: usb request
-* @retval status
-*/
-/*
-static void USBD_SetFeature(USBD_HandleTypeDef *pdev,
-                            USBD_SetupReqTypedef *req)
-{
-  if (req->wValue == USB_FEATURE_REMOTE_WAKEUP)
-  {
-    pdev->dev_remote_wakeup = 1U;
-    USBD_CtlSendStatus(pdev);
-  }
-}
-*/
-/**
-* @brief  USBD_GetStatus
-*         Handle Get Status request
-* @param  pdev: device instance
-* @param  req: usb request
-* @retval status
-*/
-/*
-static void USBD_GetStatus(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
-{
-  switch (pdev->dev_state)
-  {
-    case USBD_STATE_DEFAULT:
-    case USBD_STATE_ADDRESSED:
-    case USBD_STATE_CONFIGURED:
-      if (req->wLength != 0x2U)
-      {
-        USBD_CtlError(pdev, req);
-        break;
-      }
-
-#if (USBD_SELF_POWERED == 1U)
-      pdev->dev_config_status = USB_CONFIG_SELF_POWERED;
-#else
-      pdev->dev_config_status = 0U;
-#endif
-
-      if (pdev->dev_remote_wakeup)
-      {
-        pdev->dev_config_status |= USB_CONFIG_REMOTE_WAKEUP;
-      }
-
-      USBD_CtlSendData(pdev, (uint8_t *)(void *)&pdev->dev_config_status, 2U);
-      break;
-
-    default:
-      USBD_CtlError(pdev, req);
-      break;
-  }
-}
-*/
 
 /**
 * @brief  USBD_RunTestMode
@@ -935,89 +874,6 @@ HAL_StatusTypeDef USB_EP0_OutStart(USB_TypeDef *USBx, uint8_t *psetup)
    */
   return HAL_OK;
 }
-
-/**
-* @brief  USBD_CtlError
-*         Handle USB low level Error
-* @param  pdev: device instance
-* @param  req: usb request
-* @retval None
-*/
-
-//AQUI
-//void USBD_CtlError(USBD_HandleTypeDef *pdev,
-///                   USBD_SetupReqTypedef *req)
-//{
-//  USBD_LL_StallEP(pdev, 0x80U);
-//  USBD_LL_StallEP(pdev, 0U);
-//}
-
-/**
-* @brief  USBD_StdDevReq
-*         Handle standard usb device requests
-* @param  pdev: device instance
-* @param  req: usb request
-* @retval status
-*/
-//AQUI
-/*
-USBD_StatusTypeDef  USBD_StdDevReq(USBD_HandleTypeDef *pdev,
-                                   USBD_SetupReqTypedef *req)
-{
-  USBD_StatusTypeDef ret = USBD_OK;
-
-  switch (req->bmRequest & USB_REQ_TYPE_MASK)
-  {
-    case USB_REQ_TYPE_CLASS:
-    case USB_REQ_TYPE_VENDOR:
-      pdev->pClass->Setup(pdev, req);
-      break;
-
-    case USB_REQ_TYPE_STANDARD:
-      switch (req->bRequest)
-      {
-        case USB_REQ_GET_DESCRIPTOR:
-          USBD_GetDescriptor(pdev, req);
-          break;
-
-        case USB_REQ_SET_ADDRESS:
-          USBD_SetAddress(pdev, req);
-          break;
-
-        case USB_REQ_SET_CONFIGURATION:
-          USBD_SetConfig(pdev, req);
-          break;
-
-        case USB_REQ_GET_CONFIGURATION:
-          USBD_GetConfig(pdev, req);
-          break;
-
-        case USB_REQ_GET_STATUS:
-          USBD_GetStatus(pdev, req);
-          break;
-
-        case USB_REQ_SET_FEATURE:
-          USBD_SetFeature(pdev, req);
-          break;
-
-        case USB_REQ_CLEAR_FEATURE:
-          USBD_ClrFeature(pdev, req);
-          break;
-
-        default:
-          USBD_CtlError(pdev, req);
-          break;
-      }
-      break;
-
-    default:
-      USBD_CtlError(pdev, req);
-      break;
-  }
-
-  return ret;
-}
-*/
 
 /**
 * @brief  USBD_SetupStage

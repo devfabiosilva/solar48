@@ -20,9 +20,6 @@ void system_init(void)
   RCC_CFGR |= SW(PLL_as_system_clock);
   while ((RCC_CFGR & SWS_mask) != PLL_selected_as_system_clock);
   RCC_APB2ENR |= IOPCEN;
-  
-  //USB
-  //RCC_APB1ENR |= USBEN;
 }
 
 #endif

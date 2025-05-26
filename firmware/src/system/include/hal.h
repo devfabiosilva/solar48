@@ -543,15 +543,6 @@ typedef struct
 
   uint8_t battery_charging_enable; /*!< Enable or disable Battery charging.                                    */
 
-#if defined (USB_OTG_FS)
-//TODO remove
-//  uint8_t vbus_sensing_enable;     /*!< Enable or disable the VBUS Sensing feature.                            */
-
-//  uint8_t use_dedicated_ep1;       /*!< Enable or disable the use of the dedicated EP1 interrupt.              */
-
-//  uint8_t use_external_vbus;       /*!< Enable or disable the use of the external VBUS.                        */
-  
-#endif /* defined (USB_OTG_FS) */
 } USB_CfgTypeDef;
 
 /** @defgroup USB_LL Device Speed

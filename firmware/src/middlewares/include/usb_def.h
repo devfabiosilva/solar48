@@ -1,46 +1,9 @@
-/**
-  ******************************************************************************
-  * @file    usbd_def.h
-  * @author  MCD Application Team
-  * @brief   General defines for the usb device library
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                      www.st.com/SLA0044
-  *
-  ******************************************************************************
-  */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USBD_DEF_H
 #define __USBD_DEF_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
 #include <usbd_conf.h>
-
-/** @addtogroup STM32_USBD_DEVICE_LIBRARY
-  * @{
-  */
-
-/** @defgroup USB_DEF
-  * @brief general defines for the usb device library file
-  * @{
-  */
-
-/** @defgroup USB_DEF_Exported_Defines
-  * @{
-  */
 
 #ifndef NULL
 #define NULL                                            0U
@@ -146,11 +109,6 @@ extern "C" {
 #define USBD_EP_TYPE_ISOC                               0x01U
 #define USBD_EP_TYPE_BULK                               0x02U
 #define USBD_EP_TYPE_INTR                               0x03U
-
-
-/**
-  * @}
-  */
 
 
 /** @defgroup USBD_DEF_Exported_TypesDefinitions
@@ -312,38 +270,5 @@ typedef struct _USBD_HandleTypeDef
 #endif /* __ALIGN_BEGIN */
 #endif /* __GNUC__ */
 
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_DEF_Exported_Variables
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_DEF_Exported_FunctionsPrototype
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-#ifdef __cplusplus
-}
-#endif
-
 #endif /* __USBD_DEF_H */
 
-/**
-  * @}
-  */
-
-/**
-* @}
-*/
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
