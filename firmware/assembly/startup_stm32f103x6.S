@@ -1,30 +1,11 @@
-/**
-  *************** (C) COPYRIGHT 2017 STMicroelectronics ************************
-  * @file      startup_stm32f103x6.s
-  * @author    MCD Application Team
-  * @brief     STM32F103x6 Devices vector table for Atollic toolchain.
-  *            This module performs:
-  *                - Set the initial SP
-  *                - Set the initial PC == _start,
-  *                - Set the vector table entries with the exceptions ISR address
-  *                - Configure the clock system   
-  *                - Branches to main in the C library (which eventually
-  *                  calls main()).
-  *            After Reset the Cortex-M3 processor is in Thread mode,
-  *            priority is Privileged, and the Stack is set to Main.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2017-2021 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-
+/*
+_estack     Topo da stack 
+_sidata     Início dos dados na Flash 
+_sdata      Início dos dados na RAM 
+_edata      Fim dos dados na RAM 
+_sbss       Início da bss 
+_ebss       Fim da bss
+*/
   .syntax unified
   .cpu cortex-m3
   .fpu softvfp
@@ -58,15 +39,6 @@ defined in linker script */
   .section .text._start
   .type _start, %function
 _start:
-
-/*
-_estack     Topo da stack 
-_sidata     Início dos dados na Flash 
-_sdata      Início dos dados na RAM 
-_edata      Fim dos dados na RAM 
-_sbss       Início da bss 
-_ebss       Fim da bss
-*/
 
 /* Call the clock system initialization function.*/
   bl system_init

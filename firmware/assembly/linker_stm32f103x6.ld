@@ -10,6 +10,11 @@ MEMORY
 
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* Top of stack */
 
+__ram_origin = ORIGIN(RAM);
+__ram_length = LENGTH(RAM);
+__flash_origin = ORIGIN(FLASH);
+__flash_length = LENGTH(FLASH);
+
 SECTIONS
 {
   /* Vetor de interrupções e código */

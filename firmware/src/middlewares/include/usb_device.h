@@ -10,6 +10,8 @@
   * @brief Constants.
   * @{
   */
+
+#define 	UID_BASE            0x1FFFF7E8UL    /*!< Unique device ID register base address */
 #define         DEVICE_ID1          (UID_BASE)
 #define         DEVICE_ID2          (UID_BASE + 0x4)
 #define         DEVICE_ID3          (UID_BASE + 0x8)

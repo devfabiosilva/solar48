@@ -31,6 +31,7 @@ void run(void)
     }
 
     usb_print_memory_usage();
+    delay_seconds(1);
 
   }
 

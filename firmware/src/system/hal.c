@@ -9,7 +9,7 @@
 #define SET_BIT(REG, BIT)     ((REG) |= (BIT))
 #define READ_BIT(REG, BIT)    ((REG) & (BIT))
 
-#define USE_HAL_PCD_REGISTER_CALLBACKS 0U
+//#define USE_HAL_PCD_REGISTER_CALLBACKS 0U
 // TODO REMOVE
 
 PCD_HandleTypeDef hpcd_USB_FS;
@@ -27,7 +27,8 @@ USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep_a
 USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 void HAL_NVIC_EnableIRQ(IRQn_Type IRQn);
 void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle);
-HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
+//HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
+static void USB_DevInit(USB_TypeDef *USBx);
 HAL_StatusTypeDef USB_SetCurrentMode(USB_TypeDef *USBx, USB_ModeTypeDef mode);
 HAL_StatusTypeDef USB_CoreInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
 void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority);
@@ -2330,7 +2331,7 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd)
   {
     /* Allocate lock resource and initialize it */
     hpcd->Lock = HAL_UNLOCKED;
-//AQUI
+
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
     hpcd->SOFCallback = HAL_PCD_SOFCallback;
     hpcd->SetupStageCallback = HAL_PCD_SetupStageCallback;
@@ -2407,11 +2408,12 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd)
   }
 
   /* Init Device */
-  if (USB_DevInit(hpcd->Instance, hpcd->Init) != HAL_OK)
+  /*if (USB_DevInit(hpcd->Instance, hpcd->Init) != HAL_OK)
   {
     hpcd->State = HAL_PCD_STATE_ERROR;
     return HAL_ERROR;
-  }
+  }*/
+  USB_DevInit(hpcd->Instance);
 
   hpcd->USB_Address = 0U;
   hpcd->State = HAL_PCD_STATE_READY;
@@ -2686,10 +2688,36 @@ USBD_StatusTypeDef USBD_LL_OpenEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr, uin
   *         the configuration information for the specified USBx peripheral.
   * @retval HAL status
   */
-HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg)
-{
+//HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg)
+//TODO Remove it 
+//{
   /* Prevent unused argument(s) compilation warning */
-  UNUSED(cfg);
+//  UNUSED(cfg);
+
+  /* Init Device */
+  /* CNTR_FRES = 1 */
+//  USBx->CNTR = (uint16_t)USB_CNTR_FRES;
+
+  /* CNTR_FRES = 0 */
+//  USBx->CNTR = 0U;
+
+  /* Clear pending interrupts */
+//  USBx->ISTR = 0U;
+
+  /*Set Btable Address*/
+//  USBx->BTABLE = BTABLE_ADDRESS;
+
+///  return HAL_OK;
+//}
+
+/**
+  * @brief  USB_DevInit Initializes the USB controller registers
+  *         for device mode
+  * @param  USBx Selected device
+  *
+  */
+static void USB_DevInit(USB_TypeDef *USBx)
+{
 
   /* Init Device */
   /* CNTR_FRES = 1 */
@@ -2703,8 +2731,6 @@ HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg)
 
   /*Set Btable Address*/
   USBx->BTABLE = BTABLE_ADDRESS;
-
-  return HAL_OK;
 }
 
 /**
@@ -2873,7 +2899,6 @@ void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t Sub
   NVIC_SetPriority(IRQn, NVIC_EncodePriority(prioritygroup, PreemptPriority, SubPriority));
 }
 
-//TODO WE DONT NEED THIS. Aready initialized
 #define __HAL_RCC_USB_CLK_ENABLE   do { \
                                         __IO uint32_t tmpreg; \
                                         SET_BIT(RCC->APB1ENR, RCC_APB1ENR_USBEN);\
