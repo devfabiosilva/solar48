@@ -3,7 +3,7 @@
 #include <core_cm3.h>
 #include <usbd_cdc.h>
 #include <usbd_ctlreq.h>
-#include <hal.h>
+#include <hal_usb.h>
 
 //TODO REFACTOR
 /**

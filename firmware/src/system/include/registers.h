@@ -1,10 +1,12 @@
 #ifndef REGISTERS_H
   #define REGISTERS_H
 
-#include <stdint.h>
+#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+#define READ_BIT(REG, BIT)    ((REG) & (BIT))
 
+#include <stm32f103x6.h>
 // Clock page 121
-#define RCC_BASE     0x40021000
+//#define RCC_BASE     0x40021000
 //BEGIN Clock->RCC_CR (Page 99)
 #define RCC_CR (*(volatile uint32_t *)(RCC_BASE + 0x00))
 #define PLLRDY (1<<25)
@@ -91,7 +93,7 @@
 //END CLOCK
 
 //GPIO
-#define GPIOC_BASE   0x40011000
+//#define GPIOC_BASE   0x40011000
 #define GPIOC_CRH    (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
 #define GPIOC_ODR    (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
 

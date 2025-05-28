@@ -1,16 +1,9 @@
-#include <stm32f103x6.h>
+#include <registers.h>
 #include <core_cm3.h>
-#include <hal.h>
+#include <hal_usb.h>
 #include <stddef.h>
 #include <usbd_ctlreq.h>
 #include <usbd_ioreq.h>
-
-//TODO refactor to registers
-#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
-#define READ_BIT(REG, BIT)    ((REG) & (BIT))
-
-//#define USE_HAL_PCD_REGISTER_CALLBACKS 0U
-// TODO REMOVE
 
 PCD_HandleTypeDef hpcd_USB_FS;
 
@@ -27,12 +20,18 @@ USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep_a
 USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 void HAL_NVIC_EnableIRQ(IRQn_Type IRQn);
 void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle);
-//HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
 static void USB_DevInit(USB_TypeDef *USBx);
 HAL_StatusTypeDef USB_SetCurrentMode(USB_TypeDef *USBx, USB_ModeTypeDef mode);
 HAL_StatusTypeDef USB_CoreInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
 void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority);
 
+error_callback_t error_cb = NULL;
+#define USB_HAL_ERROR(error) ERROR_CALLBACK(error_cb, error)
+
+void HAL_USB_set_error_cb(error_callback_t err_cb)
+{
+  error_cb = err_cb;
+}
 /**
   * @brief  Returns the USB status depending on the HAL status:
   * @param  hal_status: HAL status
@@ -69,13 +68,14 @@ USBD_StatusTypeDef USBD_Get_USB_Status(HAL_StatusTypeDef hal_status)
 * @param  pdev: device instance
 * @retval status
 */
-USBD_StatusTypeDef  USBD_RunTestMode(USBD_HandleTypeDef  *pdev)
-{
+//TODO Remove or add test to development
+//USBD_StatusTypeDef  USBD_RunTestMode(USBD_HandleTypeDef  *pdev)
+//{
   /* Prevent unused argument compilation warning */
-  UNUSED(pdev);
+//  UNUSED(pdev);
 
-  return USBD_OK;
-}
+//  return USBD_OK;
+//}
 
 /**
 * @brief  USBD_DataInStage
@@ -140,7 +140,7 @@ USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev,
 
     if (pdev->dev_test_mode == 1U)
     {
-      USBD_RunTestMode(pdev);
+      //USBD_RunTestMode(pdev);
       pdev->dev_test_mode = 0U;
     }
   }
@@ -626,6 +626,7 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
   if ( hpcd->Init.speed != PCD_SPEED_FULL)
   {
     //TODO implement error handler in HAL
+    USB_HAL_ERROR(E_USB_HAL_PCD_HS)
     //Error_Handler();
   }
     /* Set Speed. */
@@ -634,43 +635,6 @@ void HAL_PCD_ResetCallback(PCD_HandleTypeDef *hpcd)
   /* Reset Device. */
   USBD_LL_Reset((USBD_HandleTypeDef*)hpcd->pData);
 }
-
-/**
-* @brief  USBD_GetConfig
-*         Handle Get device configuration request
-* @param  pdev: device instance
-* @param  req: usb request
-* @retval status
-*/
-/*
-static void USBD_GetConfig(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
-{
-  if (req->wLength != 1U)
-  {
-    USBD_CtlError(pdev, req);
-  }
-  else
-  {
-    switch (pdev->dev_state)
-    {
-      case USBD_STATE_DEFAULT:
-      case USBD_STATE_ADDRESSED:
-        pdev->dev_default_config = 0U;
-        USBD_CtlSendData(pdev, (uint8_t *)(void *)&pdev->dev_default_config, 1U);
-        break;
-
-      case USBD_STATE_CONFIGURED:
-        USBD_CtlSendData(pdev, (uint8_t *)(void *)&pdev->dev_config, 1U);
-        break;
-
-      default:
-        USBD_CtlError(pdev, req);
-        break;
-    }
-  }
-}
-*/
-
 
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
 /**
@@ -2680,35 +2644,6 @@ USBD_StatusTypeDef USBD_LL_OpenEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr, uin
   return usb_status;
 }
 
-/**
-  * @brief  USB_DevInit Initializes the USB controller registers
-  *         for device mode
-  * @param  USBx Selected device
-  * @param  cfg  pointer to a USB_CfgTypeDef structure that contains
-  *         the configuration information for the specified USBx peripheral.
-  * @retval HAL status
-  */
-//HAL_StatusTypeDef USB_DevInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg)
-//TODO Remove it 
-//{
-  /* Prevent unused argument(s) compilation warning */
-//  UNUSED(cfg);
-
-  /* Init Device */
-  /* CNTR_FRES = 1 */
-//  USBx->CNTR = (uint16_t)USB_CNTR_FRES;
-
-  /* CNTR_FRES = 0 */
-//  USBx->CNTR = 0U;
-
-  /* Clear pending interrupts */
-//  USBx->ISTR = 0U;
-
-  /*Set Btable Address*/
-//  USBx->BTABLE = BTABLE_ADDRESS;
-
-///  return HAL_OK;
-//}
 
 /**
   * @brief  USB_DevInit Initializes the USB controller registers

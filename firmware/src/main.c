@@ -90,6 +90,9 @@ void usb_error(int value)
     case E_USB_TRANSMIT_FAIL:
       hasError = 2;
       break;
+    case E_USB_HAL_PCD_HS:
+      hasError = 8;
+      break;
     default:
       hasError = 5;
   }

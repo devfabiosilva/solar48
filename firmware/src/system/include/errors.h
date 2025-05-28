@@ -20,6 +20,8 @@ void error_handler(int error);
 #define E_USB_TRANSMIT_BUSY 120
 #define E_USB_TRANSMIT_FAIL 121
 
+// USB HAL CALBACK ERROR
+#define E_USB_HAL_PCD_HS 130
 
 #define E_NOT_IMPLEMENTED -1
 

@@ -2,7 +2,7 @@
   #define USB_DEVICE_H
 
 #include <errors.h>
-#include <hal.h>
+#include <hal_usb.h>
 
 typedef void (*usb_receive_cb_t)(uint8_t *, uint32_t);
 typedef void (*usb_receive_complete_cb_t)(void);

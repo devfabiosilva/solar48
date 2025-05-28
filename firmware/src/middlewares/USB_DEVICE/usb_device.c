@@ -551,7 +551,8 @@ void init_usb_device(usb_receive_cb_t receive_cb, usb_receive_complete_cb_t rece
 
   recv_cb = receive_cb;
   recv_complete = receive_complete;
-  usb_err_fn = err_cb;
+
+  HAL_USB_set_error_cb(usb_err_fn = err_cb);
 
   if (USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK) {
     USB_ERROR(E_USB_INIT);

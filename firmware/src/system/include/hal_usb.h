@@ -1,6 +1,7 @@
 #ifndef HAL_H
  #define HAL_H
 
+#include <errors.h>
 #include <stm32f103x6.h>
 #include <usb_def.h>
 
@@ -659,6 +660,7 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *);
 /* Exported functions ------------------------------------------------------- */
 void assert_failed(uint8_t *file, uint32_t line)
 {
+  //TODO implement custom assert here
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
@@ -679,7 +681,7 @@ HAL_StatusTypeDef HAL_PCD_EP_Transmit(PCD_HandleTypeDef *hpcd, uint8_t ep_addr, 
 uint32_t USBD_LL_GetRxDataSize(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
 USBD_StatusTypeDef USBD_LL_ClearStallEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
 uint8_t USBD_LL_IsStallEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
-
+void HAL_USB_set_error_cb(error_callback_t);
 
 #define __HAL_PCD_ENABLE(__HANDLE__)                       (void)USB_EnableGlobalInt ((__HANDLE__)->Instance)
 #define __HAL_PCD_DISABLE(__HANDLE__)                      (void)USB_DisableGlobalInt ((__HANDLE__)->Instance)

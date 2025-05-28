@@ -1,51 +1,6 @@
-/**
-  ******************************************************************************
-  * @file    stm32f103x6.h
-  * @author  MCD Application Team
-  * @brief   CMSIS Cortex-M3 Device Peripheral Access Layer Header File. 
-  *          This file contains all the peripheral register's definitions, bits 
-  *          definitions and memory mapping for STM32F1xx devices.            
-  *            
-  *          This file contains:
-  *           - Data structures and the address mapping for all peripherals
-  *           - Peripheral's registers declarations and bits definition
-  *           - Macros to access peripheral's registers hardware
-  *  
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2017-2021 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-
-
-/** @addtogroup CMSIS
-  * @{
-  */
-
-/** @addtogroup stm32f103x6
-  * @{
-  */
     
 #ifndef __STM32F103x6_H
 #define __STM32F103x6_H
-
-#ifdef __cplusplus
- extern "C" {
-#endif 
-
-/** @addtogroup Configuration_section_for_CMSIS
-  * @{
-  */
-/**
-  * @brief Configuration of the Cortex-M3 Processor and Core Peripherals 
- */
 
 //TODO
 //ADDED to avoid multiples headers
@@ -58,14 +13,6 @@
  #define __MPU_PRESENT             0U       /*!< Other STM32 devices does not provide an MPU  */
 #define __NVIC_PRIO_BITS           4U       /*!< STM32 uses 4 Bits for the Priority Levels    */
 #define __Vendor_SysTickConfig     0U       /*!< Set to 1 if different SysTick Config is used */
-
-/**
-  * @}
-  */
-
-/** @addtogroup Peripheral_interrupt_number_definition
-  * @{
-  */
 
 /**
  * @brief STM32F10x Interrupt Number Definition, according to the selected device 
@@ -10096,20 +10043,6 @@ typedef struct
 #define CAN1_TX_IRQHandler            USB_HP_CAN1_TX_IRQHandler
 #define USB_LP_IRQHandler             USB_LP_CAN1_RX0_IRQHandler
 #define CAN1_RX0_IRQHandler           USB_LP_CAN1_RX0_IRQHandler
-
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
-
-
-#ifdef __cplusplus
-  }
-#endif /* __cplusplus */
   
 #endif /* __STM32F103x6_H */
   
