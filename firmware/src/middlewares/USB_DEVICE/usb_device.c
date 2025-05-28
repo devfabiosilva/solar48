@@ -6,6 +6,9 @@
 #include <usb_device.h>
 #include <usbd_cdc.h>
 
+error_callback_t usb_err_fn = NULL;
+usb_receive_cb_t recv_cb = NULL;
+usb_receive_complete_cb_t recv_complete = NULL;
 USBD_HandleTypeDef hUsbDeviceFS;
 
 #define USBD_VID 1155
@@ -280,8 +283,6 @@ static void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len)
   }
 }
 
-error_callback_t usb_err_fn = NULL;
-
 #define USB_ERROR(error) ERROR_CALLBACK(usb_err_fn, error)
 
 #define APP_RX_DATA_SIZE  1024
@@ -428,11 +429,16 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-  /* USER CODE BEGIN 6 */
+  if ((Buf != NULL) && (Len != NULL) && ((*Len) > 0) && (recv_cb != NULL))
+    recv_cb(Buf, *Len);
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+
+  if (recv_complete)
+    recv_complete();
+
   return (USBD_OK);
-  /* USER CODE END 6 */
 }
 
 USBD_CDC_ItfTypeDef USBD_Interface_fops_FS =
@@ -540,9 +546,11 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev,
   return USBD_LL_Init(pdev);
 }
 
-void init_usb_device(error_callback_t err_cb)
+void init_usb_device(usb_receive_cb_t receive_cb, usb_receive_complete_cb_t receive_complete, error_callback_t err_cb)
 {
 
+  recv_cb = receive_cb;
+  recv_complete = receive_complete;
   usb_err_fn = err_cb;
 
   if (USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS) != USBD_OK) {
