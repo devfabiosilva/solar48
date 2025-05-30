@@ -11,14 +11,16 @@
   * @param  size: Size of allocated memory
   * @retval None
   */
-void *USBD_static_malloc(uint32_t size)
-{
-  static uint32_t mem[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
-  return mem;
-}
+//TODO Remove
+//void *USBD_static_malloc(uint32_t size)
+//{
+//  static uint32_t mem[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
+//  return mem;
+//}
 /** Alias for memory allocation. */
-#define USBD_malloc         (uint32_t *)USBD_static_malloc
-#define USBD_free(X) (void)X
+//#define USBD_malloc         (uint32_t *)USBD_static_malloc
+static uint32_t USBD_malloc[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
+//#define USBD_free(X) (void)X
 
 static uint8_t  USBD_CDC_Init(USBD_HandleTypeDef *pdev,
                               uint8_t cfgidx);
@@ -61,14 +63,6 @@ __ALIGN_BEGIN static uint8_t USBD_CDC_DeviceQualifierDesc[USB_LEN_DEV_QUALIFIER_
   0x01,
   0x00,
 };
-
-/**
-  * @}
-  */
-
-/** @defgroup USBD_CDC_Private_Variables
-  * @{
-  */
 
 
 /* CDC interface class callbacks structure */
@@ -418,7 +412,9 @@ static uint8_t  USBD_CDC_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   USBD_LL_OpenEP(pdev, CDC_CMD_EP, USBD_EP_TYPE_INTR, CDC_CMD_PACKET_SIZE);
   pdev->ep_in[CDC_CMD_EP & 0xFU].is_used = 1U;
 
-  pdev->pClassData = USBD_malloc(sizeof(USBD_CDC_HandleTypeDef));
+  //TODO remove comment below
+  //pdev->pClassData = USBD_malloc(sizeof(USBD_CDC_HandleTypeDef));
+  pdev->pClassData = USBD_malloc;
 
   if (pdev->pClassData == NULL)
   {
@@ -478,7 +474,8 @@ static uint8_t  USBD_CDC_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   if (pdev->pClassData != NULL)
   {
     ((USBD_CDC_ItfTypeDef *)pdev->pUserData)->DeInit();
-    USBD_free(pdev->pClassData);
+    //TODO Remove comment below
+    //USBD_free(pdev->pClassData);
     pdev->pClassData = NULL;
   }
 
@@ -695,7 +692,7 @@ static uint8_t  *USBD_CDC_GetHSCfgDesc(uint16_t *length)
   * @param  length : pointer data length
   * @retval pointer to descriptor buffer
   */
-static uint8_t  *USBD_CDC_GetOtherSpeedCfgDesc(uint16_t *length)
+static uint8_t *USBD_CDC_GetOtherSpeedCfgDesc(uint16_t *length)
 {
   *length = sizeof(USBD_CDC_OtherSpeedCfgDesc);
   return USBD_CDC_OtherSpeedCfgDesc;

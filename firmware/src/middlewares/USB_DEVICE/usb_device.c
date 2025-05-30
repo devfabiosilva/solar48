@@ -11,18 +11,13 @@ usb_receive_cb_t recv_cb = NULL;
 usb_receive_complete_cb_t recv_complete = NULL;
 USBD_HandleTypeDef hUsbDeviceFS;
 
-#define USBD_VID 1155
-#define USBD_LANGID_STRING 1033
-#define USBD_MANUFACTURER_STRING "DevFabioSilva"
-#define USBD_PID_FS 22336
-#define USBD_PRODUCT_STRING_FS "Solar48 Virtual Communication Port for 48 V solar panel"
-#define USBD_CONFIGURATION_STRING_FS "CDC Config"
-#define USBD_INTERFACE_STRING_FS "CDC Interface"
-
-/** @defgroup USBD_DESC_Private_FunctionPrototypes USBD_DESC_Private_FunctionPrototypes
-  * @brief Private functions declaration.
-  * @{
-  */
+#define USBD_VID                       1155
+#define USBD_LANGID_STRING             1033
+#define USBD_MANUFACTURER_STRING       "DevFabioSilva"
+#define USBD_PID_FS                    22336
+#define USBD_PRODUCT_STRING_FS         "Solar48 Virtual Communication Port for 48 V solar panel"
+#define USBD_CONFIGURATION_STRING_FS   "CDC Config"
+#define USBD_INTERFACE_STRING_FS       "CDC Interface"
 
 static void Get_SerialNum(void);
 static void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);
@@ -591,7 +586,7 @@ void init_usb_device(usb_receive_cb_t receive_cb, usb_receive_complete_cb_t rece
 uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
-  /* USER CODE BEGIN 7 */
+
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
   if (hcdc->TxState != 0){
     USB_ERROR(E_USB_TRANSMIT_BUSY);
@@ -602,7 +597,7 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   if (result != USBD_OK) {
     USB_ERROR(E_USB_TRANSMIT_FAIL);
   }
-  /* USER CODE END 7 */
+
   return result;
 }
 
