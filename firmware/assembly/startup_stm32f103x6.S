@@ -1,18 +1,23 @@
 /*
-_estack     Topo da stack 
-_sidata     Início dos dados na Flash 
-_sdata      Início dos dados na RAM 
-_edata      Fim dos dados na RAM 
-_sbss       Início da bss 
-_ebss       Fim da bss
+_estack     Top of the stack 
+_sidata     Start of Flash data 
+_sdata      Start of SRAM data 
+_edata      End of SRAM daya 
+_sbss       Start of bss 
+_ebss       End of bss
 */
+
+.macro loop_forever
+    b .
+.endm
+
   .syntax unified
   .cpu cortex-m3
   .fpu softvfp
   .thumb
 
 .global g_pfnVectors
-.global _start
+.global _solar48_entrypoint
 
 /* start address for the initialization values of the .data section.
 defined in linker script */
@@ -35,10 +40,9 @@ defined in linker script */
  * @param  None
  * @retval : None
 */
-
-  .section .text._start
-  .type _start, %function
-_start:
+  .section .text._solar48_entrypoint
+  .type _solar48_entrypoint, %function
+_solar48_entrypoint:
 
 /* Call the clock system initialization function.*/
   bl system_init
@@ -75,14 +79,14 @@ LoopFillZerobss:
   bcc FillZerobss
 
 /* Call static constructors */
-/*    bl __libc_init_array */
+/*    bl __libc_init_array This C++ library is not necessary. Removing to reduce FLASH used size */
 /* Call the application's entry point.*/
   bl setup
   bl run
   bl halt
-  bl Infinite_Loop
+  loop_forever
   bx lr
-.size _start, .-_start
+.size _solar48_entrypoint, .-_solar48_entrypoint
 
 /**
  * @brief  This is the code that gets called when the processor receives an
@@ -92,11 +96,11 @@ LoopFillZerobss:
  * @param  None
  * @retval : None
 */
-    .section .text.Default_Handler,"ax",%progbits
+.section .text.Default_Handler,"ax",%progbits
 Default_Handler:
-Infinite_Loop:
-  b Infinite_Loop
-  .size Default_Handler, .-Default_Handler
+  bl halt_ir
+  loop_forever
+.size Default_Handler, .-Default_Handler
 /******************************************************************************
 *
 * The minimal vector table for a Cortex M3.  Note that the proper constructs
@@ -112,7 +116,7 @@ Infinite_Loop:
 g_pfnVectors:
 
   .word _estack
-  .word _start + 1
+  .word _solar48_entrypoint + 1
   .word NMI_Handler
   .word HardFault_Handler
   .word MemManage_Handler

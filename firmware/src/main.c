@@ -1,5 +1,7 @@
 #include <stddef.h>
+#include <system.h>
 #include <usb_device.h>
+#include <rtc.h>
 #include <usb_io.h>
 #include <gpios.h>
 #include <time.h>
@@ -16,11 +18,15 @@ volatile int hasError = 0;
 void usb_receive(uint8_t *, uint32_t);
 void usb_receive_complete();
 void usb_error(int);
+void realtime(uint32_t);
 
 void setup()
 {
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
+  init_rtc(realtime);
   init_gpios();
+
+  END_SETUP
 }
 
 void run(void)
@@ -43,7 +49,14 @@ void run(void)
 
 void halt()
 {
-// It would not happen
+  // It could not happen. If happens report bug and disable all interrupts
+  DISABLE_SETUP
+}
+
+void halt_ir()
+{
+  // It could not happen. If happens report bug and disable all interrupts
+  DISABLE_SETUP
 }
 
 static char text[1024];
@@ -97,5 +110,21 @@ void usb_error(int value)
       hasError = 5;
   }
 
+}
+
+//TODO refactor. Testing
+char value[32];
+volatile int blink = 0;
+void realtime(uint32_t time)
+{
+  int n = snprintf(value, sizeof(value), "\n%ld\n", time);
+  CDC_Transmit_FS((uint8_t*)value, n);
+  if (blink) {
+    ledon();
+    blink = 0;
+  } else {
+    ledoff();
+    blink = 1;
+  }
 }
 

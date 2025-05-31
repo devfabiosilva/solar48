@@ -1,7 +1,9 @@
 /* STM32F103C8T6 - 64 KB Flash, 20 KB RAM */
 
-ENTRY(_start)
+/* Entry point */
+ENTRY(_solar48_entrypoint)
 
+/* Hardware definition for GCC compiler */
 MEMORY
 {
   FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 64K
@@ -10,29 +12,31 @@ MEMORY
 
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* Top of stack */
 
-__ram_origin = ORIGIN(RAM);
-__ram_length = LENGTH(RAM);
-__flash_origin = ORIGIN(FLASH);
-__flash_length = LENGTH(FLASH);
+__ram_origin = ORIGIN(RAM); /* Position of begining of SRAM address */
+__ram_length = LENGTH(RAM); /* Length of defined HARDWARE: STM32F103C8T6 - 64 KB Flash, 20 KB RAM */
+__flash_origin = ORIGIN(FLASH); /* Position of begining of FLASH address */
+__flash_length = LENGTH(FLASH); /* Length of defined HARDWARE: STM32F103C8T6 - 64 KB Flash, 20 KB RAM */
 
 SECTIONS
 {
-  /* Vetor de interrupções e código */
+  /* Hardware interrupt code vector page 98  */
   .isr_vector :
   {
     KEEP(*(.isr_vector))
   } > FLASH
 
+  /* Firmware instructions compiled from Assembly and C code */
   .text :
   {
     *(.text*)
-    *(.rodata*)   /* Constantes */
+    *(.rodata*)   /* Consts */
     _etext = .;
   } > FLASH
 
-  /* Copiar valores inicializados da flash para a RAM */
+  /* Initialize and copy flash data to SRAM */
   _sidata = _etext;
 
+  /* Start of SRAM data */
   .data : AT(_sidata)
   {
     _sdata = .;
@@ -40,7 +44,7 @@ SECTIONS
     _edata = .;
   } > RAM
 
-  /* Variáveis não inicializadas */
+  /* Unitialized variable block */
   .bss :
   {
     _sbss = .;
@@ -49,7 +53,7 @@ SECTIONS
     _ebss = .;
   } > RAM
 
-  /* Heap opcional */
+  /* Optional Heap */
   .heap (COPY):
   {
     _sheap = .;
@@ -57,9 +61,7 @@ SECTIONS
     _eheap = .;
   } > RAM
 
-  /* Stack já definido pelo _estack */
-
-  /* Endereço final do programa */
+  /* EOP. End of SRAM */
 
   end = .;
   _end = end;

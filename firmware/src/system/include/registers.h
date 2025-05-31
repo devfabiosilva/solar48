@@ -3,9 +3,11 @@
 
 #define SET_BIT(REG, BIT)     ((REG) |= (BIT))
 #define READ_BIT(REG, BIT)    ((REG) & (BIT))
+//RCC_BDCR
 
 #include <stm32f103x6.h>
 // Clock page 121
+//RCC BASE REGISTER MAP PAG 121
 //#define RCC_BASE     0x40021000
 //BEGIN Clock->RCC_CR (Page 99)
 #define RCC_CR (*(volatile uint32_t *)(RCC_BASE + 0x00))
@@ -87,10 +89,48 @@
 //BEGIN Clock->RCC_APB1ENR (Page 115)
 #define RCC_APB1ENR (*(volatile uint32_t *)(RCC_BASE + 0x1C))
 #define USBEN (1<<23)
-//TODO implement read/sets for RCC_APB1ENR if neede
+#define PWREN (1<<28)
+//TODO implement read/sets for RCC_APB1ENR if needed
 //END Clock->RCC_APB1ENR
 
+// RTC Clock (Page 118)
+#define RCC_BDCR  (*(volatile uint32_t *)(RCC_BASE + 0x20))
+ #define RTC_SEL_mask (0x03<<8)
+ #define LSE_oscillator_clock_used_as_RTC_clock ((0x01)<<8)
+ #define LSEON (1<<0)
+ #define LSERDY (1<<1)
+ #define RTCEN (1<<15)
+ #define BDRST (1<<16)
 //END CLOCK
+
+//Power control register PAGE 77 
+#define PWR_CR (*(volatile uint32_t *)(PWR_BASE + 0x00))
+  #define DBP (1<<8)
+
+//RTC REGISTERS Page 487
+#define RTC_CRH (*(volatile uint16_t *)(RTC_BASE + 0x00))
+  #define SECIE (1<<0)
+
+#define RTC_CRL (*(volatile uint16_t *)(RTC_BASE + 0x04)) // Page 488
+  #define RTOFF (1<<5)
+  #define CNF (1<<4)
+  #define RSF (1<<3)
+  #define OWF (1<<2)
+  #define ALRF (1<<1)
+  #define SECF (1<<0)
+
+#define RTC_PRLH (*(volatile uint16_t *)(RTC_BASE + 0x08)) //Page 489
+  #define RTC_PRLH_mask (0x0F)
+
+#define RTC_PRLL (*(volatile uint16_t *)(RTC_BASE + 0x0C)) //Page 490
+
+#define RTC_DIVH (*(volatile uint16_t *)(RTC_BASE + 0x10)) //Page 490
+    #define RTC_DIVH_mask 0x0F
+
+#define RTC_DIVL (*(volatile uint16_t *)(RTC_BASE + 0x14)) //Page 490
+
+#define RTC_CNTH (*(volatile uint16_t *)(RTC_BASE + 0x18)) //Page 491
+#define RTC_CNTL (*(volatile uint16_t *)(RTC_BASE + 0x1C)) //Page 491
 
 //GPIO
 //#define GPIOC_BASE   0x40011000
