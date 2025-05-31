@@ -36,7 +36,7 @@ defined in linker script */
  * @brief  This is the code that gets called when the processor first
  *          starts execution following a reset event. Only the absolutely
  *          necessary set is performed, after which the application
- *          supplied main() routine is called.
+ *          supplied run() routine is called.
  * @param  None
  * @retval : None
 */

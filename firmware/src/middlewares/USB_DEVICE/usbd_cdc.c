@@ -5,22 +5,7 @@
 #include <usbd_ctlreq.h>
 #include <hal_usb.h>
 
-//TODO REFACTOR
-/**
-  * @brief  Static single allocation.
-  * @param  size: Size of allocated memory
-  * @retval None
-  */
-//TODO Remove
-//void *USBD_static_malloc(uint32_t size)
-//{
-//  static uint32_t mem[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
-//  return mem;
-//}
-/** Alias for memory allocation. */
-//#define USBD_malloc         (uint32_t *)USBD_static_malloc
 static uint32_t USBD_malloc[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
-//#define USBD_free(X) (void)X
 
 static uint8_t  USBD_CDC_Init(USBD_HandleTypeDef *pdev,
                               uint8_t cfgidx);

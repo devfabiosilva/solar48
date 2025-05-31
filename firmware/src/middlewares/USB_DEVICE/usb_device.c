@@ -5,6 +5,7 @@
 #include <usb_def.h>
 #include <usb_device.h>
 #include <usbd_cdc.h>
+#include <usbd_cdc_if.h>
 
 error_callback_t usb_err_fn = NULL;
 usb_receive_cb_t recv_cb = NULL;
@@ -280,8 +281,8 @@ static void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len)
 
 #define USB_ERROR(error) ERROR_CALLBACK(usb_err_fn, error)
 
-#define APP_RX_DATA_SIZE  1024
-#define APP_TX_DATA_SIZE  1024
+//#define APP_RX_DATA_SIZE  1024
+//#define APP_TX_DATA_SIZE  1024
 
 /** @defgroup USBD_CDC_IF_Private_Variables USBD_CDC_IF_Private_Variables
   * @brief Private variables.

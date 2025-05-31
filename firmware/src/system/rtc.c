@@ -56,6 +56,7 @@ void init_rtc(rtc_cb rtc_callback)
   NVIC_SetPriority(RTC_IRQn, 10);
 }
 
+#define CURRENT_TIMESTAMP RTC_CNTH<<16|RTC_CNTL
 void RTC_IRQHandler(void)
 {
   //SECF: Second flag set by hardware if prescale overflows. Set by hardware and . Page 
@@ -64,9 +65,20 @@ void RTC_IRQHandler(void)
     if (rtc_caller) {
       while ((RTC_CRL & RSF) == 0);
       // Hardwware read counter and parsing to caller
-      rtc_caller(RTC_CNTH<<16|RTC_CNTL);
-      RTC_CRL &= ~RSF;
+      rtc_caller(CURRENT_TIMESTAMP);
     }
+    RTC_CRL &= ~RSF;
   }
 }
+
+uint32_t old_current_time = 0;
+
+uint32_t rtc_get_timestamp()
+{
+  if (RTC_CRL & RSF)
+    return old_current_time = CURRENT_TIMESTAMP;
+
+  return old_current_time;
+}
+#undef CURRENT_TIMESTAMP
 

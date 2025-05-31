@@ -8,6 +8,7 @@
 #include <errors.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 //#include <stdlib.h>
 //dmesg -w
@@ -23,7 +24,7 @@ void realtime(uint32_t);
 void setup()
 {
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
-  init_rtc(realtime);
+  init_rtc(NULL);
   init_gpios();
 
   END_SETUP
@@ -40,11 +41,9 @@ void run(void)
 	hasError = 0;
     }
 
-    usb_print_memory_usage();
-    delay_seconds(1);
-
+    //usb_print_memory_info();
+    delay_seconds(2);
   }
-
 }
 
 void halt()
@@ -64,21 +63,41 @@ size_t text_sz = 0;
 
 void usb_receive(uint8_t *buf, uint32_t buf_sz)
 {
-  if ((size_t)buf_sz > sizeof(text))
-    text_sz = sizeof(text);
+  if ((size_t)buf_sz > sizeof(text)-1)
+    text_sz = sizeof(text)-1;
   else
     text_sz = (size_t)buf_sz;
 
   memcpy(text, buf, text_sz);
+  text[text_sz] = 0;
   
 }
 
+#define COMMAND_CHECK(cmd, ...) \
+  if (strncmp(text, cmd, sizeof(cmd)) == 0) { \
+    usb_printf(__VA_ARGS__); \
+    return; \
+  }
+
+#define COMMAND_CHECK_CALL(cmd, fn) \
+  if (strncmp(text, cmd, sizeof(cmd)) == 0) {\
+    fn(); \
+    return; \
+  }
+ 
+
+//bool lock_loop = false;
 void usb_receive_complete()
 {
-  if (text_sz >= 4 && memcmp(text, "ping", 4) == 0) {
-     const char *msg = "pong\r\n";
-     CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
-  }
+  if (text_sz <= 2)
+    return;
+
+  COMMAND_CHECK("ping", "\n\n\nPONG\n\n\n")
+  COMMAND_CHECK_CALL("meminfo", usb_print_memory_info)
+  COMMAND_CHECK("timestamp", "\n\n\nTIMESTAMP: %ld\n\n\n", rtc_get_timestamp())
+
+  usb_printf("Invalid command %.*s\n\n", text_sz, text);
+
 }
 
 void usb_error(int value)
@@ -113,12 +132,11 @@ void usb_error(int value)
 }
 
 //TODO refactor. Testing
-char value[32];
 volatile int blink = 0;
 void realtime(uint32_t time)
 {
-  int n = snprintf(value, sizeof(value), "\n%ld\n", time);
-  CDC_Transmit_FS((uint8_t*)value, n);
+
+  usb_printf("\n\nTIMESTAMP: %ld | TEXT SIZE: %ld\n\n", rtc_get_timestamp(), text_sz);
   if (blink) {
     ledon();
     blink = 0;
