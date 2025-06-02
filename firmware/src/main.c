@@ -33,6 +33,8 @@ void setup()
 void run(void)
 {
   blink_n(4);
+  rtc_set_timestamp(80500);
+
   while (1) {
     //blink_n(2);
     while (hasError) {
@@ -70,7 +72,7 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
 
   memcpy(text, buf, text_sz);
   text[text_sz] = 0;
-  
+
 }
 
 #define COMMAND_CHECK(cmd, ...) \
