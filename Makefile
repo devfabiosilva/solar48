@@ -11,12 +11,13 @@ PREFIX_MCU_TYPE=_stm32f103x6
 STARTUP_FILE=startup$(PREFIX_MCU_TYPE)
 LINKER_FILE=linker$(PREFIX_MCU_TYPE)
 #LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections
-LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections -lc -mfloat-abi=soft -lgcc -lnosys --specs=nano.specs -u malloc -u free -u snprintf -u memcmp -u strlen -u vsnprintf -u strncmp
+LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections -lc -mfloat-abi=soft -lgcc -lnosys --specs=nano.specs -u malloc -u free -u snprintf -u memcmp -u strlen -u vsnprintf -u strncmp -u memset -u strncpy
 SYSTEM_FOLDER=$(SRC_FOLDER)/system
 SYSTEM_FOLDER_INC=$(SYSTEM_FOLDER)/include
 MIDDLEWARE_FOLDER=$(SRC_FOLDER)/middlewares
 MIDDLEWARE_FOLDER_INC=$(MIDDLEWARE_FOLDER)/include
 MIDDLEWARE_FOLDER_USB=$(SRC_FOLDER)/middlewares/USB_DEVICE
+MIDDLEWARE_FOLDER_CONSOLE=$(SRC_FOLDER)/middlewares/CONSOLE
 
 
 SYS_SRC = $(wildcard $(SYSTEM_FOLDER)/*.c)
@@ -26,6 +27,10 @@ SYS_OBJ_RELEASE = $(patsubst $(SYSTEM_FOLDER)/%.c,%_release.o,$(SYS_SRC))
 MIDDLEWARE_USB_SRC = $(wildcard $(MIDDLEWARE_FOLDER_USB)/*.c) 
 MIDDLEWARE_USB_OBJ = $(patsubst $(MIDDLEWARE_FOLDER_USB)/%.c,%.o,$(MIDDLEWARE_USB_SRC))
 MIDDLEWARE_USB_OBJ_RELEASE = $(patsubst $(MIDDLEWARE_FOLDER_USB)/%.c,%_release.o,$(MIDDLEWARE_USB_SRC))
+
+MIDDLEWARE_CONSOLE_SRC = $(wildcard $(MIDDLEWARE_FOLDER_CONSOLE)/*.c) 
+MIDDLEWARE_CONSOLE_OBJ = $(patsubst $(MIDDLEWARE_FOLDER_CONSOLE)/%.c,%.o,$(MIDDLEWARE_CONSOLE_SRC))
+MIDDLEWARE_CONSOLE_OBJ_RELEASE = $(patsubst $(MIDDLEWARE_FOLDER_CONSOLE)/%.c,%_release.o,$(MIDDLEWARE_CONSOLE_SRC))
 
 OUT = solar48
 AS_CODE=text.txt
@@ -41,7 +46,11 @@ all: $(OUT).bin
 	@echo "DEBUG: Compiling USB middleware modules ..."
 	$(CC) $(CFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
 
-$(OUT).elf: $(SRC_FOLDER)/main.c $(SYS_OBJ) $(MIDDLEWARE_USB_OBJ) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
+%.o: $(MIDDLEWARE_FOLDER)/CONSOLE/%.c
+	@echo "DEBUG: Compiling CONSOLE middleware modules ..."
+	$(CC) $(CFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
+
+$(OUT).elf: $(SRC_FOLDER)/main.c $(SYS_OBJ) $(MIDDLEWARE_CONSOLE_OBJ) $(MIDDLEWARE_USB_OBJ) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
 	$(CC) $(CFLAGS) $(LDFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -o $@ $^
 
 $(OUT).bin: $(OUT).elf
@@ -68,7 +77,11 @@ nm: $(OUT).elf
 	@echo "RELEASE: Compiling USB middlewares module ..."
 	$(CC) $(CFLAGS_RELEASE) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
 
-$(OUT)_release.elf: $(SRC_FOLDER)/main.c $(SYS_OBJ_RELEASE) $(MIDDLEWARE_USB_OBJ_RELEASE) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
+%_release.o: $(MIDDLEWARE_FOLDER)/CONSOLE/%.c
+	@echo "RELEASE: Compiling CONSOLE middlewares module ..."
+	$(CC) $(CFLAGS_RELEASE) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
+
+$(OUT)_release.elf: $(SRC_FOLDER)/main.c $(SYS_OBJ_RELEASE) $(MIDDLEWARE_CONSOLE_OBJ_RELEASE) $(MIDDLEWARE_USB_OBJ_RELEASE) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
 	$(CC) $(CFLAGS_RELEASE) $(LDFLAGS) -I$(MIDDLEWARE_FOLDER_INC) -I$(SYSTEM_FOLDER_INC) -o $@ $^
 
 $(OUT)_release.bin: $(OUT)_release.elf

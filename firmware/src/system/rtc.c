@@ -30,7 +30,7 @@ void init_rtc(rtc_cb rtc_callback)
   RCC_BDCR |= RTCEN;
 
   // Wait hardware syncronization Registers synchronized flag. Page 488
-  RTC_CRL &= ~RSF;
+  //RTC_CRL &= ~RSF; // Unecessary. Remove it
   while ((RTC_CRL & RSF) == 0);
 
   while ((RTC_CRL & RTOFF) == 0);
@@ -55,18 +55,18 @@ void init_rtc(rtc_cb rtc_callback)
   NVIC_SetPriority(RTC_IRQn, 10);
 }
 
-#define CURRENT_TIMESTAMP RTC_CNTH<<16|RTC_CNTL
+#define CURRENT_TIMESTAMP ((RTC_CNTH<<16)|(RTC_CNTL))
 void RTC_IRQHandler(void)
 {
   //SECF: Second flag set by hardware if prescale overflows. Set by hardware and . Page 
   if (RTC_CRL & SECF) {
     RTC_CRL &= ~SECF;
     if (rtc_caller) {
-      while ((RTC_CRL & RSF) == 0);
+      //while ((RTC_CRL & RSF) == 0); // Unecessary. Testing for removal
       // Hardwware read counter and parsing to caller
       rtc_caller(CURRENT_TIMESTAMP);
     }
-    RTC_CRL &= ~RSF;
+    //RTC_CRL &= ~RSF; // Unecessary testing for removing
   }
 }
 
@@ -113,18 +113,26 @@ void rtc_set_timestamp(uint32_t time)
 }
 
 // 0 is common year, 1 is leap year
-unsigned char is_leap_year(unsigned int year)
+bool is_leap_year(unsigned int year)
 {
-  return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+  return ((year % 4 == 0) && (year % 100 != 0 || year % 400 == 0));
 }
 
 static const unsigned char days_in_month[] = {
   31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
 
-// Return day if valid, or 0 if invalid date or -1 if unable to calculate
-static char valid_date(unsigned int year, unsigned char month, unsigned char day)
+inline bool valid_time(uint8_t hour, uint8_t min, uint8_t sec)
 {
+  return (hour < 24) && (min < 60) && (sec < 60);
+}
+
+// Return day if valid, or 0 if invalid date or -1 if unable to calculate and (optional, calculates if is leap year)
+static char valid_date(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
+{
+  if (out_is_leap_year)
+    *out_is_leap_year = false;
+
   if (month < 1 || month > 12 || year < 1753 )
     return -1;
 
@@ -133,10 +141,14 @@ static char valid_date(unsigned int year, unsigned char month, unsigned char day
   if (month == 2 && is_leap_year(year))
     max_day = 29;
 
+  if (out_is_leap_year)
+    *out_is_leap_year = (((month == 2) && (max_day == 29)) || (is_leap_year(year)));
+
   return (day <= max_day) ? day : 0;
 }
 
-static int get_day(int y, int m, int d)
+// Get day of the week 0 for Sun and 6 for Sat
+int get_day(int y, int m, int d)
 {
   //Sakamoto's formula
   return (d += m < 3 ? y-- : y - 2 , 23 * m / 9 + d + 4 + y / 4 - y / 100 + y / 400) % 7;
@@ -144,9 +156,14 @@ static int get_day(int y, int m, int d)
 
 static const char *weekday[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "??"};
 
-static const char *get_day_str(int y, int m, int d)
+const char *get_day_str(int y, int m, int d)
 {
   return (const char *)weekday[get_day(y, m, d) & 0x07];
+}
+
+const char *get_day_str1(int week_day)
+{
+  return (const char *)weekday[(size_t)(week_day & 0x07)];
 }
 
 #define MINUTES_IN_SECONDS (uint32_t)(60)
@@ -173,13 +190,23 @@ static uint32_t month_table[] = {
  DAY_SEP, DAY_OCT, DAY_NOV, DAY_DEC
 };
 
-void get_solar48_local_date(SOLAR48_DATE *sd)
+#define UNIX_YEAR_TIMESTAMP (uint32_t)1970
+
+void get_solar48_date(SOLAR48_DATE *sd, uint32_t *timestamp)
 {
-  uint32_t timestamp = rtc_get_timestamp();
 
-  sd->year = (uint16_t)((uint32_t)(timestamp / YEARS_IN_SECONDS)) + 1970;
+  uint32_t *timestamp_p, tm;
 
-  uint32_t seconds_left_in_year = timestamp % YEARS_IN_SECONDS;
+  if (timestamp)
+    timestamp_p = timestamp;
+  else {
+    tm = rtc_get_timestamp();
+    timestamp_p = &tm;
+  }
+
+  sd->year = (uint16_t)((uint32_t)(*timestamp_p / YEARS_IN_SECONDS)) + UNIX_YEAR_TIMESTAMP;
+
+  uint32_t seconds_left_in_year = *timestamp_p % YEARS_IN_SECONDS;
 
   uint32_t days = (seconds_left_in_year / DAYS_IN_SECONDS);
   uint32_t past_seconds_in_one_day;
@@ -222,7 +249,37 @@ get_solar48_local_date_resume1:
   sd->minute = (uint8_t)past_minutes_in_one_hour;
   sd->second = (uint8_t)((uint32_t)(past_second_in_one_hour % 60));
 
-  sd->week_day = (uint8_t)get_day((unsigned int)sd->year, sd->month, sd->day);
+  sd->week_day = (uint8_t)get_day((unsigned int)sd->year, (int)sd->month, (int)sd->day);
 }
+
+#define MAX_TIMESTAMP_VALUE (int64_t)(0xFFFFFFFF)
+
+bool set_date(SOLAR48_DATE *sd)
+{
+  bool is_leap_year;
+  if (!(valid_time(sd->hour, sd->minute, sd->second)))
+    return false;
+
+  if (valid_date(&is_leap_year, (unsigned int)sd->year, (unsigned char)sd->month, (unsigned char)sd->day) < 1)
+    return false;
+
+  int64_t timestamp = (int64_t)(sd->year - UNIX_YEAR_TIMESTAMP)*YEARS_IN_SECONDS +
+    (int64_t)((sd->day > 1)?sd->day:0)*DAYS_IN_SECONDS + (uint64_t)(sd->hour*HOURS_IN_SECONDS) + (uint64_t)(sd->minute*MINUTES_IN_SECONDS) + (int64_t)sd->second;
+
+  if (sd->month > 1) {
+    timestamp += ((int64_t)month_table[(size_t)(sd->month - 2)]*DAYS_IN_SECONDS);
+
+    if (is_leap_year) // Is leap year
+      timestamp += DAYS_IN_SECONDS;
+  }
+
+  if ((timestamp < 0) && (timestamp > MAX_TIMESTAMP_VALUE))
+    return false;
+
+  rtc_set_timestamp((uint32_t)timestamp);
+
+  return true;
+}
+
 #undef CURRENT_TIMESTAMP
 

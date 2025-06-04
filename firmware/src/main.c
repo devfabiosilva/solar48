@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <console.h>
 
 //#include <stdlib.h>
 //dmesg -w
@@ -20,6 +21,7 @@ void usb_receive(uint8_t *, uint32_t);
 void usb_receive_complete();
 void usb_error(int);
 void realtime(uint32_t);
+SOLAR48_DATE sd;
 
 void setup()
 {
@@ -33,7 +35,15 @@ void setup()
 void run(void)
 {
   blink_n(4);
-  rtc_set_timestamp(80500);
+
+  sd.year = 2025;
+  sd.month = 6;
+  sd.day = 2;
+  sd.hour = 22;
+  sd.minute = 19;
+  sd.second = 40;
+
+  set_date(&sd);
 
   while (1) {
     //blink_n(2);
@@ -62,7 +72,7 @@ void halt_ir()
 
 static char text[1024];
 size_t text_sz = 0;
-
+/*
 void usb_receive(uint8_t *buf, uint32_t buf_sz)
 {
   if ((size_t)buf_sz > sizeof(text)-1)
@@ -72,6 +82,32 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
 
   memcpy(text, buf, text_sz);
   text[text_sz] = 0;
+
+}
+*/
+void usb_receive(uint8_t *buf, uint32_t buf_sz)
+{
+  if ((size_t)buf_sz > sizeof(text)-1)
+    text_sz = sizeof(text)-1;
+  else
+    text_sz = (size_t)buf_sz;
+
+  text[text_sz] = 0;
+  char *p = text;
+  size_t tmp = text_sz;
+
+  while (tmp > 0) {
+
+    char c = *(buf++);
+    if ((c != '\r') && (c != '\n'))
+      *(p++) = c;
+    else {
+      *p = 0;
+      break;
+    }
+ 
+    --tmp;
+  }
 
 }
 
@@ -86,6 +122,12 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
     fn(); \
     return; \
   }
+
+#define COMMAND_CHECK_CALL_ARG(cmd, fn, arg) \
+  if (strncmp(text, cmd, sizeof(cmd)-1) == 0) {\
+    fn(arg); \
+    return; \
+  }
  
 
 //bool lock_loop = false;
@@ -97,6 +139,8 @@ void usb_receive_complete()
   COMMAND_CHECK("ping", "\n\n\nPONG\n\n\n")
   COMMAND_CHECK_CALL("meminfo", usb_print_memory_info)
   COMMAND_CHECK("timestamp", "\n\n\nTIMESTAMP: %ld\n\n\n", rtc_get_timestamp())
+  COMMAND_CHECK_CALL_ARG("setdate", cmd_set_date, text)
+  COMMAND_CHECK_CALL("getdate", cmd_get_date)
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 
@@ -138,7 +182,13 @@ volatile int blink = 0;
 void realtime(uint32_t time)
 {
 
-  usb_printf("\n\nTIMESTAMP: %ld | TEXT SIZE: %ld\n\n", rtc_get_timestamp(), text_sz);
+//  usb_printf("\n\nTIMESTAMP: %ld | TEXT SIZE: %ld\n\n", rtc_get_timestamp(), text_sz);
+  uint32_t tm = time;
+  get_solar48_date(&sd, &tm);
+
+  usb_printf("\n\nTIME: %u:%u:%u\n\n", sd.hour, (uint32_t)sd.minute, (uint32_t)sd.second);
+  usb_printf("\n\nDay (yyyy/mm/dd): %s - %u/%u/%u\n\n", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (uint32_t)sd.month, (uint32_t)sd.day);
+
   if (blink) {
     ledon();
     blink = 0;
