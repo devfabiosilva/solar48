@@ -7,17 +7,109 @@
 #include <errno.h>
 #include <rtc.h>
 
-#define COMP_ARGUMENT_COMMAND(cmd) \
-  if (strncmp(#cmd, argument_buffer, sizeof(#cmd))) {\
-    usb_printf("\nInvalid command. Did you mean \"%s\"?\n", #cmd);\
-    return;\
-  }
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
 static char *argc_max_vec[ARG_MAX_VEC_SZ];
 static char argument_buffer[ARGUMENT_BUFFER_MAX_SIZE];
 #define MAX_VEC_END argc_max_vec[ARG_MAX_VEC_SZ - 1]
 #define MAX_BUF_END argument_buffer[ARGUMENT_BUFFER_MAX_SIZE -2]
+static uint16_t build_argc(char *argument);
+
+#define COMP_ARGUMENT_COMMAND(cmd) \
+  if (strncmp(#cmd, argument_buffer, sizeof(#cmd))) {\
+    usb_printf("\nInvalid command. Did you mean \"%s\"?\n", #cmd);\
+    return;\
+  }
+
+#define CMD_BEGIN_ARG(name) \
+void name##_cmd(char *argument) \
+{\
+  uint16_t argc = build_argc(argument);\
+\
+  COMP_ARGUMENT_COMMAND(name)
+
+#define CMD_BEGIN_NOARG(name) \
+void name##_cmd(char *argument) \
+{\
+  uint16_t argc = build_argc(argument);\
+\
+  COMP_ARGUMENT_COMMAND(name) \
+\
+  if (argc) {\
+    usb_printf("\n\nToo many arguments: %d. No arguments expected\n\n", (int)argc);\
+    return;\
+  }
+
+#define CMD_END }
+
+CMD_BEGIN_ARG(setdate)
+  if (argc == 0) {
+    usb_printf("\n\n=== TIME SETTINGS ===\n\n\tsetdate:\n\tUSAGE: setdate YEAR MONTH DAY HH mm ss\n\n");
+    return;
+  }
+
+  usb_printf("\n\nTODO: Not implemented yet\n\n");
+CMD_END
+
+CMD_BEGIN_NOARG(help)
+  usb_printf(\
+    "\n\n=== SOLAR48 USAGE ===\n\n"\
+    "getdate [timestamp]                -> reads current Solar48 system time or date from parsed timestamp in seconds\n"\
+    "help                               -> shows this help\n"\
+    "meminfo                            -> reads Solar48 system memory\n"\
+    "ping                               -> test connection between host and Solar48\n"\
+    "setdate yyyy mm dd [hh] [mm] [ss]  -> sets Solar48 system data. E.g: 'setdate 2025 01 01 15 20 00'\n"\
+    "timestamp                          -> returns current system timestamp in seconds\n"
+  );
+CMD_END
+
+CMD_BEGIN_ARG(getdate)
+  uint32_t timestamp, *tm = NULL;
+  long int t;
+
+  SOLAR48_DATE sd;
+
+  if (argc == 1) {
+    errno = 0;
+    char *arg1 = argc_max_vec[0];
+    t = strtol((const char *)arg1, NULL, 10);
+
+    if (errno) {
+      usb_printf("\n\nError: %d. Invalid number %s\n\n", (int)errno, arg1);
+      return;
+    }
+
+    if (valid_timestamp((int64_t)t)) {
+      timestamp = (uint32_t)t;
+      tm = &timestamp;
+    } else {
+      usb_printf("\n\nInvalid timestamp range. Valid values 0 .. 2147483647\n\n");
+      return;
+    }
+
+  } else if (argc) {
+    usb_printf("\n\nToo many arguments: %d. Was expected 1\n\n", (int)argc);
+    return;
+  }
+
+  get_solar48_date(&sd, tm);
+
+  usb_printf("\n\n=== SOLAR48 SYSTEM TIME ===\n\n\tDATE (weekday YEAR/MONTH/DAY): %s %d/%d/%d\n\tTIME hh:mm:ss: %d:%d:%d\n\n",\
+    get_day_str1((int)sd.week_day), (int)sd.year, (int)sd.month, (int)sd.day, (int)sd.hour, (int)sd.minute, (int)sd.second);
+CMD_END
+
+CMD_BEGIN_NOARG(timestamp)
+  usb_printf("\nTIMESTAMP: %u\n", rtc_get_timestamp());
+CMD_END
+
+CMD_BEGIN_NOARG(meminfo)
+  usb_print_memory_info();
+CMD_END
+
+CMD_BEGIN_NOARG(ping)
+  usb_printf("\npong\n");
+CMD_END
+
 
 static uint16_t build_argc(char *argument)
 {
@@ -82,69 +174,5 @@ static uint16_t build_argc(char *argument)
   }
 
   return argc;
-}
-
-void cmd_set_date(char *argument)
-{
-  uint16_t argc = build_argc(argument);
-
-  if (argc == 0) {
-    usb_printf("\n\n=== TIME SETTINGS ===\n\n\tsetdate:\n\tUSAGE: setdate YEAR MONTH DAY HH mm ss\n\n");
-    return;
-  }
-
-  usb_printf("\n\nTODO: Not implemented yet\n\n");
-}
-
-void cmd_help()
-{
-  usb_printf(\
-    "\n\n=== SOLAR48 USAGE ===\n\n"\
-    "getdate [timestamp]                -> reads current Solar48 system time or date from parsed timestamp in seconds\n"\
-    "help                               -> shows this help"\
-    "meminfo                            -> reads Solar48 system memory\n"\
-    "ping                               -> test connection between host and Solar48\n"\
-    "setdate yyyy mm dd [hh] [mm] [ss]  -> sets Solar48 system data. E.g: 'setdate 2025 01 01 15 20 00'\n"\
-    "timestamp                          -> returns current system timestamp in seconds\n"
-  );
-}
-
-void getdate_cmd(char *argument)
-{
-  SOLAR48_DATE sd;
-
-  uint16_t argc = build_argc(argument);
-  uint32_t timestamp, *tm = NULL;
-  long int t;
-
-  COMP_ARGUMENT_COMMAND(getdate)
-
-  if (argc == 1) {
-    errno = 0;
-    char *arg1 = argc_max_vec[0];
-    t = strtol((const char *)arg1, NULL, 10);
-
-    if (errno) {
-      usb_printf("\n\nError: %d. Invalid number %s\n\n", (int)errno, arg1);
-      return;
-    }
-
-    if (valid_timestamp((int64_t)t)) {
-      timestamp = (uint32_t)t;
-      tm = &timestamp;
-    } else {
-      usb_printf("\n\nInvalid timestamp range. Valid values 0 .. 2147483647\n\n");
-      return;
-    }
-
-  } else if (argc) {
-    usb_printf("\n\nToo many arguments: %d. Was expected 1\n\n", (int)argc);
-    return;
-  }
-
-  get_solar48_date(&sd, tm);
-
-  usb_printf("\n\n=== SOLAR48 SYSTEM TIME ===\n\n\tDATE (weekday YEAR/MONTH/DAY): %s %d/%d/%d\n\tTIME hh:mm:ss: %d:%d:%d\n\n",\
-    get_day_str1((int)sd.week_day), (int)sd.year, (int)sd.month, (int)sd.day, (int)sd.hour, (int)sd.minute, (int)sd.second);
 }
 

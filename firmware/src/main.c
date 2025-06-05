@@ -98,29 +98,6 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
   }
 }
 
-#define COMMAND_CHECK(cmd, ...) \
-  if (strncmp(text, cmd, sizeof(cmd)) == 0) { \
-    usb_printf(__VA_ARGS__); \
-    return; \
-  }
-
-#define COMMAND_CHECK_CALL(cmd, fn) \
-  if (strncmp(text, cmd, sizeof(cmd)) == 0) {\
-    fn(); \
-    return; \
-  }
-
-#define COMMAND_CHECK_CALL_ARG(cmd, fn, arg) \
-  if (strncmp(text, cmd, sizeof(cmd)-1) == 0) {\
-    fn(arg); \
-    return; \
-  }
-
-#define COMMAND_CHECK_CALL_ARG1(command) \
-  if (strncmp(text, #command, sizeof(#command)-1) == 0) {\
-    command##_cmd(text); \
-    return; \
-  }
 
 void usb_receive_complete()
 {
@@ -128,12 +105,12 @@ void usb_receive_complete()
   if (text_sz <= 2)
     return;
 */
-  COMMAND_CHECK("ping", "\n\n\nPONG\n\n\n")
-  COMMAND_CHECK_CALL("meminfo", usb_print_memory_info)
-  COMMAND_CHECK("timestamp", "\n\n\nTIMESTAMP: %ld\n\n\n", rtc_get_timestamp())
-  COMMAND_CHECK_CALL_ARG("setdate", cmd_set_date, text)
-  COMMAND_CHECK_CALL_ARG1(getdate)
-  COMMAND_CHECK_CALL("help", cmd_help)
+  COMMAND_CHECK_CALL_ARG(ping)
+  COMMAND_CHECK_CALL_ARG(meminfo)
+  COMMAND_CHECK_CALL_ARG(timestamp)
+  COMMAND_CHECK_CALL_ARG(setdate)
+  COMMAND_CHECK_CALL_ARG(getdate)
+  COMMAND_CHECK_CALL_ARG(help)
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 

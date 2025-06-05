@@ -1,9 +1,35 @@
 #ifndef CONSOLE_H
   #define CONSOLE_H
 
-void cmd_set_date(char *);
+#define COMMAND_CHECK_CALL_ARG(command) \
+  if (strncmp(text, #command, sizeof(#command)-1) == 0) {\
+    command##_cmd(text); \
+    return; \
+  }
+/*
+#define COMMAND_CHECK(cmd, ...) \
+  if (strncmp(text, cmd, sizeof(cmd)) == 0) { \
+    usb_printf(__VA_ARGS__); \
+    return; \
+  }
+
+#define COMMAND_CHECK_CALL(cmd, fn) \
+  if (strncmp(text, cmd, sizeof(cmd)) == 0) {\
+    fn(); \
+    return; \
+  }
+#define COMMAND_CHECK(cmd, ...) \
+  if (strncmp(text, cmd, sizeof(cmd)) == 0) { \
+    usb_printf(__VA_ARGS__); \
+    return; \
+  }
+*/
+void setdate_cmd(char *);
 void getdate_cmd(char *);
-void cmd_help();
+void help_cmd(char *);
+void timestamp_cmd(char *);
+void ping_cmd(char *);
+void meminfo_cmd(char *);
 
 #endif
 
