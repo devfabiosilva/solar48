@@ -30,6 +30,7 @@ int get_day(int, int, int);
 // Date/Time validation
 bool is_leap_year(unsigned int);
 bool valid_time(uint8_t, uint8_t, uint8_t);
+bool valid_timestamp(int64_t);
 
 #endif
 

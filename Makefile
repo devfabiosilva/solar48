@@ -11,7 +11,7 @@ PREFIX_MCU_TYPE=_stm32f103x6
 STARTUP_FILE=startup$(PREFIX_MCU_TYPE)
 LINKER_FILE=linker$(PREFIX_MCU_TYPE)
 #LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections
-LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections -lc -mfloat-abi=soft -lgcc -lnosys --specs=nano.specs -u malloc -u free -u snprintf -u memcmp -u strlen -u vsnprintf -u strncmp -u memset -u strncpy
+LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections -lc -mfloat-abi=soft -lgcc -lnosys --specs=nano.specs -u malloc -u free -u snprintf -u memcmp -u strlen -u vsnprintf -u strncmp -u memset -u strncpy -u strtol
 SYSTEM_FOLDER=$(SRC_FOLDER)/system
 SYSTEM_FOLDER_INC=$(SYSTEM_FOLDER)/include
 MIDDLEWARE_FOLDER=$(SRC_FOLDER)/middlewares

@@ -283,3 +283,8 @@ bool set_date(SOLAR48_DATE *sd)
 
 #undef CURRENT_TIMESTAMP
 
+inline bool valid_timestamp(int64_t timestamp)
+{
+  return ((timestamp >= 0) && (timestamp <= MAX_TIMESTAMP_VALUE));
+}
+

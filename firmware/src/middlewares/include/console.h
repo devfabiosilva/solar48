@@ -2,6 +2,8 @@
   #define CONSOLE_H
 
 void cmd_set_date(char *);
-void cmd_get_date();
+void getdate_cmd(char *);
+void cmd_help();
 
 #endif
+
