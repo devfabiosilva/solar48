@@ -128,12 +128,12 @@ inline bool valid_time(uint8_t hour, uint8_t min, uint8_t sec)
 }
 
 // Return day if valid, or 0 if invalid date or -1 if unable to calculate and (optional, calculates if is leap year)
-static char valid_date(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
+static int valid_date(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
 {
   if (out_is_leap_year)
     *out_is_leap_year = false;
 
-  if (month < 1 || month > 12 || year < 1753 )
+  if (month < 1 || month > 12 || year < 1753)
     return -1;
 
   unsigned char max_day = days_in_month[month - 1];

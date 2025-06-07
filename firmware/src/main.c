@@ -36,15 +36,6 @@ void run(void)
 {
   blink_n(4);
 
-  sd.year = 2025;
-  sd.month = 6;
-  sd.day = 2;
-  sd.hour = 22;
-  sd.minute = 19;
-  sd.second = 40;
-
-  set_date(&sd);
-
   while (1) {
     //blink_n(2);
     while (hasError) {

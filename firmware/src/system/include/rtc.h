@@ -12,7 +12,7 @@ typedef struct solar48_date_t {
   uint8_t hour; // 0 to 23
   uint8_t minute; // 0 to 59
   uint8_t second; // 0 to 59
-  uint8_t week_day; // day of the week 0 => Sun 6=> Sat
+  uint8_t week_day; // day of the week 0 => Sun 6 => Sat
 } SOLAR48_DATE;
 
 // Initializer RTC HAL
