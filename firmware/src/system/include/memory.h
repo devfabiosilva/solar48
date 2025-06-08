@@ -9,6 +9,9 @@ typedef struct detailed_ram_t {
   uint32_t stack_used;
   uint32_t stack_peak_used;
   uint32_t percent_used;
+#ifdef SOLAR48_DEBUG
+  uint32_t free_heap_stack_gap;
+#endif
 } DETAILED_RAM;
 
 typedef struct detailed_flash_t {

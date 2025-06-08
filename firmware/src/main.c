@@ -35,27 +35,10 @@ void setup()
 
 void run(void)
 {
-  blink_n(4);
-  while (1) {
-    delay_tick(1000);
-    uint64_t now = milliseconds();
-    char val[64];
-    snprintf(val, sizeof(val), "VAL = %llu", now);
-    usb_printf("\nTick %s", val);
-    usb_printf("\nTick high=%lu low=%lu\n", (uint32_t)(now >> 32), (uint32_t)now);
-  }
-/*
-  while (1) {
-    //blink_n(2);
-    while (hasError) {
-	blink_n(hasError);
-	delay_seconds(1);
-	hasError = 0;
-    }
-
-    //usb_print_memory_info();
-    delay_seconds(2);
-  }*/
+  usb_printf("\nInitializing ...\n\n");
+  blink_n(2);
+  usb_printf("\nReady ...\n\n");
+  while (1);
 }
 
 void halt()
@@ -111,6 +94,7 @@ void usb_receive_complete()
   COMMAND_CHECK_CALL_ARG(setdate)
   COMMAND_CHECK_CALL_ARG(getdate)
   COMMAND_CHECK_CALL_ARG(help)
+  COMMAND_CHECK_CALL_ARG(milliseconds)
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 
@@ -151,8 +135,6 @@ void usb_error(int value)
 volatile int blink = 0;
 void realtime(uint32_t time)
 {
-
-//  usb_printf("\n\nTIMESTAMP: %ld | TEXT SIZE: %ld\n\n", rtc_get_timestamp(), text_sz);
   uint32_t tm = time;
   get_solar48_date(&sd, &tm);
 

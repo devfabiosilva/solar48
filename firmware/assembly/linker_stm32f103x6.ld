@@ -25,11 +25,17 @@ SECTIONS
     KEEP(*(.isr_vector))
   } > FLASH
 
+  .ARM.exidx :
+  {
+    *(.ARM.exidx*)
+    *(.gnu.linkonce.armexidx.*)
+  } > FLASH
+
   /* Firmware instructions compiled from Assembly and C code */
   .text :
   {
-    *(.text*)
-    *(.rodata*)   /* Consts */
+    *(.text .text.* .gnu.linkonce.t.*)
+    *(.rodata .rodata.* .gnu.linkonce.r.*)   /* Consts */
     _etext = .;
   } > FLASH
 
@@ -45,11 +51,13 @@ SECTIONS
   } > RAM
 
   /* Unitialized variable block */
-  .bss :
+  .bss (NOLOAD) :
   {
+    . = ALIGN(4);
     _sbss = .;
     *(.bss*)
     *(COMMON)
+    . = ALIGN(4);
     _ebss = .;
   } > RAM
 

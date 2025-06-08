@@ -1,8 +1,8 @@
 ARM_PREFIX = arm-none-eabi-
 CC = $(ARM_PREFIX)gcc
 OBJCOPY = $(ARM_PREFIX)objcopy
-CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall -nostdlib -ffreestanding
-CFLAGS_RELEASE = -mcpu=cortex-m3 -mthumb -O2 -Wall -nostdlib -ffreestanding -Wl,--strip-debug
+CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall -nostdlib -ffreestanding -Wl,-Map=solar48.map -DSOLAR48_DEBUG
+CFLAGS_RELEASE = -mcpu=cortex-m3 -mthumb -O2 -Wall -nostdlib -ffreestanding -Wl,--strip-debug -Wl,-Map=solar48_release.map
 PWD=$(pwd)
 FIRMWARE_FOLDER=firmware
 ASSEMBLY_FOLDER=$(FIRMWARE_FOLDER)/assembly
@@ -11,7 +11,7 @@ PREFIX_MCU_TYPE=_stm32f103x6
 STARTUP_FILE=startup$(PREFIX_MCU_TYPE)
 LINKER_FILE=linker$(PREFIX_MCU_TYPE)
 #LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections
-LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections -lc -mfloat-abi=soft -lgcc -lnosys --specs=nano.specs -u malloc -u free -u snprintf -u memcmp -u strlen -u vsnprintf -u strncmp -u memset -u strncpy -u strtol
+LDFLAGS = -T $(ASSEMBLY_FOLDER)/$(LINKER_FILE).ld -Wl,--gc-sections -lc -mfloat-abi=soft -lgcc -lnosys --specs=nano.specs -u malloc -u free -u memcmp -u strlen -u vsnprintf -u strncmp -u memset -u strncpy -u strtol -u _printf_float -u __aeabi_uldivmod
 SYSTEM_FOLDER=$(SRC_FOLDER)/system
 SYSTEM_FOLDER_INC=$(SYSTEM_FOLDER)/include
 MIDDLEWARE_FOLDER=$(SRC_FOLDER)/middlewares
@@ -57,7 +57,7 @@ $(OUT).bin: $(OUT).elf
 	$(OBJCOPY) -O binary $< $@
 
 clean:
-	rm -f *.elf *.bin *.o $(AS_CODE) $(AS_CODE_RELEASE)
+	rm -f *.map *.elf *.bin *.o $(AS_CODE) $(AS_CODE_RELEASE)
 
 flash: $(OUT).bin
 	st-flash write $(OUT).bin 0x8000000

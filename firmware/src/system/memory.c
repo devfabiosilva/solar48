@@ -63,6 +63,14 @@ static uint32_t get_stack_peak_usage(void)
   return (uint32_t)&_estack - (uint32_t)p8 + left;
 }
 
+#ifdef SOLAR48_DEBUG
+extern uint32_t _eheap;
+
+uint32_t get_free_heap_stack_gap(void) {
+  return (uint32_t)&_estack - (uint32_t)&_eheap;
+}
+#endif
+
 void get_ram_detailed(DETAILED_RAM *dr)
 {
   uint32_t current_stack;
@@ -76,6 +84,9 @@ void get_ram_detailed(DETAILED_RAM *dr)
   dr->stack_used      = (uint32_t)&_estack - current_stack;
   dr->percent_used = 100 - (100*(total_available - dr->stack_used)) / size;
   dr->stack_peak_used = get_stack_peak_usage();
+#ifdef SOLAR48_DEBUG
+  dr->free_heap_stack_gap = get_free_heap_stack_gap();
+#endif
 }
 
 void get_flash_detailed(DETAILED_FLASH *df)

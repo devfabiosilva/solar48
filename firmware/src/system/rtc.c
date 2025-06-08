@@ -252,7 +252,7 @@ get_solar48_local_date_resume1:
   sd->week_day = (uint8_t)get_day((unsigned int)sd->year, (int)sd->month, (int)sd->day);
 }
 
-#define MAX_TIMESTAMP_VALUE (int64_t)(0xFFFFFFFF)
+#define MAX_TIMESTAMP_VALUE (int64_t)(0x00000000FFFFFFFF)
 
 bool set_date(SOLAR48_DATE *sd)
 {

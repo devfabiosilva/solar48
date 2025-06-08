@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <rtc.h>
 #include <types.h>
+#include <time.h>
 
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
@@ -155,10 +156,16 @@ CMD_BEGIN_NOARG(help)
     "getdate [timestamp]                -> reads current Solar48 system time or date from parsed timestamp in seconds\n"\
     "help                               -> shows this help\n"\
     "meminfo                            -> reads Solar48 system memory\n"\
+    "milliseconds                       -> returns current system in milliseconds\n"
     "ping                               -> test connection between host and Solar48\n"\
     "setdate yyyy mm dd [hh] [mm] [ss]  -> sets Solar48 system data. E.g: 'setdate 2025 01 01 15 20 00'\n"\
     "timestamp                          -> returns current system timestamp in seconds\n"
   );
+CMD_END
+
+CMD_BEGIN_NOARG(milliseconds)
+  char u64val[MIN_U64TOA_SIZE];
+  usb_printf("\nMilliseconds = %s\n", u64toa(u64val, sizeof(u64val), milliseconds()));
 CMD_END
 
 CMD_BEGIN_ARG(getdate)
