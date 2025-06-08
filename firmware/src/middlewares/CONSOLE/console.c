@@ -62,12 +62,10 @@ static int has_longint_error(long int *val, char *this_argument, char *argument_
   errno = 0;
   *val = strtol((const char *)this_argument, NULL, 10);
 
-  if (errno) {
+  if (errno)
     usb_printf("\n\nError: %d. Invalid number %s = %s\n\n", (int)errno, argument_name, this_argument);
-    return (int)errno;
-  }
 
-  return 0;
+  return (int)errno;
 }
 
 CMD_BEGIN_ARG(setdate)

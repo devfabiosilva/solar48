@@ -27,6 +27,7 @@ void setup()
 {
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
   init_rtc(NULL);
+  init_systick();
   init_gpios();
 
   END_SETUP
@@ -35,7 +36,15 @@ void setup()
 void run(void)
 {
   blink_n(4);
-
+  while (1) {
+    delay_tick(1000);
+    uint64_t now = milliseconds();
+    char val[64];
+    snprintf(val, sizeof(val), "VAL = %llu", now);
+    usb_printf("\nTick %s", val);
+    usb_printf("\nTick high=%lu low=%lu\n", (uint32_t)(now >> 32), (uint32_t)now);
+  }
+/*
   while (1) {
     //blink_n(2);
     while (hasError) {
@@ -46,7 +55,7 @@ void run(void)
 
     //usb_print_memory_info();
     delay_seconds(2);
-  }
+  }*/
 }
 
 void halt()
