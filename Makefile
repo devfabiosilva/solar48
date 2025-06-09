@@ -3,7 +3,7 @@ CC = $(ARM_PREFIX)gcc
 OBJCOPY = $(ARM_PREFIX)objcopy
 CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall -nostdlib -ffreestanding -Wl,-Map=solar48.map -DSOLAR48_DEBUG
 CFLAGS_RELEASE = -mcpu=cortex-m3 -mthumb -O2 -Wall -nostdlib -ffreestanding -Wl,--strip-debug -Wl,-Map=solar48_release.map
-PWD=$(pwd)
+CUR_DIR = $(shell pwd)
 FIRMWARE_FOLDER=firmware
 ASSEMBLY_FOLDER=$(FIRMWARE_FOLDER)/assembly
 SRC_FOLDER=$(FIRMWARE_FOLDER)/src
@@ -18,7 +18,6 @@ MIDDLEWARE_FOLDER=$(SRC_FOLDER)/middlewares
 MIDDLEWARE_FOLDER_INC=$(MIDDLEWARE_FOLDER)/include
 MIDDLEWARE_FOLDER_USB=$(SRC_FOLDER)/middlewares/USB_DEVICE
 MIDDLEWARE_FOLDER_CONSOLE=$(SRC_FOLDER)/middlewares/CONSOLE
-
 
 SYS_SRC = $(wildcard $(SYSTEM_FOLDER)/*.c)
 SYS_OBJ = $(patsubst $(SYSTEM_FOLDER)/%.c,%.o,$(SYS_SRC))
@@ -68,6 +67,12 @@ asm: $(OUT).elf
 nm: $(OUT).elf
 	$(ARM_PREFIX)nm $(OUT).elf
 
+openocd: $(OUT).elf
+	@echo "Running OpenOCD ... $(CUR_DIR)"
+	@openocd -f $(CUR_DIR)/debugger/stlink.cfg -f $(CUR_DIR)/debugger/stm32f1x.cfg
+
+gdb: $(OUT).elf
+	@gdb-multiarch $(OUT).elf
 
 %_release.o: $(SYSTEM_FOLDER)/%.c
 	@echo "RELEASE: Compiling System modules ..."
