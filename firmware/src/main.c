@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <console.h>
+#include <watchdog.h>
 
 //#include <stdlib.h>
 //dmesg -w
@@ -30,15 +31,24 @@ void setup()
   init_systick();
   init_gpios();
 
+  init_idw();
+
   END_SETUP
 }
 
 void run(void)
 {
+  //if (wdg) {
+    //usb_printf("\n\nWATCHDOG FAULT. Resetting watchdog fault\n\n");
+    //wdg = false;
+  //}
+
   usb_printf("\nInitializing ...\n\n");
-  blink_n(2);
+  blink_n(3);
   usb_printf("\nReady ...\n\n");
-  while (1);
+  while (1) {
+    delay(200);
+  }
 }
 
 void halt()

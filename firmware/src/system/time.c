@@ -1,5 +1,6 @@
 #include <registers.h>
 #include <core_cm3.h>
+#include <watchdog.h>
 
 #define SYS_TICK_FREQ_HZ 1000UL  // 1ms
 #define CPU_FREQ_HZ      72000000UL
@@ -33,7 +34,9 @@ void delay(uint64_t milliseconds)
 {
   uint64_t lim = tick + milliseconds;
 
-  while (tick < lim);
+  while (tick < lim) {
+    iwd_refresh();
+  };
   //__WFI(); If only one interruption or principal
 }
 

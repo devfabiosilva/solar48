@@ -137,5 +137,20 @@
 #define GPIOC_CRH    (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
 #define GPIOC_ODR    (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
 
+// Independent Watchdog configuration: Page 496
+#define IWDG_KR (*(volatile uint32_t *)(IWDG_BASE + 0x00))
+#define IWDG_PR (*(volatile uint32_t *)(IWDG_BASE + 0x04))
+  #define PR_divide_by_256 (0b111) // Page 497
+
+#define IWDG_RLR (*(volatile uint32_t *)(IWDG_BASE + 0x08))
+
+//Control/status register (RCC_CSR) Page 119
+#define RCC_CSR (*(volatile uint32_t *)(RCC_BASE + 0x24))
+  #define LSION (1<<0)
+  #define LSIRDY (1<<1)
+  #define IWDGRSTF (1<<29)
+  #define RMVF (1<<24)
+
+
 #endif
 
