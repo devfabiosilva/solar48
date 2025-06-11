@@ -58,15 +58,11 @@ void init_rtc(rtc_cb rtc_callback)
 #define CURRENT_TIMESTAMP ((RTC_CNTH<<16)|(RTC_CNTL))
 void RTC_IRQHandler(void)
 {
-  //SECF: Second flag set by hardware if prescale overflows. Set by hardware and . Page 
+  //SECF: Seconds ticks flag set by hardware if prescale overflows. Set by hardware and . Page 
   if (RTC_CRL & SECF) {
     RTC_CRL &= ~SECF;
-    if (rtc_caller) {
-      //while ((RTC_CRL & RSF) == 0); // Unecessary. Testing for removal
-      // Hardwware read counter and parsing to caller
+    if (rtc_caller)
       rtc_caller(CURRENT_TIMESTAMP);
-    }
-    //RTC_CRL &= ~RSF; // Unecessary testing for removing
   }
 }
 
@@ -127,13 +123,16 @@ inline bool valid_time(uint8_t hour, uint8_t min, uint8_t sec)
   return (hour < 24) && (min < 60) && (sec < 60);
 }
 
+#define UNIX_YEAR_TIMESTAMP (unsigned int)1970
+
+// Utility help function only
 // Return day if valid, or 0 if invalid date or -1 if unable to calculate and (optional, calculates if is leap year)
-static int valid_date(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
+static int valid_date_util(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
 {
   if (out_is_leap_year)
     *out_is_leap_year = false;
 
-  if (month < 1 || month > 12 || year < 1753)
+  if (month < 1 || month > 12)
     return -1;
 
   unsigned char max_day = days_in_month[month - 1];
@@ -147,6 +146,25 @@ static int valid_date(bool *out_is_leap_year, unsigned int year, unsigned char m
   return (day <= max_day) ? day : 0;
 }
 
+// Return day if valid, or 0 if invalid date or negative if unable to calculate and (optional, calculates if is leap year)
+static int valid_date_in_unix_year(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
+{
+  if (year >= UNIX_YEAR_TIMESTAMP)
+    return valid_date_util(out_is_leap_year, year, month, day);
+
+  return -3;
+}
+
+/*
+// Return day if valid, or 0 if invalid date or negative if unable to calculate and (optional, calculates if is leap year)
+static int valid_date_in_calendar(bool *out_is_leap_year, unsigned int year, unsigned char month, unsigned char day)
+{
+  if (year > 1752)
+    return valid_date_util(out_is_leap_year, year, month, day);
+
+  return -2;
+}
+*/
 // Get day of the week 0 for Sun and 6 for Sat
 int get_day(int y, int m, int d)
 {
@@ -189,8 +207,6 @@ static uint32_t month_table[] = {
  DAY_MAY, DAY_JUN, DAY_JUL, DAY_AUG,
  DAY_SEP, DAY_OCT, DAY_NOV, DAY_DEC
 };
-
-#define UNIX_YEAR_TIMESTAMP (uint32_t)1970
 
 void get_solar48_date(SOLAR48_DATE *sd, uint32_t *timestamp)
 {
@@ -260,7 +276,7 @@ bool set_date(SOLAR48_DATE *sd)
   if (!(valid_time(sd->hour, sd->minute, sd->second)))
     return false;
 
-  if (valid_date(&is_leap_year, (unsigned int)sd->year, (unsigned char)sd->month, (unsigned char)sd->day) < 1)
+  if (valid_date_in_unix_year(&is_leap_year, (unsigned int)sd->year, (unsigned char)sd->month, (unsigned char)sd->day) < 1)
     return false;
 
   int64_t timestamp = (int64_t)(sd->year - UNIX_YEAR_TIMESTAMP)*YEARS_IN_SECONDS +

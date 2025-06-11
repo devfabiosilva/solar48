@@ -8,6 +8,7 @@
 #include <rtc.h>
 #include <types.h>
 #include <time.h>
+#include <cpu.h>
 
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
@@ -153,6 +154,7 @@ CMD_END
 CMD_BEGIN_NOARG(help)
   usb_printf(\
     "\n\n=== SOLAR48 USAGE ===\n\n"\
+    "cpuinfo                            -> information about microcontroller\n"\
     "getdate [timestamp]                -> reads current Solar48 system time or date from parsed timestamp in seconds\n"\
     "help                               -> shows this help\n"\
     "meminfo                            -> reads Solar48 system memory\n"\
@@ -207,6 +209,18 @@ CMD_END
 
 CMD_BEGIN_NOARG(ping)
   usb_printf("\npong\n");
+CMD_END
+
+CMD_BEGIN_NOARG(cpuinfo)
+  CPU cpuinfo;
+  cpu_info(&cpuinfo);
+  usb_printf(
+    "\n\nCPU:\n===\n\n"\
+    "CPUID          : %04X - %04X - %08X - %08X\n"\
+    "FLASH SIZE (KB): %d\n",
+    cpuinfo.cpu_uid0, cpuinfo.cpu_uid1, cpuinfo.cpu_uid2, cpuinfo.cpu_uid3,
+    cpuinfo.flash_size
+  );
 CMD_END
 
 

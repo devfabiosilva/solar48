@@ -105,6 +105,7 @@ void usb_receive_complete()
   COMMAND_CHECK_CALL_ARG(getdate)
   COMMAND_CHECK_CALL_ARG(help)
   COMMAND_CHECK_CALL_ARG(milliseconds)
+  COMMAND_CHECK_CALL_ARG(cpuinfo)
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 

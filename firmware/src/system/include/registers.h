@@ -152,5 +152,15 @@
   #define RMVF (1<<24)
 
 
+// CHIP UID
+// MEMORY SIZE Page 1076
+#define FLASH_SIZE_REGISTER (*(volatile uint16_t *)(0x1FFFF7E0))
+
+//Page 1077
+#define CHIP_UID_BASE_ADDR (uint32_t)0x1FFFF7E8
+#define CHIP_UID_BASE_0 (*(volatile uint16_t *)(CHIP_UID_BASE_ADDR + 0x00))
+#define CHIP_UID_BASE_1 (*(volatile uint16_t *)(CHIP_UID_BASE_ADDR + 0x02))
+#define CHIP_UID_BASE_2 (*(volatile uint32_t *)(CHIP_UID_BASE_ADDR + 0x04))
+#define CHIP_UID_BASE_3 (*(volatile uint32_t *)(CHIP_UID_BASE_ADDR + 0x08))
 #endif
 
