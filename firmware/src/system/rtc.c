@@ -66,7 +66,7 @@ void RTC_IRQHandler(void)
   }
 }
 
-uint32_t old_current_time = 0;
+static uint32_t old_current_time = 0;
 
 uint32_t rtc_get_timestamp()
 {
@@ -202,7 +202,7 @@ const char *get_day_str1(int week_day)
 #define DAY_NOV (DAY_OCT + 30)
 #define DAY_DEC (DAY_NOV + 31)
 
-static uint32_t month_table[] = {
+static const uint32_t month_table[] = {
  DAY_JAN, DAY_FEB, DAY_MAR, DAY_APR,
  DAY_MAY, DAY_JUN, DAY_JUL, DAY_AUG,
  DAY_SEP, DAY_OCT, DAY_NOV, DAY_DEC
@@ -289,7 +289,7 @@ bool set_date(SOLAR48_DATE *sd)
       timestamp += DAYS_IN_SECONDS;
   }
 
-  if ((timestamp < 0) && (timestamp > MAX_TIMESTAMP_VALUE))
+  if ((timestamp < 0) || (timestamp > MAX_TIMESTAMP_VALUE))
     return false;
 
   rtc_set_timestamp((uint32_t)timestamp);

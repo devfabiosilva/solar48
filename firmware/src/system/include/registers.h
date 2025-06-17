@@ -42,6 +42,8 @@
   #define PLL_selected_as_system_clock SWS(0b10)
 #define SW(val) (val<<0)
   #define PLL_as_system_clock 0b10
+#define ADCPRE(val) (val<<14)
+  #define PCLK2_divided_by_6 0b10 // 12MHz for ADC converter with ABP2 = 72MHz
 //END Clock->RCC_CFGR
 
 //BEGIN Clock->RCC_CIR (Page 104)
@@ -84,6 +86,7 @@
 #define IOPBEN (1<<3)
 #define IOPAEN (1<<2)
 #define AFIOEN (1<<0)
+#define ADC1EN (1<<9)
 //END Clock->RCC_APB2ENR
 
 //BEGIN Clock->RCC_APB1ENR (Page 115)
@@ -162,5 +165,19 @@
 #define CHIP_UID_BASE_1 (*(volatile uint16_t *)(CHIP_UID_BASE_ADDR + 0x02))
 #define CHIP_UID_BASE_2 (*(volatile uint32_t *)(CHIP_UID_BASE_ADDR + 0x04))
 #define CHIP_UID_BASE_3 (*(volatile uint32_t *)(CHIP_UID_BASE_ADDR + 0x08))
+
+// ADC conversion page 238
+#define ADC1_SR (*(volatile uint32_t *)(ADC1_BASE + 0x00))
+  #define EOC (1<<1)
+#define ADC1_CR1 (*(volatile uint32_t *)(ADC1_BASE + 0x04))
+#define ADC1_CR2 (*(volatile uint32_t *)(ADC1_BASE + 0x08))
+  #define TSVREFE (1<<23)
+  #define ADON (1<<0)
+
+//#define ADC_SQR1 (*(volatile uint32_t *)(ADC_BASE + 0x2C))
+
+#define ADC1_SQR3 (*(volatile uint32_t *)(ADC1_BASE + 0x34))
+#define ADC1_DR (*(volatile uint32_t *)(ADC1_BASE + 0x4C))
+// END OF ADC conversion
 #endif
 

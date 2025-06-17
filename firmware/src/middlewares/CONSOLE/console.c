@@ -9,6 +9,8 @@
 #include <types.h>
 #include <time.h>
 #include <cpu.h>
+#include <sensors.h>
+#include <process.h>
 
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
@@ -160,9 +162,25 @@ CMD_BEGIN_NOARG(help)
     "meminfo                            -> reads Solar48 system memory\n"\
     "milliseconds                       -> returns current system in milliseconds\n"
     "ping                               -> test connection between host and Solar48\n"\
+    "sensors                            -> reads sensors\n"
     "setdate yyyy mm dd [hh] [mm] [ss]  -> sets Solar48 system data. E.g: 'setdate 2025 01 01 15 20 00'\n"\
     "timestamp                          -> returns current system timestamp in seconds\n"
   );
+CMD_END
+
+int read_sensors_process(void *ctx)
+{
+  float temp_sensor = read_internal_temp_sensor();
+  float vref = read_vref();
+  usb_printf(
+    "\n\nTemp (°C)    : %.2f\n"\
+    "Vref (V)     : %.2f\n",
+  temp_sensor, vref);
+  return 0;
+}
+
+CMD_BEGIN_NOARG(sensors)
+  usb_printf((add_process(read_sensors_process, NULL))?"\n\nReading sensors...\n":"\n\nUnable reading sensors. Process busy\n\n");
 CMD_END
 
 CMD_BEGIN_NOARG(milliseconds)

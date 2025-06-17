@@ -6,7 +6,7 @@
 #define CPU_FREQ_HZ      72000000UL
 #define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
 
-#define SYSTICK_TICKS    (CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL
+#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
 void init_systick()
 {
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
@@ -18,7 +18,7 @@ void init_systick()
 
 }
 
-volatile uint64_t tick = 0;
+static volatile uint64_t tick = 0;
 
 void SysTick_Handler()
 {
@@ -40,3 +40,91 @@ void delay(uint64_t milliseconds)
   //__WFI(); If only one interruption or principal
 }
 
+// TODO for test only. Delegate to RTOS timing system. Will be removed
+static void delay_1us()
+{
+  asm volatile(
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+    "nop\n"
+  );
+}
+
+//TODO for test only. Will be removed
+void delay_5us()
+{
+  int i = 0;
+
+  do
+    delay_1us();
+  while (++i < 5);
+}

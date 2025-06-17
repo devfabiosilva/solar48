@@ -1,7 +1,6 @@
 //ter 20 mai 2025 19:28:25 
 #include <registers.h>
 #include <memory.h>
-#include <watchdog.h>
 
 void system_init(void)
 {

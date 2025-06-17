@@ -32,6 +32,7 @@ void ping_cmd(char *);
 void meminfo_cmd(char *);
 void milliseconds_cmd(char *);
 void cpuinfo_cmd(char *);
+void sensors_cmd(char *);
 
 #endif
 

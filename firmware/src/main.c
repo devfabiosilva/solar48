@@ -11,6 +11,8 @@
 #include <stdbool.h>
 #include <console.h>
 #include <watchdog.h>
+#include <sensors.h>
+#include <process.h>
 
 //#include <stdlib.h>
 //dmesg -w
@@ -30,6 +32,7 @@ void setup()
   init_rtc(NULL);
   init_systick();
   init_gpios();
+  init_sensors();
 
   init_idw();
 
@@ -47,7 +50,8 @@ void run(void)
   blink_n(3);
   usb_printf("\nReady ...\n\n");
   while (1) {
-    delay(200);
+    run_process();
+    delay(1);
   }
 }
 
@@ -106,6 +110,7 @@ void usb_receive_complete()
   COMMAND_CHECK_CALL_ARG(help)
   COMMAND_CHECK_CALL_ARG(milliseconds)
   COMMAND_CHECK_CALL_ARG(cpuinfo)
+  COMMAND_CHECK_CALL_ARG(sensors)
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 
