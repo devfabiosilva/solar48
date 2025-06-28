@@ -1,4 +1,5 @@
 /* STM32F103C8T6 - 64 KB Flash, 20 KB RAM */
+/* STM32F103CBT6 - 128 KB Flash, 20 KB RAM */
 
 /* Entry point */
 ENTRY(_solar48_entrypoint)
@@ -6,14 +7,14 @@ ENTRY(_solar48_entrypoint)
 /* Hardware definition for GCC compiler */
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 128K
   RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
 }
 
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* Top of stack */
 
 __ram_origin = ORIGIN(RAM); /* Position of begining of SRAM address */
-__ram_length = LENGTH(RAM); /* Length of defined HARDWARE: STM32F103C8T6 - 64 KB Flash, 20 KB RAM */
+__ram_length = LENGTH(RAM); /* Length of defined HARDWARE: (STM32F103C8T6 - 64 KB Flash) | (STM32F103CBT6 - 128 KB Flash), 20 KB RAM */
 __flash_origin = ORIGIN(FLASH); /* Position of begining of FLASH address */
 __flash_length = LENGTH(FLASH); /* Length of defined HARDWARE: STM32F103C8T6 - 64 KB Flash, 20 KB RAM */
 

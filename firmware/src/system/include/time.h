@@ -6,6 +6,9 @@ uint64_t milliseconds();
 void delay(uint64_t);
 void init_systick();
 
+#define SYS_TICK_FREQ_HZ 1000UL  // 1ms
+#define CPU_FREQ_HZ      72000000UL
+
 //TODO remove it. For tests only. Delegate it to FreeRTOS
 void delay_5us();
 

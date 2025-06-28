@@ -1,9 +1,8 @@
 #include <registers.h>
 #include <core_cm3.h>
 #include <watchdog.h>
+#include <time.h>
 
-#define SYS_TICK_FREQ_HZ 1000UL  // 1ms
-#define CPU_FREQ_HZ      72000000UL
 #define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
 
 #define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)

@@ -41,11 +41,6 @@ void setup()
 
 void run(void)
 {
-  //if (wdg) {
-    //usb_printf("\n\nWATCHDOG FAULT. Resetting watchdog fault\n\n");
-    //wdg = false;
-  //}
-
   usb_printf("\nInitializing ...\n\n");
   blink_n(3);
   usb_printf("\nReady ...\n\n");
