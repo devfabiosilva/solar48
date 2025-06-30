@@ -47,25 +47,25 @@
 /* USER CODE END Includes */
 
 /* Ensure definitions are only used by the compiler, and not by the assembler. */
-#if defined(__ICCARM__) || defined(__CC_ARM) || defined(__GNUC__)
-  #include <stdint.h>
+//#if defined(__ICCARM__) || defined(__CC_ARM) || defined(__GNUC__)
+  //#include <stdint.h>
 //  extern uint32_t SystemCoreClock;
-  void xPortSysTickHandler(void);
-#endif
+//  void xPortSysTickHandler(void);
+//#endif
 //#ifndef CMSIS_device_header
 //#define CMSIS_device_header "stm32f1xx.h"
-#endif /* CMSIS_device_header */
+//#endif /* CMSIS_device_header */
 
-#include <time.h>
+#include <systick_config.h>
 
 #define configUSE_PREEMPTION                     1
-#define configSUPPORT_STATIC_ALLOCATION          1
+#define configSUPPORT_STATIC_ALLOCATION          0
 #define configSUPPORT_DYNAMIC_ALLOCATION         1
 #define configUSE_IDLE_HOOK                      0
 #define configUSE_TICK_HOOK                      0
 #define configCPU_CLOCK_HZ                       ( CPU_FREQ_HZ )
 #define configTICK_RATE_HZ                       ((TickType_t)SYS_TICK_FREQ_HZ)
-#define configMAX_PRIORITIES                     ( 56 )
+#define configMAX_PRIORITIES                     ( 6 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
 #define configTOTAL_HEAP_SIZE                    ((size_t)3072)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
@@ -79,7 +79,7 @@
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION  0
 
 /* Co-routine definitions. */
-#define configUSE_CO_ROUTINES                    0
+#define configUSE_CO_ROUTINES                    1
 #define configMAX_CO_ROUTINE_PRIORITIES          ( 2 )
 
 /* Software timer definitions. */
@@ -95,7 +95,7 @@ to exclude the API function. */
 #define INCLUDE_vTaskDelete                 1
 #define INCLUDE_vTaskCleanUpResources       1
 #define INCLUDE_vTaskSuspend                1
-#define INCLUDE_vTaskDelayUntil             1
+#define INCLUDE_vTaskDelayUntil             0
 #define INCLUDE_vTaskDelay                  1
 #define INCLUDE_xTaskGetSchedulerState      1
 #define INCLUDE_xEventGroupSetBitFromISR    1
@@ -158,5 +158,9 @@ standard names. */
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
 /* USER CODE END Defines */
+
+
+//#define configCHECK_FOR_STACK_OVERFLOW 2
+//#define configASSERT_DEFINED 1
 
 #endif /* FREERTOS_CONFIG_H */

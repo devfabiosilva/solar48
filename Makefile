@@ -1,8 +1,8 @@
 ARM_PREFIX = arm-none-eabi-
 CC = $(ARM_PREFIX)gcc
 OBJCOPY = $(ARM_PREFIX)objcopy
-CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall -nostdlib -ffreestanding -Wl,-Map=solar48.map -DSOLAR48_DEBUG
-CFLAGS_RELEASE = -mcpu=cortex-m3 -mthumb -O2 -Wall -nostdlib -ffreestanding -Wl,--strip-debug -Wl,-Map=solar48_release.map
+CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall -nostdlib -ffreestanding -DSOLAR48_DEBUG
+CFLAGS_RELEASE = -mcpu=cortex-m3 -mthumb -O2 -Wall -nostdlib -ffreestanding -Wl,--strip-debug
 CUR_DIR = $(shell pwd)
 FIRMWARE_FOLDER=firmware
 ASSEMBLY_FOLDER=$(FIRMWARE_FOLDER)/assembly
@@ -18,6 +18,7 @@ MIDDLEWARE_FOLDER=$(SRC_FOLDER)/middlewares
 MIDDLEWARE_FOLDER_INC=$(MIDDLEWARE_FOLDER)/include
 MIDDLEWARE_FOLDER_USB=$(SRC_FOLDER)/middlewares/USB_DEVICE
 MIDDLEWARE_FOLDER_CONSOLE=$(SRC_FOLDER)/middlewares/CONSOLE
+MIDDLEWARE_FOLDER_FREE_RTOS=$(SRC_FOLDER)/middlewares/FREE_RTOS
 
 SYS_SRC = $(wildcard $(SYSTEM_FOLDER)/*.c)
 SYS_OBJ = $(patsubst $(SYSTEM_FOLDER)/%.c,%.o,$(SYS_SRC))
@@ -30,6 +31,13 @@ MIDDLEWARE_USB_OBJ_RELEASE = $(patsubst $(MIDDLEWARE_FOLDER_USB)/%.c,%_release.o
 MIDDLEWARE_CONSOLE_SRC = $(wildcard $(MIDDLEWARE_FOLDER_CONSOLE)/*.c) 
 MIDDLEWARE_CONSOLE_OBJ = $(patsubst $(MIDDLEWARE_FOLDER_CONSOLE)/%.c,%.o,$(MIDDLEWARE_CONSOLE_SRC))
 MIDDLEWARE_CONSOLE_OBJ_RELEASE = $(patsubst $(MIDDLEWARE_FOLDER_CONSOLE)/%.c,%_release.o,$(MIDDLEWARE_CONSOLE_SRC))
+
+MIDDLEWARE_FREE_RTOS_SRC = $(wildcard $(MIDDLEWARE_FOLDER_FREE_RTOS)/*.c)
+MIDDLEWARE_FREE_RTOS_SRC_ASM = $(wildcard $(MIDDLEWARE_FOLDER_FREE_RTOS)/*.S)
+MIDDLEWARE_FREE_RTOS_OBJ = $(patsubst $(MIDDLEWARE_FOLDER_FREE_RTOS)/%.c,%.o,$(MIDDLEWARE_FREE_RTOS_SRC))
+MIDDLEWARE_FREE_RTOS_ASM = $(patsubst $(MIDDLEWARE_FOLDER_FREE_RTOS)/%.S,%.o,$(MIDDLEWARE_FREE_RTOS_SRC_ASM))
+MIDDLEWARE_FREE_RTOS_OBJ_RELEASE = $(patsubst $(MIDDLEWARE_FOLDER_FREE_RTOS)/%.c,%_release.o,$(MIDDLEWARE_FREE_RTOS_SRC))
+MIDDLEWARE_FREE_RTOS_ASM_RELEASE = $(patsubst $(MIDDLEWARE_FOLDER_FREE_RTOS)/%.S,%_release.o,$(MIDDLEWARE_FREE_RTOS_SRC_ASM))
 
 OUT = solar48
 AS_CODE=text.txt
@@ -49,8 +57,16 @@ all: $(OUT).bin
 	@echo "DEBUG: Compiling CONSOLE middleware modules ..."
 	$(CC) $(CFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
 
-$(OUT).elf: $(SRC_FOLDER)/main.c $(SYS_OBJ) $(MIDDLEWARE_CONSOLE_OBJ) $(MIDDLEWARE_USB_OBJ) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
-	$(CC) $(CFLAGS) $(LDFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -o $@ $^
+%.o: $(MIDDLEWARE_FOLDER)/FREE_RTOS/%.c
+	@echo "DEBUG: Compiling FREE RTOS middleware modules ..."
+	$(CC) $(CFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
+
+%.o: $(MIDDLEWARE_FOLDER)/FREE_RTOS/%.S
+	@echo "DEBUG: Compiling FREE RTOS (ASM) middleware modules ..."
+	$(CC) $(CFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
+
+$(OUT).elf: $(SRC_FOLDER)/main.c $(SYS_OBJ) $(MIDDLEWARE_CONSOLE_OBJ) $(MIDDLEWARE_USB_OBJ) $(MIDDLEWARE_FREE_RTOS_OBJ) $(MIDDLEWARE_FREE_RTOS_ASM) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
+	$(CC) $(CFLAGS) -Wl,-Map=solar48.map $(LDFLAGS) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -o $@ $^
 
 $(OUT).bin: $(OUT).elf
 	$(OBJCOPY) -O binary $< $@
@@ -86,8 +102,16 @@ gdb: $(OUT).elf
 	@echo "RELEASE: Compiling CONSOLE middlewares module ..."
 	$(CC) $(CFLAGS_RELEASE) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
 
-$(OUT)_release.elf: $(SRC_FOLDER)/main.c $(SYS_OBJ_RELEASE) $(MIDDLEWARE_CONSOLE_OBJ_RELEASE) $(MIDDLEWARE_USB_OBJ_RELEASE) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
-	$(CC) $(CFLAGS_RELEASE) $(LDFLAGS) -I$(MIDDLEWARE_FOLDER_INC) -I$(SYSTEM_FOLDER_INC) -o $@ $^
+%_release.o: $(MIDDLEWARE_FOLDER)/FREE_RTOS/%.c
+	@echo "RELEASE: Compiling FREE RTOS middleware modules ..."
+	$(CC) $(CFLAGS_RELEASE) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
+
+%_release.o: $(MIDDLEWARE_FOLDER)/FREE_RTOS/%.S
+	@echo "RELEASE: Compiling FREE RTOS (ASM) middleware modules ..."
+	$(CC) $(CFLAGS_RELEASE) -I$(SYSTEM_FOLDER_INC) -I$(MIDDLEWARE_FOLDER_INC) -c -o $@ $^
+
+$(OUT)_release.elf: $(SRC_FOLDER)/main.c $(SYS_OBJ_RELEASE) $(MIDDLEWARE_CONSOLE_OBJ_RELEASE) $(MIDDLEWARE_USB_OBJ_RELEASE) $(MIDDLEWARE_FREE_RTOS_OBJ_RELEASE) $(MIDDLEWARE_FREE_RTOS_ASM_RELEASE) $(ASSEMBLY_FOLDER)/$(STARTUP_FILE).S
+	$(CC) $(CFLAGS_RELEASE) -Wl,-Map=solar48_release.map $(LDFLAGS) -I$(MIDDLEWARE_FOLDER_INC) -I$(SYSTEM_FOLDER_INC) -o $@ $^
 
 $(OUT)_release.bin: $(OUT)_release.elf
 	$(OBJCOPY) -O binary $< $@
