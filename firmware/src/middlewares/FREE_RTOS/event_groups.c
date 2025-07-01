@@ -38,6 +38,8 @@ task.h is included from an application file. */
 #include <FreeRTOS/task.h>
 #include <FreeRTOS/timers.h>
 #include <FreeRTOS/event_groups.h>
+//TODO remove it. Will be replaced by LCD panel driver
+#include <usb_io.h>
 
 /* Lint e961, e750 and e9021 are suppressed as a MISRA exception justified
 because the MPU ports require MPU_WRAPPERS_INCLUDED_FROM_API_FILE to be defined
@@ -95,7 +97,7 @@ static BaseType_t prvTestWaitCondition( const EventBits_t uxCurrentEventBits, co
 	EventGroup_t *pxEventBits;
 
 		/* A StaticEventGroup_t object must be provided. */
-		configASSERT( pxEventGroupBuffer );
+		configASSERT( pxEventGroupBuffer, "xEventGroupCreateStatic" );
 
 		#if( configASSERT_DEFINED == 1 )
 		{
@@ -103,7 +105,7 @@ static BaseType_t prvTestWaitCondition( const EventBits_t uxCurrentEventBits, co
 			variable of type StaticEventGroup_t equals the size of the real
 			event group structure. */
 			volatile size_t xSize = sizeof( StaticEventGroup_t );
-			configASSERT( xSize == sizeof( EventGroup_t ) );
+			configASSERT( xSize == sizeof( EventGroup_t ), "wrong xSize" );
 		} /*lint !e529 xSize is referenced if configASSERT() is defined. */
 		#endif /* configASSERT_DEFINED */
 
@@ -195,11 +197,11 @@ EventGroup_t *pxEventBits = xEventGroup;
 BaseType_t xAlreadyYielded;
 BaseType_t xTimeoutOccurred = pdFALSE;
 
-	configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
-	configASSERT( uxBitsToWaitFor != 0 );
+	configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0, "uxBitsToWaitFor in xEventGroupSync" );
+	configASSERT( uxBitsToWaitFor != 0,  "uxBitsToWaitFor in xEventGroupSync");
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
-		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
+		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ), "xEventGroupSync: SCHEDULER_SUSPENDED" );
 	}
 	#endif
 
@@ -317,12 +319,12 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 
 	/* Check the user is not attempting to wait on the bits used by the kernel
 	itself, and that at least one bit is being requested. */
-	configASSERT( xEventGroup );
-	configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
-	configASSERT( uxBitsToWaitFor != 0 );
+	configASSERT( xEventGroup, "xEventGroupWaitBits in xEventGroup" );
+	configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "EVENT_BITS_CONTROL_BYTES in xEventGroupWaitBits");
+	configASSERT( uxBitsToWaitFor != 0 , "xEventGroupWaitBits: uxBitsToWaitFor is zero" );
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
-		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
+		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ), "SCHEDULER_SUSPENDED in xEventGroupWaitBits" );
 	}
 	#endif
 
@@ -465,8 +467,8 @@ EventBits_t uxReturn;
 
 	/* Check the user is not attempting to clear the bits used by the kernel
 	itself. */
-	configASSERT( xEventGroup );
-	configASSERT( ( uxBitsToClear & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
+	configASSERT( xEventGroup , "xEventGroup in xEventGroupClearBits");
+	configASSERT( ( uxBitsToClear & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "uxBitsToClear in xEventGroupClearBits");
 
 	taskENTER_CRITICAL();
 	{
@@ -527,8 +529,8 @@ BaseType_t xMatchFound = pdFALSE;
 
 	/* Check the user is not attempting to set the bits used by the kernel
 	itself. */
-	configASSERT( xEventGroup );
-	configASSERT( ( uxBitsToSet & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
+	configASSERT( xEventGroup,  "xEventGroup in xEventGroupSetBits");
+	configASSERT( ( uxBitsToSet & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "xEventGroupSetBits in EVENT_BITS_CONTROL_BYTES");
 
 	pxList = &( pxEventBits->xTasksWaitingForBits );
 	pxListEnd = listGET_END_MARKER( pxList ); /*lint !e826 !e740 !e9087 The mini list structure is used as the list end to save RAM.  This is checked and valid. */
@@ -623,7 +625,7 @@ const List_t *pxTasksWaitingForBits = &( pxEventBits->xTasksWaitingForBits );
 		{
 			/* Unblock the task, returning 0 as the event list is being deleted
 			and cannot therefore have any bits set. */
-			configASSERT( pxTasksWaitingForBits->xListEnd.pxNext != ( const ListItem_t * ) &( pxTasksWaitingForBits->xListEnd ) );
+			configASSERT( pxTasksWaitingForBits->xListEnd.pxNext != ( const ListItem_t * ) &( pxTasksWaitingForBits->xListEnd ) , "vEventGroupDelete loop");
 			vTaskRemoveFromUnorderedEventList( pxTasksWaitingForBits->xListEnd.pxNext, eventUNBLOCKED_DUE_TO_BIT_SET );
 		}
 

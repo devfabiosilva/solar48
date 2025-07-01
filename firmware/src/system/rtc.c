@@ -280,7 +280,7 @@ bool set_date(SOLAR48_DATE *sd)
     return false;
 
   int64_t timestamp = (int64_t)(sd->year - UNIX_YEAR_TIMESTAMP)*YEARS_IN_SECONDS +
-    (int64_t)((sd->day > 1)?sd->day:0)*DAYS_IN_SECONDS + (uint64_t)(sd->hour*HOURS_IN_SECONDS) + (uint64_t)(sd->minute*MINUTES_IN_SECONDS) + (int64_t)sd->second;
+    (int64_t)(sd->day*DAYS_IN_SECONDS) + (uint64_t)(sd->hour*HOURS_IN_SECONDS) + (uint64_t)(sd->minute*MINUTES_IN_SECONDS) + (int64_t)sd->second;
 
   if (sd->month > 1) {
     timestamp += ((int64_t)month_table[(size_t)(sd->month - 2)]*DAYS_IN_SECONDS);

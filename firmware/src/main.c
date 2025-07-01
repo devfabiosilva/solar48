@@ -13,8 +13,13 @@
 #include <watchdog.h>
 #include <sensors.h>
 #include <process.h>
+
+#ifdef RTOS_SOLAR48
+
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
+
+#endif
 
 //#include <stdlib.h>
 //dmesg -w
@@ -31,7 +36,7 @@ SOLAR48_DATE sd;
 void setup()
 {
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
-  init_rtc(NULL);
+  init_rtc(realtime);
   init_systick();
   init_gpios();
   init_sensors();
@@ -41,18 +46,8 @@ void setup()
   END_SETUP
 }
 
-//TODO Use only for non RTOS
-void run(void)
-{
-  usb_printf("\nInitializing ...\n\n");
-  blink_n(3);
-  usb_printf("\nReady ...\n\n");
-  while (1) {
-    run_process();
-    delay(1);
-  }
-}
-
+#ifdef RTOS_SOLAR48
+#include <core_cm3.h>
 
 void led_blink_task(void *params)
 {
@@ -68,8 +63,7 @@ void led_blink_task(void *params)
     ledon();
   }
 }
-/*
-#include <core_cm3.h>
+
 void run(void)
 {
 
@@ -78,24 +72,46 @@ void run(void)
   usb_printf("\nReady ...\n\n");
   usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
   BaseType_t err;
-  //if ((err=xTaskCreate(led_blink_task, "LED", 256, NULL, 1, NULL)) != pdPASS) {
-  //  usb_printf("\nUnable to create task %d ...\n\n", err);
-    //blink_n(3);
-  //  while (1);
-  //}
+  if ((err=xTaskCreate(led_blink_task, "LED", 256, NULL, 1, NULL)) != pdPASS) {
+    usb_printf("\nUnable to create task %d ...\n\n", err);
+    blink_n(3);
+    while (1);
+  }
 
   usb_printf("SYSTICK CTRL 2: 0x%08lx\n", SysTick->CTRL);
   //usb_printf("Free heap: %u\n", xPortGetFreeHeapSize());
   //usb_printf("Min ever free heap: %u\n", xPortGetMinimumEverFreeHeapSize());
   //blink_n(2);
-//  vTaskStartScheduler();
+  vTaskStartScheduler();
 
   while (1) {
     usb_printf("\nERROR ...\n\n");
     blink_n(3);
   }
 }
+
+/*
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
+    usb_printf("\nTASK OVERFLOW\n\n");
+    for (;;);
+}
 */
+
+#else
+
+void run(void)
+{
+  usb_printf("\nInitializing ...\n\n");
+  blink_n(3);
+  usb_printf("\nReady ...\n\n");
+  while (1) {
+    run_process();
+    delay(1);
+  }
+}
+
+#endif
+
 void halt()
 {
   // It could not happen. If happens report bug and disable all interrupts
@@ -190,6 +206,13 @@ void usb_error(int value)
 
 }
 
+#ifdef RTOS_SOLAR48
+void realtime(uint32_t time)
+{
+  usb_printf("\nTimestamp: %u\n HAS RTOS TICKS: %d\n", time, has_rtos_ticks());
+}
+#else
+
 //TODO refactor. Testing
 volatile int blink = 0;
 void realtime(uint32_t time)
@@ -208,9 +231,4 @@ void realtime(uint32_t time)
     blink = 1;
   }
 }
-/*
-void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
-    usb_printf("\nTASK OVERFLOW\n\n");
-    for (;;);
-}
-*/
+#endif

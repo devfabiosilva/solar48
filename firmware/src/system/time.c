@@ -2,27 +2,18 @@
 #include <core_cm3.h>
 #include <watchdog.h>
 #include <systick_config.h>
+
+#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
+
+#ifdef RTOS_SOLAR48
+// RTOS in Solar48
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
-
-//#define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
 
 #define SYS_TICK_DIV 1 // For FreeRTOS
 
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
-
-#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
-//void init_systick()
-//{
-//  SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
-//  NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
-//  SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
-//  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk |*/
-//                   SysTick_CTRL_TICKINT_Msk   |
-//                   SysTick_CTRL_ENABLE_Msk;                         /* Enable SysTick IRQ and SysTick Timer */
-
-//}
 
 void init_systick()
 {
@@ -35,24 +26,47 @@ void init_systick()
 
 }
 
+#else
+// Default System in Solar48
+
+#define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
+
+void init_systick()
+{
+  SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
+  NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
+  SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
+  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk |*/
+                   SysTick_CTRL_TICKINT_Msk   |
+                   SysTick_CTRL_ENABLE_Msk;                         /* Enable SysTick IRQ and SysTick Timer */
+
+}
+
+#endif
+
 static volatile uint64_t tick = 0;
+static volatile int rtos_tick = 0;
 
 void SysTick_Handler()
 {
-  //SysTick->CTRL;
   ++tick;
 
+#ifdef RTOS_SOLAR48
+  SysTick->CTRL;
   if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
     /* Call tick handler */
-    //iwd_refresh();
-    xPortSysTickHandler();
-  }
+     xPortSysTickHandler();
+     rtos_tick = 1;
+  } else
+    rtos_tick = 0;
+#endif
 }
 
 uint64_t milliseconds()
 {
   return tick;
 }
+
 /*
 uint64_t milliseconds()
 {
@@ -63,6 +77,14 @@ uint64_t milliseconds()
   return t;
 }
 */
+
+#ifdef RTOS_SOLAR48
+int has_rtos_ticks()
+{
+  return rtos_tick;
+}
+
+#else
 void delay(uint64_t milliseconds)
 {
   uint64_t lim = tick + milliseconds;
@@ -161,3 +183,4 @@ void delay_5us()
     delay_1us();
   while (++i < 5);
 }
+#endif

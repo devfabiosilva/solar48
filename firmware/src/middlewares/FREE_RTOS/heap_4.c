@@ -38,6 +38,10 @@
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
 all the API functions to use the MPU wrappers.  That should only be done when
 task.h is included from an application file. */
+//TODO remove it. Will be replaced by LCD panel driver
+#include <stdint.h>
+#include <usb_io.h>
+// END TODO
 #define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 #include <FreeRTOS/FreeRTOS.h>
@@ -148,7 +152,7 @@ void *pvReturn = NULL;
 				{
 					/* Byte alignment required. */
 					xWantedSize += ( portBYTE_ALIGNMENT - ( xWantedSize & portBYTE_ALIGNMENT_MASK ) );
-					configASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 );
+					configASSERT( ( xWantedSize & portBYTE_ALIGNMENT_MASK ) == 0 , "BYTE_ALIGNMENT_MASK in pvPortMalloc");
 				}
 				else
 				{
@@ -193,7 +197,7 @@ void *pvReturn = NULL;
 						cast is used to prevent byte alignment warnings from the
 						compiler. */
 						pxNewBlockLink = ( void * ) ( ( ( uint8_t * ) pxBlock ) + xWantedSize );
-						configASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+						configASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0, "heapMINIMUM_BLOCK_SIZE in pvPortMalloc" );
 
 						/* Calculate the sizes of two blocks split from the
 						single block. */
@@ -258,7 +262,7 @@ void *pvReturn = NULL;
 	}
 	#endif
 
-	configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
+	configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0, "pvReturn in pvPortMalloc not aligned");
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
@@ -278,8 +282,8 @@ BlockLink_t *pxLink;
 		pxLink = ( void * ) puc;
 
 		/* Check the block is actually allocated. */
-		configASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 );
-		configASSERT( pxLink->pxNextFreeBlock == NULL );
+		configASSERT( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 , "xBlockAllocatedBit in vPortFree");
+		configASSERT( pxLink->pxNextFreeBlock == NULL , "pxNextFreeBlock == NULL in vPortFree");
 
 		if( ( pxLink->xBlockSize & xBlockAllocatedBit ) != 0 )
 		{

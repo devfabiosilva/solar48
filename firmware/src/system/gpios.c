@@ -1,5 +1,16 @@
 #include <registers.h>
+
+#ifdef RTOS_SOLAR48
+#include <FreeRTOS/FreeRTOS.h>
+#include <FreeRTOS/task.h>
+
+#define delay_seconds(n) vTaskDelay(pdMS_TO_TICKS(1000*n))
+
+#else
+
 #include <time.h>
+
+#endif
 
 void init_gpios(void)
 {

@@ -1,5 +1,15 @@
 #include <registers.h>
+#ifdef RTOS_SOLAR48
+
+#include <FreeRTOS/FreeRTOS.h>
+#include <FreeRTOS/task.h>
+
+#else
+
 #include <time.h>
+
+#endif
+
 #include <watchdog.h>
 // Refs Page 58 from STM32F103X6.pdf
 // Page 236 rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
@@ -19,7 +29,11 @@ static float read_vref_util()
 
   ADC1_CR2 |= ADON;
   //delay(1);
+#ifdef RTOS_SOLAR48
+  vTaskDelay(pdMS_TO_TICKS(1));
+#else
   delay_5us();
+#endif
 
   ADC1_CR2 |= ADON; // Begin conversion
   while ((ADC1_SR & EOC) == 0);
@@ -43,12 +57,20 @@ static float read_internal_temp_sensor_util()
 {
   ADC1_CR2 |= TSVREFE; // TSVREFE: Enables sensor and Vrefint
   //delay(1);            // Waits for stabilization
+#ifdef RTOS_SOLAR48
+  vTaskDelay(pdMS_TO_TICKS(1));
+#else
   delay_5us();
+#endif
   ADC1_SQR3 = 16;      // Channel 16 = Internal temperature sensor
 
   ADC1_CR2 |= ADON;      // Turns on ADC
   //delay(1);
+#ifdef RTOS_SOLAR48
+  vTaskDelay(pdMS_TO_TICKS(1));
+#else
   delay_5us();
+#endif
   ADC1_CR2 |= ADON;      // Starts convertion
 
   while (!(ADC1_SR & EOC));  // Wait conversion
