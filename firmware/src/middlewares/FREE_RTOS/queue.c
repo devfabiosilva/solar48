@@ -256,7 +256,7 @@ BaseType_t xQueueGenericReset( QueueHandle_t xQueue, BaseType_t xNewQueue )
 {
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL, "pxQueue in xQueueGenericReset" );
 
 	taskENTER_CRITICAL();
 	{
@@ -311,16 +311,16 @@ Queue_t * const pxQueue = xQueue;
 	{
 	Queue_t *pxNewQueue;
 
-		configASSERT( uxQueueLength > ( UBaseType_t ) 0 );
+		configASSERT( uxQueueLength > ( UBaseType_t ) 0, "uxQueueLength in xQueueGenericCreateStatic" );
 
 		/* The StaticQueue_t structure and the queue storage area must be
 		supplied. */
-		configASSERT( pxStaticQueue != NULL );
+		configASSERT( pxStaticQueue != NULL "pxStaticQueue in xQueueGenericCreateStatic is NULL");
 
 		/* A queue storage area should be provided if the item size is not 0, and
 		should not be provided if the item size is 0. */
-		configASSERT( !( ( pucQueueStorage != NULL ) && ( uxItemSize == 0 ) ) );
-		configASSERT( !( ( pucQueueStorage == NULL ) && ( uxItemSize != 0 ) ) );
+		configASSERT( !( ( pucQueueStorage != NULL ) && ( uxItemSize == 0 ) ),  "xQueueGenericCreateStatic 1");
+		configASSERT( !( ( pucQueueStorage == NULL ) && ( uxItemSize != 0 ) ), "xQueueGenericCreateStatic 2" );
 
 		#if( configASSERT_DEFINED == 1 )
 		{
@@ -328,7 +328,7 @@ Queue_t * const pxQueue = xQueue;
 			variable of type StaticQueue_t or StaticSemaphore_t equals the size of
 			the real queue and semaphore structures. */
 			volatile size_t xSize = sizeof( StaticQueue_t );
-			configASSERT( xSize == sizeof( Queue_t ) );
+			configASSERT( xSize == sizeof( Queue_t ), "xSize == sizeof( Queue_t ) in xQueueGenericCreateStatic" );
 			( void ) xSize; /* Keeps lint quiet when configASSERT() is not defined. */
 		}
 		#endif /* configASSERT_DEFINED */
@@ -371,7 +371,7 @@ Queue_t * const pxQueue = xQueue;
 	size_t xQueueSizeInBytes;
 	uint8_t *pucQueueStorage;
 
-		configASSERT( uxQueueLength > ( UBaseType_t ) 0 );
+		configASSERT( uxQueueLength > ( UBaseType_t ) 0, "uxQueueLength < 1 in xQueueGenericCreateStatic" );
 
 		/* Allocate enough space to hold the maximum number of items that
 		can be in the queue at any time.  It is valid for uxItemSize to be
@@ -564,7 +564,7 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 	{
 	TaskHandle_t pxReturn;
 
-		configASSERT( xSemaphore );
+		configASSERT( xSemaphore != NULL , "semaphore in xQueueGetMutexHolderFromISR");
 
 		/* Mutexes cannot be used in interrupt service routines, so the mutex
 		holder should not change in an ISR, and therefore a critical section is
@@ -591,7 +591,7 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 	BaseType_t xReturn;
 	Queue_t * const pxMutex = ( Queue_t * ) xMutex;
 
-		configASSERT( pxMutex );
+		configASSERT( pxMutex != NULL, "pxMutex is NULL in xQueueGiveMutexRecursive");
 
 		/* If this is the task that holds the mutex then xMutexHolder will not
 		change outside of this task.  If this task does not hold the mutex then
@@ -646,7 +646,7 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 	BaseType_t xReturn;
 	Queue_t * const pxMutex = ( Queue_t * ) xMutex;
 
-		configASSERT( pxMutex );
+		configASSERT( pxMutex != NULL,  "pMutex is NULL in xQueueTakeMutexRecursive");
 
 		/* Comments regarding mutual exclusion as per those within
 		xQueueGiveMutexRecursive(). */
@@ -687,8 +687,8 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 	{
 	QueueHandle_t xHandle;
 
-		configASSERT( uxMaxCount != 0 );
-		configASSERT( uxInitialCount <= uxMaxCount );
+		configASSERT( uxMaxCount != 0 , "uxMaxCount is 0 in xQueueCreateCountingSemaphoreStatic");
+		configASSERT( uxInitialCount <= uxMaxCount , "uxInitialCount <= uxMaxCount in xQueueCreateCountingSemaphoreStatic");
 
 		xHandle = xQueueGenericCreateStatic( uxMaxCount, queueSEMAPHORE_QUEUE_ITEM_LENGTH, NULL, pxStaticQueue, queueQUEUE_TYPE_COUNTING_SEMAPHORE );
 
@@ -715,8 +715,8 @@ static void prvInitialiseNewQueue( const UBaseType_t uxQueueLength, const UBaseT
 	{
 	QueueHandle_t xHandle;
 
-		configASSERT( uxMaxCount != 0 );
-		configASSERT( uxInitialCount <= uxMaxCount );
+		configASSERT( uxMaxCount != 0 , "uxMaxCount is 0 in xQueueCreateCountingSemaphore");
+		configASSERT( uxInitialCount <= uxMaxCount , "uxInitialCount <= uxMaxCount in xQueueCreateCountingSemaphore");
 
 		xHandle = xQueueGenericCreate( uxMaxCount, queueSEMAPHORE_QUEUE_ITEM_LENGTH, queueQUEUE_TYPE_COUNTING_SEMAPHORE );
 
@@ -743,12 +743,12 @@ BaseType_t xEntryTimeSet = pdFALSE, xYieldRequired;
 TimeOut_t xTimeOut;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
-	configASSERT( !( ( pvItemToQueue == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) );
-	configASSERT( !( ( xCopyPosition == queueOVERWRITE ) && ( pxQueue->uxLength != 1 ) ) );
+	configASSERT( pxQueue != NULL, "pxQueue is NULL in xQueueGenericSend");
+	configASSERT( !( ( pvItemToQueue == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ), "xQueueGenericSend cond 1 in xQueueGenericSend" );
+	configASSERT( !( ( xCopyPosition == queueOVERWRITE ) && ( pxQueue->uxLength != 1 ) ) , "xQueueGenericSend cond 2 in xQueueGenericSend");
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
-		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
+		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) , "xQueueGenericSend cond 3 in xQueueGenericSend");
 	}
 	#endif
 
@@ -953,9 +953,9 @@ BaseType_t xReturn;
 UBaseType_t uxSavedInterruptStatus;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
-	configASSERT( !( ( pvItemToQueue == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) );
-	configASSERT( !( ( xCopyPosition == queueOVERWRITE ) && ( pxQueue->uxLength != 1 ) ) );
+	configASSERT( pxQueue != NULL, "pxQueue is NULL in xQueueGenericSendFromISR");
+	configASSERT( !( ( pvItemToQueue == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) , "xQueueGenericSendFromISR cond 1");
+	configASSERT( !( ( xCopyPosition == queueOVERWRITE ) && ( pxQueue->uxLength != 1 ) ) , "xQueueGenericSendFromISR cond 2" );
 
 	/* RTOS ports that support interrupt nesting have the concept of a maximum
 	system call (or maximum API call) interrupt priority.  Interrupts that are
@@ -1121,16 +1121,16 @@ Queue_t * const pxQueue = xQueue;
 	not (i.e. has a task with a higher priority than us been woken by this
 	post). */
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL , "pxQueue is NULL in xQueueGiveFromISR");
 
 	/* xQueueGenericSendFromISR() should be used instead of xQueueGiveFromISR()
 	if the item size is not 0. */
-	configASSERT( pxQueue->uxItemSize == 0 );
+	configASSERT( pxQueue->uxItemSize == 0 , "xQueueGiveFromISR cond 1");
 
 	/* Normally a mutex would not be given from an interrupt, especially if
 	there is a mutex holder, as priority inheritance makes no sense for an
 	interrupts, only tasks. */
-	configASSERT( !( ( pxQueue->uxQueueType == queueQUEUE_IS_MUTEX ) && ( pxQueue->u.xSemaphore.xMutexHolder != NULL ) ) );
+	configASSERT( !( ( pxQueue->uxQueueType == queueQUEUE_IS_MUTEX ) && ( pxQueue->u.xSemaphore.xMutexHolder != NULL ) ), "xQueueGiveFromISR cond 2" );
 
 	/* RTOS ports that support interrupt nesting have the concept of a maximum
 	system call (or maximum API call) interrupt priority.  Interrupts that are
@@ -1281,16 +1281,16 @@ TimeOut_t xTimeOut;
 Queue_t * const pxQueue = xQueue;
 
 	/* Check the pointer is not NULL. */
-	configASSERT( ( pxQueue ) );
+	configASSERT( ( pxQueue != NULL ), "pxQueue is NULL in xQueueReceive" );
 
 	/* The buffer into which data is received can only be NULL if the data size
 	is zero (so no data is copied into the buffer. */
-	configASSERT( !( ( ( pvBuffer ) == NULL ) && ( ( pxQueue )->uxItemSize != ( UBaseType_t ) 0U ) ) );
+	configASSERT( !( ( ( pvBuffer ) == NULL ) && ( ( pxQueue )->uxItemSize != ( UBaseType_t ) 0U ) ) , "xQueueReceive cond 1");
 
 	/* Cannot block if the scheduler is suspended. */
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
-		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
+		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) , "xQueueReceive cond 2");
 	}
 	#endif
 
@@ -1426,16 +1426,16 @@ Queue_t * const pxQueue = xQueue;
 #endif
 
 	/* Check the queue pointer is not NULL. */
-	configASSERT( ( pxQueue ) );
+	configASSERT( ( pxQueue != NULL ), "pxQueue is NULL in xQueueSemaphoreTake" );
 
 	/* Check this really is a semaphore, in which case the item size will be
 	0. */
-	configASSERT( pxQueue->uxItemSize == 0 );
+	configASSERT( pxQueue->uxItemSize == 0 , "xQueueSemaphoreTake cond 1");
 
 	/* Cannot block if the scheduler is suspended. */
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
-		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
+		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) , "xQueueSemaphoreTake cond 2");
 	}
 	#endif
 
@@ -1506,7 +1506,7 @@ Queue_t * const pxQueue = xQueue;
 					if it were 0 the function would have exited. */
 					#if( configUSE_MUTEXES == 1 )
 					{
-						configASSERT( xInheritanceOccurred == pdFALSE );
+						configASSERT( xInheritanceOccurred == pdFALSE , "xInheritanceOccurred is true in xQueueSemaphoreTake");
 					}
 					#endif /* configUSE_MUTEXES */
 
@@ -1641,16 +1641,16 @@ int8_t *pcOriginalReadPosition;
 Queue_t * const pxQueue = xQueue;
 
 	/* Check the pointer is not NULL. */
-	configASSERT( ( pxQueue ) );
+	configASSERT( ( pxQueue != NULL ),  "pxQueue is NULL in xQueuePeek");
 
 	/* The buffer into which data is received can only be NULL if the data size
 	is zero (so no data is copied into the buffer. */
-	configASSERT( !( ( ( pvBuffer ) == NULL ) && ( ( pxQueue )->uxItemSize != ( UBaseType_t ) 0U ) ) );
+	configASSERT( !( ( ( pvBuffer ) == NULL ) && ( ( pxQueue )->uxItemSize != ( UBaseType_t ) 0U ) ) , "xQueuePeek cond 1" );
 
 	/* Cannot block if the scheduler is suspended. */
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
-		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
+		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) , "xQueuePeek cond 2");
 	}
 	#endif
 
@@ -1788,8 +1788,8 @@ BaseType_t xReturn;
 UBaseType_t uxSavedInterruptStatus;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
-	configASSERT( !( ( pvBuffer == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) );
+	configASSERT( pxQueue != NULL, "pxQueue is NULL in xQueueReceiveFromISR" );
+	configASSERT( !( ( pvBuffer == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) , "xQueueReceiveFromISR cond 1");
 
 	/* RTOS ports that support interrupt nesting have the concept of a maximum
 	system call (or maximum API call) interrupt priority.  Interrupts that are
@@ -1880,9 +1880,9 @@ UBaseType_t uxSavedInterruptStatus;
 int8_t *pcOriginalReadPosition;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
-	configASSERT( !( ( pvBuffer == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) );
-	configASSERT( pxQueue->uxItemSize != 0 ); /* Can't peek a semaphore. */
+	configASSERT( pxQueue != NULL , "pxQueue is NULL in xQueuePeekFromISR");
+	configASSERT( !( ( pvBuffer == NULL ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ) , "xQueuePeekFromISR cond 1");
+	configASSERT( pxQueue->uxItemSize != 0 , "xQueuePeekFromISR cond 2"); /* Can't peek a semaphore. */
 
 	/* RTOS ports that support interrupt nesting have the concept of a maximum
 	system call (or maximum API call) interrupt priority.  Interrupts that are
@@ -1931,7 +1931,7 @@ UBaseType_t uxQueueMessagesWaiting( const QueueHandle_t xQueue )
 {
 UBaseType_t uxReturn;
 
-	configASSERT( xQueue );
+	configASSERT( xQueue != NULL, "xQueue is NULL in uxQueueMessagesWaiting");
 
 	taskENTER_CRITICAL();
 	{
@@ -1948,7 +1948,7 @@ UBaseType_t uxQueueSpacesAvailable( const QueueHandle_t xQueue )
 UBaseType_t uxReturn;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL , "xQueue is NULL in uxQueueSpacesAvailable");
 
 	taskENTER_CRITICAL();
 	{
@@ -1965,7 +1965,7 @@ UBaseType_t uxQueueMessagesWaitingFromISR( const QueueHandle_t xQueue )
 UBaseType_t uxReturn;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL , "pxQueue is NULL in uxQueueMessagesWaitingFromISR" );
 	uxReturn = pxQueue->uxMessagesWaiting;
 
 	return uxReturn;
@@ -1976,7 +1976,7 @@ void vQueueDelete( QueueHandle_t xQueue )
 {
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL , "pxQueue is NULL in vQueueDelete" );
 	traceQUEUE_DELETE( pxQueue );
 
 	#if ( configQUEUE_REGISTRY_SIZE > 0 )
@@ -2314,7 +2314,7 @@ BaseType_t xQueueIsQueueEmptyFromISR( const QueueHandle_t xQueue )
 BaseType_t xReturn;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL , "pxQueue is NULL in xQueueIsQueueEmptyFromISR" );
 	if( pxQueue->uxMessagesWaiting == ( UBaseType_t ) 0 )
 	{
 		xReturn = pdTRUE;
@@ -2354,7 +2354,7 @@ BaseType_t xQueueIsQueueFullFromISR( const QueueHandle_t xQueue )
 BaseType_t xReturn;
 Queue_t * const pxQueue = xQueue;
 
-	configASSERT( pxQueue );
+	configASSERT( pxQueue != NULL , "pxQueue is NULL in xQueueIsQueueFullFromISR" );
 	if( pxQueue->uxMessagesWaiting == pxQueue->uxLength )
 	{
 		xReturn = pdTRUE;
@@ -2886,8 +2886,8 @@ Queue_t * const pxQueue = xQueue;
 
 		/* This function must be called form a critical section. */
 
-		configASSERT( pxQueueSetContainer );
-		configASSERT( pxQueueSetContainer->uxMessagesWaiting < pxQueueSetContainer->uxLength );
+		configASSERT( pxQueueSetContainer , "prvNotifyQueueSetContainer cond 1" );
+		configASSERT( pxQueueSetContainer->uxMessagesWaiting < pxQueueSetContainer->uxLength , "prvNotifyQueueSetContainer cond ");
 
 		if( pxQueueSetContainer->uxMessagesWaiting < pxQueueSetContainer->uxLength )
 		{

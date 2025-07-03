@@ -40,8 +40,6 @@ all the API functions to use the MPU wrappers.  That should only be done when
 task.h is included from an application file. */
 //TODO remove it. Will be replaced by LCD panel driver
 #include <stdint.h>
-#include <usb_io.h>
-// END TODO
 #define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 #include <FreeRTOS/FreeRTOS.h>

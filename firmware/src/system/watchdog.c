@@ -40,9 +40,9 @@ void init_idw()
   IWDG_KR = 0xCCCC;
 }
 
-void WWDG_IRQHandler()
-{
+//void WWDG_IRQHandler()
+//{
 // TODO add event
 
-}
+//}
 

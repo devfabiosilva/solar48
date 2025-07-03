@@ -17,8 +17,10 @@ extern void xPortSysTickHandler (void);
 
 void init_systick()
 {
+NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
   NVIC_SetPriority (SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY); /* set Priority for Systick Interrupt */
+  //NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
   SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
                    SysTick_CTRL_TICKINT_Msk   |
@@ -61,6 +63,19 @@ void SysTick_Handler()
     rtos_tick = 0;
 #endif
 }
+/*
+#ifdef RTOS_SOLAR48
+void SVC_Handler(void)
+{
+  vPortSVCHandler();
+}
+
+void PendSV_Handler(void)
+{
+  vPortPendSVHandler();
+}
+#endif
+*/
 
 uint64_t milliseconds()
 {

@@ -38,8 +38,6 @@ task.h is included from an application file. */
 #include <FreeRTOS/task.h>
 #include <FreeRTOS/timers.h>
 #include <FreeRTOS/event_groups.h>
-//TODO remove it. Will be replaced by LCD panel driver
-#include <usb_io.h>
 
 /* Lint e961, e750 and e9021 are suppressed as a MISRA exception justified
 because the MPU ports require MPU_WRAPPERS_INCLUDED_FROM_API_FILE to be defined
@@ -97,7 +95,7 @@ static BaseType_t prvTestWaitCondition( const EventBits_t uxCurrentEventBits, co
 	EventGroup_t *pxEventBits;
 
 		/* A StaticEventGroup_t object must be provided. */
-		configASSERT( pxEventGroupBuffer, "xEventGroupCreateStatic" );
+		configASSERT( pxEventGroupBuffer != NULL, "pxEventGroupBuffer is NULL in xEventGroupCreateStatic" );
 
 		#if( configASSERT_DEFINED == 1 )
 		{
@@ -198,7 +196,7 @@ BaseType_t xAlreadyYielded;
 BaseType_t xTimeoutOccurred = pdFALSE;
 
 	configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0, "uxBitsToWaitFor in xEventGroupSync" );
-	configASSERT( uxBitsToWaitFor != 0,  "uxBitsToWaitFor in xEventGroupSync");
+	configASSERT( uxBitsToWaitFor != 0,  "uxBitsToWaitFor in xEventGroupSync is zero");
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
 	{
 		configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ), "xEventGroupSync: SCHEDULER_SUSPENDED" );
@@ -319,7 +317,7 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 
 	/* Check the user is not attempting to wait on the bits used by the kernel
 	itself, and that at least one bit is being requested. */
-	configASSERT( xEventGroup, "xEventGroupWaitBits in xEventGroup" );
+	configASSERT( xEventGroup != NULL, "xEventGroup is NULL in xEventGroupWaitBits" );
 	configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "EVENT_BITS_CONTROL_BYTES in xEventGroupWaitBits");
 	configASSERT( uxBitsToWaitFor != 0 , "xEventGroupWaitBits: uxBitsToWaitFor is zero" );
 	#if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
@@ -467,7 +465,7 @@ EventBits_t uxReturn;
 
 	/* Check the user is not attempting to clear the bits used by the kernel
 	itself. */
-	configASSERT( xEventGroup , "xEventGroup in xEventGroupClearBits");
+	configASSERT( xEventGroup != NULL, "xEventGroup is NULL in xEventGroupClearBits");
 	configASSERT( ( uxBitsToClear & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "uxBitsToClear in xEventGroupClearBits");
 
 	taskENTER_CRITICAL();
@@ -529,7 +527,7 @@ BaseType_t xMatchFound = pdFALSE;
 
 	/* Check the user is not attempting to set the bits used by the kernel
 	itself. */
-	configASSERT( xEventGroup,  "xEventGroup in xEventGroupSetBits");
+	configASSERT( xEventGroup != NULL,  "xEventGroup is NULL in xEventGroupSetBits");
 	configASSERT( ( uxBitsToSet & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "xEventGroupSetBits in EVENT_BITS_CONTROL_BYTES");
 
 	pxList = &( pxEventBits->xTasksWaitingForBits );

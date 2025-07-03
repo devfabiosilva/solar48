@@ -13,6 +13,7 @@
 #include <watchdog.h>
 #include <sensors.h>
 #include <process.h>
+#include <interrupt_panic.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -55,7 +56,7 @@ void led_blink_task(void *params)
 
   while (1) {
     //iwd_refresh();
-    //usb_printf("\nPass1 ...\n\n");
+    usb_printf("\nPass1 ...\n\n");
     //blink_n(3);
     ledoff();
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -72,7 +73,7 @@ void run(void)
   usb_printf("\nReady ...\n\n");
   usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
   BaseType_t err;
-  if ((err=xTaskCreate(led_blink_task, "LED", 256, NULL, 1, NULL)) != pdPASS) {
+  if ((err=xTaskCreate(led_blink_task, "LED", 2*128, NULL, 1, NULL)) != pdPASS) {
     usb_printf("\nUnable to create task %d ...\n\n", err);
     blink_n(3);
     while (1);
@@ -122,7 +123,7 @@ void halt()
 void halt_ir()
 {
   // It could not happen. If happens report bug and disable all interrupts
-  usb_printf("\nHALT IRQ\n\n");
+  usb_printf("\nHALT IRQ = %s\n\n", irq_panic_info());
   DISABLE_SETUP
 }
 

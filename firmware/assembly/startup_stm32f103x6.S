@@ -18,6 +18,7 @@ _ebss       End of bss
 
 .global g_pfnVectors
 .global _solar48_entrypoint
+.global Default_Handler
 
 /* start address for the initialization values of the .data section.
 defined in linker script */

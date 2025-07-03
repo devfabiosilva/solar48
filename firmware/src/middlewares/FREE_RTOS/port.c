@@ -35,8 +35,6 @@
 #include <stdint.h>
 #include <CMSIS/cmsis_gcc.h>
 #include <time.h>
-//TODO remove it. Will be replaced by LCD panel driver
-#include <usb_io.h>
 
 /* Scheduler includes. */
 #include <FreeRTOS/FreeRTOS.h>
@@ -73,7 +71,8 @@
 
 /* Constants required to check the validity of an interrupt priority. */
 #define portFIRST_USER_INTERRUPT_NUMBER		( 16 )
-#define portNVIC_IP_REGISTERS_OFFSET_16 	( 0xE000E3F0 )
+//#define portNVIC_IP_REGISTERS_OFFSET_16 	( 0xE000E3F0 ) // OLD seens invalid
+#define portNVIC_IP_REGISTERS_OFFSET_16 0xE000E400
 #define portAIRCR_REG						( * ( ( volatile uint32_t * ) 0xE000ED0C ) )
 #define portMAX_8_BIT_VALUE					( ( uint8_t ) 0xff )
 #define portTOP_BIT_OF_BYTE					( ( uint8_t ) 0x80 )
@@ -204,7 +203,9 @@ static void prvTaskExitError( void )
 	for( ;; );
 }
 /*-----------------------------------------------------------*/
-
+//TODO remove
+#include <usb_io.h>
+extern volatile pxCurrentTCB;
 /*
  * See header file for description.
  */
@@ -252,6 +253,11 @@ BaseType_t xPortStartScheduler( void )
 			/* Check the CMSIS configuration that defines the number of
 			priority bits matches the number of priority bits actually queried
 			from the hardware. */
+			if (( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) != __NVIC_PRIO_BITS) {
+usb_printf("\nDEBUG: ucMaxPriorityValue = 0x%02X"\
+"\nDEBUG: (portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue) = %lu"\
+"\nDEBUG: configPRIO_BITS = %d", ucMaxPriorityValue, (portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue), __NVIC_PRIO_BITS);
+}
 			configASSERT( ( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) == __NVIC_PRIO_BITS , "__NVIC_PRIO_BITS in xPortStartScheduler");
 		}
 		#endif
@@ -261,6 +267,12 @@ BaseType_t xPortStartScheduler( void )
 			/* Check the FreeRTOS configuration that defines the number of
 			priority bits matches the number of priority bits actually queried
 			from the hardware. */
+			////TODO remove
+			if (( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) != __NVIC_PRIO_BITS) {
+			usb_printf("\nDEBUG: ucMaxPriorityValue = 0x%02X", ucMaxPriorityValue);
+usb_printf("\nDEBUG: (portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue) = %lu", (portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue));
+usb_printf("\nDEBUG: configPRIO_BITS = %d", configPRIO_BITS);
+}
 			configASSERT( ( portMAX_PRIGROUP_BITS - ulMaxPRIGROUPValue ) == configPRIO_BITS , "PRIO_BITS in xPortStartScheduler");
 		}
 		#endif
@@ -275,6 +287,8 @@ BaseType_t xPortStartScheduler( void )
 		*pucFirstUserPriorityRegister = ulOriginalPriority;
 	}
 	#endif /* conifgASSERT_DEFINED */
+
+configASSERT( pxCurrentTCB != NULL , "pxCurrentTCB is NULL");
 
 	/* Make PendSV and SysTick the lowest priority interrupts. */
 	portNVIC_SYSPRI2_REG |= portNVIC_PENDSV_PRI;

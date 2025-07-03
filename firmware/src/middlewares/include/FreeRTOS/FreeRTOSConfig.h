@@ -56,7 +56,11 @@
 //#define CMSIS_device_header "stm32f1xx.h"
 //#endif /* CMSIS_device_header */
 
+#ifndef SOLAR48_ASM
+//#include <stm32f103x6.h>
+#endif
 #include <systick_config.h>
+#include <FreeRTOS/rtos_assert.h>
 
 #define configUSE_PREEMPTION                     1
 #define configSUPPORT_STATIC_ALLOCATION          0
@@ -67,7 +71,7 @@
 #define configTICK_RATE_HZ                       ((TickType_t)SYS_TICK_FREQ_HZ)
 #define configMAX_PRIORITIES                     ( 6 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)3072)
+#define configTOTAL_HEAP_SIZE                    (8*1024)//((size_t)3072)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_TRACE_FACILITY                 1
 #define configUSE_16_BIT_TICKS                   0
@@ -116,11 +120,14 @@ to exclude the API function. */
 #define USE_FreeRTOS_HEAP_4
 
 /* Cortex-M specific definitions. */
+
 #ifdef __NVIC_PRIO_BITS
  /* __BVIC_PRIO_BITS will be specified when CMSIS is being used. */
  #define configPRIO_BITS         __NVIC_PRIO_BITS
 #else
- #define configPRIO_BITS         4
+ //#define configPRIO_BITS        4
+ #define configPRIO_BITS         3
+ #define __NVIC_PRIO_BITS configPRIO_BITS
 #endif
 
 /* The lowest interrupt priority that can be used in a call to a "set priority"
@@ -143,11 +150,16 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
 /* USER CODE BEGIN 1 */
+
+/*
 #define configASSERT( x, msg ) if ((x) == 0) { \
   usb_printf("\nKERNEL PANIC: %s", msg);\
   taskDISABLE_INTERRUPTS();\
   for( ;; ); \
 }
+*/
+#define configASSERT( x, msg ) configASSERT_fn(x, msg)
+
 /* USER CODE END 1 */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS

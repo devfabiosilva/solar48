@@ -117,8 +117,8 @@
   #endif
 
   #ifndef __NVIC_PRIO_BITS
-    #define __NVIC_PRIO_BITS          3U
-    #warning "__NVIC_PRIO_BITS not defined in device header file; using default!"
+    //#define __NVIC_PRIO_BITS          3U
+    #error "__NVIC_PRIO_BITS not defined in device header file"
   #endif
 
   #ifndef __Vendor_SysTickConfig

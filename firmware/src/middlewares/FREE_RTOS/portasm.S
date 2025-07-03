@@ -1,3 +1,4 @@
+#define SOLAR48_ASM
 #include <FreeRTOS/FreeRTOSConfig.h>
 
 .syntax unified

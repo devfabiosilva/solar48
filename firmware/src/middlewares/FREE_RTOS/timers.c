@@ -272,7 +272,7 @@ BaseType_t xReturn = pdFAIL;
 		mtCOVERAGE_TEST_MARKER();
 	}
 
-	configASSERT( xReturn );
+	configASSERT( xReturn , "xTimerCreateTimerTask != pdPASS");
 	return xReturn;
 }
 /*-----------------------------------------------------------*/
@@ -321,13 +321,13 @@ BaseType_t xReturn = pdFAIL;
 			variable of type StaticTimer_t equals the size of the real timer
 			structure. */
 			volatile size_t xSize = sizeof( StaticTimer_t );
-			configASSERT( xSize == sizeof( Timer_t ) );
+			configASSERT( xSize == sizeof( Timer_t ) , "xTimerCreateStatic cond 1");
 			( void ) xSize; /* Keeps lint quiet when configASSERT() is not defined. */
 		}
 		#endif /* configASSERT_DEFINED */
 
 		/* A pointer to a StaticTimer_t structure MUST be provided, use it. */
-		configASSERT( pxTimerBuffer );
+		configASSERT( pxTimerBuffer != NULL , "pxTimerBuffer is NULL in xTimerCreateStatic");
 		pxNewTimer = ( Timer_t * ) pxTimerBuffer; /*lint !e740 !e9087 StaticTimer_t is a pointer to a Timer_t, so guaranteed to be aligned and sized correctly (checked by an assert()), so this is safe. */
 
 		if( pxNewTimer != NULL )
@@ -354,7 +354,7 @@ static void prvInitialiseNewTimer(	const char * const pcTimerName,			/*lint !e97
 									Timer_t *pxNewTimer )
 {
 	/* 0 is not a valid value for xTimerPeriodInTicks. */
-	configASSERT( ( xTimerPeriodInTicks > 0 ) );
+	configASSERT( ( xTimerPeriodInTicks > 0 ) , "prvInitialiseNewTimer cond 1");
 
 	if( pxNewTimer != NULL )
 	{
@@ -383,7 +383,7 @@ BaseType_t xTimerGenericCommand( TimerHandle_t xTimer, const BaseType_t xCommand
 BaseType_t xReturn = pdFAIL;
 DaemonTaskMessage_t xMessage;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in xTimerGenericCommand");
 
 	/* Send a message to the timer service task to perform a particular action
 	on a particular timer definition. */
@@ -425,7 +425,7 @@ TaskHandle_t xTimerGetTimerDaemonTaskHandle( void )
 {
 	/* If xTimerGetTimerDaemonTaskHandle() is called before the scheduler has been
 	started, then xTimerTaskHandle will be NULL. */
-	configASSERT( ( xTimerTaskHandle != NULL ) );
+	configASSERT( ( xTimerTaskHandle != NULL ) , "xTimerTaskHandle is NULL in xTimerGetTimerDaemonTaskHandle");
 	return xTimerTaskHandle;
 }
 /*-----------------------------------------------------------*/
@@ -434,7 +434,7 @@ TickType_t xTimerGetPeriod( TimerHandle_t xTimer )
 {
 Timer_t *pxTimer = xTimer;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in xTimerGetPeriod" );
 	return pxTimer->xTimerPeriodInTicks;
 }
 /*-----------------------------------------------------------*/
@@ -443,7 +443,7 @@ void vTimerSetReloadMode( TimerHandle_t xTimer, const UBaseType_t uxAutoReload )
 {
 Timer_t * pxTimer =  xTimer;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in vTimerSetReloadMode");
 	taskENTER_CRITICAL();
 	{
 		if( uxAutoReload != pdFALSE )
@@ -464,7 +464,7 @@ UBaseType_t uxTimerGetReloadMode( TimerHandle_t xTimer )
 Timer_t * pxTimer =  xTimer;
 UBaseType_t uxReturn;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL, "xTimer is NULL in uxTimerGetReloadMode");
 	taskENTER_CRITICAL();
 	{
 		if( ( pxTimer->ucStatus & tmrSTATUS_IS_AUTORELOAD ) == 0 )
@@ -489,7 +489,7 @@ TickType_t xTimerGetExpiryTime( TimerHandle_t xTimer )
 Timer_t * pxTimer =  xTimer;
 TickType_t xReturn;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL ,  "xTimer is NULL in xTimerGetExpiryTime");
 	xReturn = listGET_LIST_ITEM_VALUE( &( pxTimer->xTimerListItem ) );
 	return xReturn;
 }
@@ -499,7 +499,7 @@ const char * pcTimerGetName( TimerHandle_t xTimer ) /*lint !e971 Unqualified cha
 {
 Timer_t *pxTimer = xTimer;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in pcTimerGetName");
 	return pxTimer->pcTimerName;
 }
 /*-----------------------------------------------------------*/
@@ -526,7 +526,7 @@ Timer_t * const pxTimer = ( Timer_t * ) listGET_OWNER_OF_HEAD_ENTRY( pxCurrentTi
 			/* The timer expired before it was added to the active timer
 			list.  Reload it now.  */
 			xResult = xTimerGenericCommand( pxTimer, tmrCOMMAND_START_DONT_TRACE, xNextExpireTime, NULL, tmrNO_DELAY );
-			configASSERT( xResult );
+			configASSERT( xResult, "prvProcessExpiredTimer cond 1" );
 			( void ) xResult;
 		}
 		else
@@ -750,7 +750,7 @@ TickType_t xTimeNow;
 
 				/* The timer uses the xCallbackParameters member to request a
 				callback be executed.  Check the callback is not NULL. */
-				configASSERT( pxCallback );
+				configASSERT( pxCallback != NULL , "pxCallback is NULL in prvProcessReceivedCommands");
 
 				/* Call the function. */
 				pxCallback->pxCallbackFunction( pxCallback->pvParameter1, pxCallback->ulParameter2 );
@@ -809,7 +809,7 @@ TickType_t xTimeNow;
 						if( ( pxTimer->ucStatus & tmrSTATUS_IS_AUTORELOAD ) != 0 )
 						{
 							xResult = xTimerGenericCommand( pxTimer, tmrCOMMAND_START_DONT_TRACE, xMessage.u.xTimerParameters.xMessageValue + pxTimer->xTimerPeriodInTicks, NULL, tmrNO_DELAY );
-							configASSERT( xResult );
+							configASSERT( xResult , "prvProcessReceivedCommands cond 1");
 							( void ) xResult;
 						}
 						else
@@ -833,7 +833,7 @@ TickType_t xTimeNow;
 				case tmrCOMMAND_CHANGE_PERIOD_FROM_ISR :
 					pxTimer->ucStatus |= tmrSTATUS_IS_ACTIVE;
 					pxTimer->xTimerPeriodInTicks = xMessage.u.xTimerParameters.xMessageValue;
-					configASSERT( ( pxTimer->xTimerPeriodInTicks > 0 ) );
+					configASSERT( ( pxTimer->xTimerPeriodInTicks > 0 ) , "prvProcessReceivedCommands cond 2");
 
 					/* The new period does not really have a reference, and can
 					be longer or shorter than the old one.  The command time is
@@ -922,7 +922,7 @@ BaseType_t xResult;
 			else
 			{
 				xResult = xTimerGenericCommand( pxTimer, tmrCOMMAND_START_DONT_TRACE, xNextExpireTime, NULL, tmrNO_DELAY );
-				configASSERT( xResult );
+				configASSERT( xResult , "prvSwitchTimerLists cond 1");
 				( void ) xResult;
 			}
 		}
@@ -994,7 +994,7 @@ BaseType_t xTimerIsTimerActive( TimerHandle_t xTimer )
 BaseType_t xReturn;
 Timer_t *pxTimer = xTimer;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in xTimerIsTimerActive" );
 
 	/* Is the timer in the list of active timers? */
 	taskENTER_CRITICAL();
@@ -1019,7 +1019,7 @@ void *pvTimerGetTimerID( const TimerHandle_t xTimer )
 Timer_t * const pxTimer = xTimer;
 void *pvReturn;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in pvTimerGetTimerID");
 
 	taskENTER_CRITICAL();
 	{
@@ -1035,7 +1035,7 @@ void vTimerSetTimerID( TimerHandle_t xTimer, void *pvNewID )
 {
 Timer_t * const pxTimer = xTimer;
 
-	configASSERT( xTimer );
+	configASSERT( xTimer != NULL , "xTimer is NULL in vTimerSetTimerID");
 
 	taskENTER_CRITICAL();
 	{
@@ -1079,7 +1079,7 @@ Timer_t * const pxTimer = xTimer;
 		/* This function can only be called after a timer has been created or
 		after the scheduler has been started because, until then, the timer
 		queue does not exist. */
-		configASSERT( xTimerQueue );
+		configASSERT( xTimerQueue != NULL , "xTimerQueue is NULL in xTimerPendFunctionCall");
 
 		/* Complete the message with the function parameters and post it to the
 		daemon task. */
