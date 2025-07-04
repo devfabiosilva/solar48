@@ -71,7 +71,7 @@
 #define configTICK_RATE_HZ                       ((TickType_t)SYS_TICK_FREQ_HZ)
 #define configMAX_PRIORITIES                     ( 6 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    (8*1024)//((size_t)3072)
+#define configTOTAL_HEAP_SIZE                    (6*1024)//((size_t)3072)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_TRACE_FACILITY                 1
 #define configUSE_16_BIT_TICKS                   0
@@ -164,7 +164,7 @@ header file. */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
 standard names. */
-#define vPortSVCHandler    SVC_Handler
+//#define vPortSVCHandler    SVC_Handler
 #define xPortPendSVHandler PendSV_Handler
 
 /* IMPORTANT: After 10.3.1 update, Systick_Handler comes from NVIC (if SYS timebase = systick), otherwise from cmsis_os2.c */
@@ -176,7 +176,7 @@ standard names. */
 /* USER CODE END Defines */
 
 
-//#define configCHECK_FOR_STACK_OVERFLOW 2
+#define configCHECK_FOR_STACK_OVERFLOW 2
 #define configASSERT_DEFINED 1
 
 #endif /* FREERTOS_CONFIG_H */

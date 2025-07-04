@@ -179,5 +179,37 @@
 #define ADC1_SQR3 (*(volatile uint32_t *)(ADC1_BASE + 0x34))
 #define ADC1_DR (*(volatile uint32_t *)(ADC1_BASE + 0x4C))
 // END OF ADC conversion
+
+//NVIC Parameters
+void __nvic_enable_irq(IRQn_Type IRQn);
+
+/** @defgroup CORTEX_Preemption_Priority_Group CORTEX Preemption Priority Group
+  * @{
+  */
+#define NVIC_PRIORITYGROUP_0         0x00000007U /*!< 0 bits for pre-emption priority
+                                                      4 bits for subpriority */
+#define NVIC_PRIORITYGROUP_1         0x00000006U /*!< 1 bits for pre-emption priority
+                                                      3 bits for subpriority */
+#define NVIC_PRIORITYGROUP_2         0x00000005U /*!< 2 bits for pre-emption priority
+                                                      2 bits for subpriority */
+#define NVIC_PRIORITYGROUP_3         0x00000004U /*!< 3 bits for pre-emption priority
+                                                      1 bits for subpriority */
+#define NVIC_PRIORITYGROUP_4         0x00000003U /*!< 4 bits for pre-emption priority
+                                                      0 bits for subpriority */
+
+void __nvic_setprioritygrouping(uint32_t);
+
+// HAL Parameters
+#define NVIC_PRIORITYGROUP_4         0x00000003U /*!< 4 bits for pre-emption priority */
+void __hal_nvic_setpriority(IRQn_Type, uint32_t, uint32_t);
+void __nvic_set_priority(IRQn_Type, uint32_t);
+/**
+  \brief   Get Priority Grouping
+  \details Reads the priority grouping field from the NVIC Interrupt Controller.
+  \return                Priority grouping field (SCB->AIRCR [10:8] PRIGROUP field).
+ */
+uint32_t get_priority_grouping();
+
+void safe_nvic_prioritygroup_init(uint32_t);
 #endif
 

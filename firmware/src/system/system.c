@@ -13,6 +13,20 @@ void system_init(void)
   while ((RCC_CFGR & SWS_mask) != PLL_selected_as_system_clock);
 //  RCC_APB2ENR |= IOPCEN;
 
+/*
+  .init :
+  {
+    *(.init.*)
+    _einit = .;
+  } > FLASH
+
+  .fini :
+  {
+    *(.fini.*)
+    _efini = .;
+  } > FLASH
+*/
+
   // Memory manager initialization
   fill_stack_with_pattern();
 }

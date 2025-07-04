@@ -315,7 +315,7 @@ Queue_t * const pxQueue = xQueue;
 
 		/* The StaticQueue_t structure and the queue storage area must be
 		supplied. */
-		configASSERT( pxStaticQueue != NULL "pxStaticQueue in xQueueGenericCreateStatic is NULL");
+		configASSERT( pxStaticQueue != NULL , "pxStaticQueue in xQueueGenericCreateStatic is NULL");
 
 		/* A queue storage area should be provided if the item size is not 0, and
 		should not be provided if the item size is 0. */

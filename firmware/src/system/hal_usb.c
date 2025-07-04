@@ -2219,35 +2219,6 @@ USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep_a
   return usb_status;
 }
 
-
-/**
-  * @brief  Sets the priority grouping field (preemption priority and subpriority)
-  *         using the required unlock sequence.
-  * @param  PriorityGroup: The priority grouping bits length. 
-  *         This parameter can be one of the following values:
-  *         @arg NVIC_PRIORITYGROUP_0: 0 bits for preemption priority
-  *                                    4 bits for subpriority
-  *         @arg NVIC_PRIORITYGROUP_1: 1 bits for preemption priority
-  *                                    3 bits for subpriority
-  *         @arg NVIC_PRIORITYGROUP_2: 2 bits for preemption priority
-  *                                    2 bits for subpriority
-  *         @arg NVIC_PRIORITYGROUP_3: 3 bits for preemption priority
-  *                                    1 bits for subpriority
-  *         @arg NVIC_PRIORITYGROUP_4: 4 bits for preemption priority
-  *                                    0 bits for subpriority
-  * @note   When the NVIC_PriorityGroup_0 is selected, IRQ preemption is no more possible. 
-  *         The pending IRQ priority will be managed only by the subpriority. 
-  * @retval None
-  */
-void HAL_NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
-{
-  /* Check the parameters */
-  assert_param(IS_NVIC_PRIORITY_GROUP(PriorityGroup));
-  
-  /* Set the PRIGROUP[10:8] bits according to the PriorityGroup parameter value */
-  NVIC_SetPriorityGrouping(PriorityGroup);
-}
-
 /*******************************************************************************
                        LL Driver Callbacks (PCD -> USB Device Library)
 *******************************************************************************/
@@ -2798,15 +2769,17 @@ HAL_StatusTypeDef USB_DisableGlobalInt(USB_TypeDef *USBx)
   *         (For the complete STM32 Devices IRQ Channels list, please refer to the appropriate CMSIS device file (stm32f10xxx.h))
   * @retval None
   */
+/*
+//TODO REMOVE IT
 void HAL_NVIC_EnableIRQ(IRQn_Type IRQn)
 {
-  /* Check the parameters */
+  // Check the parameters 
   assert_param(IS_NVIC_DEVICE_IRQ(IRQn));
 
-  /* Enable interrupt */
+  // Enable interrupt
   NVIC_EnableIRQ(IRQn);
 }
-
+*/
 
 /**
   * @brief  Sets the priority of an interrupt.
@@ -2821,11 +2794,13 @@ void HAL_NVIC_EnableIRQ(IRQn_Type IRQn)
   *         A lower priority value indicates a higher priority.          
   * @retval None
   */
+/*
+TODO remove
 void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority)
 { 
   uint32_t prioritygroup = 0x00U;
   
-  /* Check the parameters */
+  // Check the parameters
   assert_param(IS_NVIC_SUB_PRIORITY(SubPriority));
   assert_param(IS_NVIC_PREEMPTION_PRIORITY(PreemptPriority));
   
@@ -2833,7 +2808,7 @@ void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t Sub
   
   NVIC_SetPriority(IRQn, NVIC_EncodePriority(prioritygroup, PreemptPriority, SubPriority));
 }
-
+*/
 #define __HAL_RCC_USB_CLK_ENABLE   do { \
                                         __IO uint32_t tmpreg; \
                                         SET_BIT(RCC->APB1ENR, RCC_APB1ENR_USBEN);\
@@ -2848,8 +2823,10 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     __HAL_RCC_USB_CLK_ENABLE;
 
     /* Peripheral interrupt init */
-    HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+    //HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+    //HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+    __nvic_set_priority(USB_LP_CAN1_RX0_IRQn, 1);
+    __nvic_enable_irq(USB_LP_CAN1_RX0_IRQn);
   }
 }
 

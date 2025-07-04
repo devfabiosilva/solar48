@@ -51,8 +51,10 @@ void init_rtc(rtc_cb rtc_callback)
   RCC_APB1ENR &= ~PWREN;
 
   // Enable RTC interrupt and its priority
-  NVIC_EnableIRQ(RTC_IRQn);
-  NVIC_SetPriority(RTC_IRQn, 10);
+  //NVIC_EnableIRQ(RTC_IRQn);
+  //NVIC_SetPriority(RTC_IRQn, 10);
+  __nvic_set_priority(RTC_IRQn, 6);
+  __nvic_enable_irq(RTC_IRQn);
 }
 
 #define CURRENT_TIMESTAMP ((RTC_CNTH<<16)|(RTC_CNTL))

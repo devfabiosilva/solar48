@@ -71,8 +71,8 @@
 
 /* Constants required to check the validity of an interrupt priority. */
 #define portFIRST_USER_INTERRUPT_NUMBER		( 16 )
-//#define portNVIC_IP_REGISTERS_OFFSET_16 	( 0xE000E3F0 ) // OLD seens invalid
-#define portNVIC_IP_REGISTERS_OFFSET_16 0xE000E400
+#define portNVIC_IP_REGISTERS_OFFSET_16 	( 0xE000E3F0 ) // OLD seens invalid
+//#define portNVIC_IP_REGISTERS_OFFSET_16 0xE000E400
 #define portAIRCR_REG						( * ( ( volatile uint32_t * ) 0xE000ED0C ) )
 #define portMAX_8_BIT_VALUE					( ( uint8_t ) 0xff )
 #define portTOP_BIT_OF_BYTE					( ( uint8_t ) 0x80 )
@@ -205,7 +205,6 @@ static void prvTaskExitError( void )
 /*-----------------------------------------------------------*/
 //TODO remove
 #include <usb_io.h>
-extern volatile pxCurrentTCB;
 /*
  * See header file for description.
  */
@@ -288,8 +287,6 @@ usb_printf("\nDEBUG: configPRIO_BITS = %d", configPRIO_BITS);
 	}
 	#endif /* conifgASSERT_DEFINED */
 
-configASSERT( pxCurrentTCB != NULL , "pxCurrentTCB is NULL");
-
 	/* Make PendSV and SysTick the lowest priority interrupts. */
 	portNVIC_SYSPRI2_REG |= portNVIC_PENDSV_PRI;
 	portNVIC_SYSPRI2_REG |= portNVIC_SYSTICK_PRI;
@@ -300,7 +297,7 @@ configASSERT( pxCurrentTCB != NULL , "pxCurrentTCB is NULL");
 
 	/* Initialise the critical nesting count ready for the first task. */
 	uxCriticalNesting = 0;
-
+//usb_printf("\nInitializing vPortStartFirstTask ...\n");
 	/* Start the first task. */
 	vPortStartFirstTask();
 
@@ -560,6 +557,7 @@ void xPortSysTickHandler( void )
 
 void vPortSetupTimerInterrupt( void )
 {
+//usb_printf("\nInitializing vPortSetupTimerInterrupt ...\n");
     /* Stop SysTick */
     portNVIC_SYSTICK_CTRL_REG = 0UL;
     portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
@@ -572,7 +570,7 @@ void vPortSetupTimerInterrupt( void )
         portNVIC_SYSTICK_INT_BIT   |  // Enable interrupt
         portNVIC_SYSTICK_ENABLE_BIT   // Enable counter
     );
-    //init_systick();
+//    init_systick();
 }
 /*-----------------------------------------------------------*/
 

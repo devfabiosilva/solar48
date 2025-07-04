@@ -13,7 +13,8 @@
 #include <watchdog.h>
 #include <sensors.h>
 #include <process.h>
-#include <interrupt_panic.h>
+//#include <interrupt_panic.h>
+#include <registers.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -36,6 +37,7 @@ SOLAR48_DATE sd;
 
 void setup()
 {
+  __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
   init_rtc(realtime);
   init_systick();
@@ -56,7 +58,7 @@ void led_blink_task(void *params)
 
   while (1) {
     //iwd_refresh();
-    usb_printf("\nPass1 ...\n\n");
+    //usb_printf("\nPass1 ...\n\n");
     //blink_n(3);
     ledoff();
     vTaskDelay(pdMS_TO_TICKS(500));
@@ -68,10 +70,11 @@ void led_blink_task(void *params)
 void run(void)
 {
 
-  usb_printf("\nInitializing ...\n\n");
-  //blink_n(3);
-  usb_printf("\nReady ...\n\n");
-  usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
+  usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
+  //usb_printf("\nReady ...\n\n");
+//  blink_n(1);
+  //usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
+
   BaseType_t err;
   if ((err=xTaskCreate(led_blink_task, "LED", 2*128, NULL, 1, NULL)) != pdPASS) {
     usb_printf("\nUnable to create task %d ...\n\n", err);
@@ -79,16 +82,16 @@ void run(void)
     while (1);
   }
 
-  usb_printf("SYSTICK CTRL 2: 0x%08lx\n", SysTick->CTRL);
+  //usb_printf("SYSTICK CTRL 2: 0x%08lx\n", SysTick->CTRL);
   //usb_printf("Free heap: %u\n", xPortGetFreeHeapSize());
   //usb_printf("Min ever free heap: %u\n", xPortGetMinimumEverFreeHeapSize());
   //blink_n(2);
   vTaskStartScheduler();
 
-  while (1) {
-    usb_printf("\nERROR ...\n\n");
-    blink_n(3);
-  }
+  do {
+    usb_printf("\nERROR\n");
+    //blink_n(3);
+  } while (0);
 }
 
 /*
@@ -102,8 +105,14 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
 
 void run(void)
 {
-  usb_printf("\nInitializing ...\n\n");
+//volatile uint32_t tmp = SCB->AIRCR;
+  usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
+//usb_printf("AIRCR before: 0x%08lX\n", tmp);
+
+//__nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
+
   blink_n(3);
+//usb_printf("AIRCR after:  0x%08lX\n", SCB->AIRCR);
   usb_printf("\nReady ...\n\n");
   while (1) {
     run_process();
@@ -112,20 +121,6 @@ void run(void)
 }
 
 #endif
-
-void halt()
-{
-  // It could not happen. If happens report bug and disable all interrupts
-  usb_printf("\nHALT\n\n");
-  DISABLE_SETUP
-}
-
-void halt_ir()
-{
-  // It could not happen. If happens report bug and disable all interrupts
-  usb_printf("\nHALT IRQ = %s\n\n", irq_panic_info());
-  DISABLE_SETUP
-}
 
 static char text[1024];
 size_t text_sz = 0;

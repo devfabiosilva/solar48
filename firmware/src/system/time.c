@@ -17,10 +17,10 @@ extern void xPortSysTickHandler (void);
 
 void init_systick()
 {
-NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
-  NVIC_SetPriority (SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY); /* set Priority for Systick Interrupt */
-  //NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL);
+  //NVIC_SetPriority (SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY); /* set Priority for Systick Interrupt */
+  __nvic_set_priority(SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
   SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
                    SysTick_CTRL_TICKINT_Msk   |
@@ -36,7 +36,8 @@ NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 void init_systick()
 {
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
-  NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
+  //NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
+  __nvic_set_priority(SysTick_IRQn, 7);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
   SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk |*/
                    SysTick_CTRL_TICKINT_Msk   |
@@ -54,7 +55,7 @@ void SysTick_Handler()
   ++tick;
 
 #ifdef RTOS_SOLAR48
-  SysTick->CTRL;
+  //SysTick->CTRL;
   if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
     /* Call tick handler */
      xPortSysTickHandler();
@@ -109,6 +110,7 @@ void delay(uint64_t milliseconds)
   };
   //__WFI(); If only one interruption or principal
 }
+#endif
 
 // TODO for test only. Delegate to RTOS timing system. Will be removed
 static void delay_1us()
@@ -198,4 +200,4 @@ void delay_5us()
     delay_1us();
   while (++i < 5);
 }
-#endif
+
