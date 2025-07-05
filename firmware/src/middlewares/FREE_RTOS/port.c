@@ -33,7 +33,7 @@
 // SOLAR48: Changed to CMSIS/cmsis_gcc.h -> https://github.com/ARM-software/CMSIS_5/issues/306
 //#include <intrinsics.h>
 #include <stdint.h>
-#include <CMSIS/cmsis_gcc.h>
+#include <cmsis_gcc.h>
 #include <time.h>
 
 /* Scheduler includes. */
@@ -172,22 +172,51 @@ static UBaseType_t uxCriticalNesting = 0xaaaaaaaa;
 /*
  * See header file for description.
  */
-StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t pxCode, void *pvParameters )
-{
+//TODO old
+//StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t pxCode, void *pvParameters )
+//{
 	/* Simulate the stack frame as it would be created by a context switch
 	interrupt. */
-	pxTopOfStack--; /* Offset added to account for the way the MCU uses the stack on entry/exit of interrupts. */
-	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
-	pxTopOfStack--;
-	*pxTopOfStack = ( ( StackType_t ) pxCode ) & portSTART_ADDRESS_MASK;	/* PC */
-	pxTopOfStack--;
-	*pxTopOfStack = ( StackType_t ) prvTaskExitError;	/* LR */
-	pxTopOfStack -= 5;	/* R12, R3, R2 and R1. */
-	*pxTopOfStack = ( StackType_t ) pvParameters;	/* R0 */
-	pxTopOfStack -= 8;	/* R11, R10, R9, R8, R7, R6, R5 and R4. */
+//	pxTopOfStack--; /* Offset added to account for the way the MCU uses the stack on entry/exit of interrupts. */
+//	*pxTopOfStack = portINITIAL_XPSR;	/* xPSR */
+//	pxTopOfStack--;
+//	*pxTopOfStack = ( ( StackType_t ) pxCode ) & portSTART_ADDRESS_MASK;	/* PC */
+//	pxTopOfStack--;
+//	*pxTopOfStack = ( StackType_t ) prvTaskExitError;	/* LR */
+//	pxTopOfStack -= 5;	/* R12, R3, R2 and R1. */
+//	*pxTopOfStack = ( StackType_t ) pvParameters;	/* R0 */
+//	pxTopOfStack -= 8;	/* R11, R10, R9, R8, R7, R6, R5 and R4. */
 
-	return pxTopOfStack;
+//	return pxTopOfStack;
+//}
+
+StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t pxCode, void *pvParameters )
+{
+    /* Simula o stack frame como se tivesse sido empilhado pela interrupção. */
+
+    /* Parte automaticamente empilhada pelo hardware */
+    *(--pxTopOfStack) = 0x01000000;              // xPSR (Thumb bit = 1)
+    *(--pxTopOfStack) = (uint32_t)pxCode;        // PC
+    *(--pxTopOfStack) = (uint32_t)prvTaskExitError; // LR
+    *(--pxTopOfStack) = 0x12121212;              // R12
+    *(--pxTopOfStack) = 0x03030303;              // R3
+    *(--pxTopOfStack) = 0x02020202;              // R2
+    *(--pxTopOfStack) = 0x01010101;              // R1
+    *(--pxTopOfStack) = (uint32_t)pvParameters;  // R0 (argumento da tarefa)
+
+    /* Parte salva pelo software (R4-R11) */
+    *(--pxTopOfStack) = 0x11111111;  // R11
+    *(--pxTopOfStack) = 0x10101010;  // R10
+    *(--pxTopOfStack) = 0x09090909;  // R9
+    *(--pxTopOfStack) = 0x08080808;  // R8
+    *(--pxTopOfStack) = 0x07070707;  // R7
+    *(--pxTopOfStack) = 0x06060606;  // R6
+    *(--pxTopOfStack) = 0x05050505;  // R5
+    *(--pxTopOfStack) = 0x04040404;  // R4
+
+    return pxTopOfStack;
 }
+
 /*-----------------------------------------------------------*/
 
 static void prvTaskExitError( void )
@@ -205,6 +234,7 @@ static void prvTaskExitError( void )
 /*-----------------------------------------------------------*/
 //TODO remove
 #include <usb_io.h>
+extern void *pxCurrentTCB;
 /*
  * See header file for description.
  */
@@ -294,11 +324,13 @@ usb_printf("\nDEBUG: configPRIO_BITS = %d", configPRIO_BITS);
 	/* Start the timer that generates the tick ISR.  Interrupts are disabled
 	here already. */
 	vPortSetupTimerInterrupt();
-
+//usb_printf("\nStarting vPortSetupTimerInterrupt()\n");
 	/* Initialise the critical nesting count ready for the first task. */
 	uxCriticalNesting = 0;
 //usb_printf("\nInitializing vPortStartFirstTask ...\n");
+//        configASSERT(pxCurrentTCB != NULL, "pxCurrentTCB is NULL");
 	/* Start the first task. */
+//usb_printf("\nxCurrentTCB %08x\n", (uint32_t)pxCurrentTCB);
 	vPortStartFirstTask();
 
 	/* Should not get here! */
@@ -558,19 +590,23 @@ void xPortSysTickHandler( void )
 void vPortSetupTimerInterrupt( void )
 {
 //usb_printf("\nInitializing vPortSetupTimerInterrupt ...\n");
-    /* Stop SysTick */
+    // Stop SysTick
+
     portNVIC_SYSTICK_CTRL_REG = 0UL;
+//usb_printf("\nportNVIC_SYSTICK_CTRL_REG...\n");
     portNVIC_SYSTICK_CURRENT_VALUE_REG = 0UL;
-
-    /* Configure SysTick to interrupt at the requested rate */
+//usb_printf("\nportNVIC_SYSTICK_CURRENT_VALUE_REG...\n");
+    // Configure SysTick to interrupt at the requested rate
     portNVIC_SYSTICK_LOAD_REG = ( configSYSTICK_CLOCK_HZ / configTICK_RATE_HZ ) - 1UL;
-
+//usb_printf("\nportNVIC_SYSTICK_LOAD_REG...\n");
     portNVIC_SYSTICK_CTRL_REG = (
         portNVIC_SYSTICK_CLK_BIT   |  // Clock = processor clock (HCLK)
         portNVIC_SYSTICK_INT_BIT   |  // Enable interrupt
         portNVIC_SYSTICK_ENABLE_BIT   // Enable counter
     );
-//    init_systick();
+
+//usb_printf("\nEnd vPortSetupTimerInterrupt ...\n");
+    //init_systick();
 }
 /*-----------------------------------------------------------*/
 

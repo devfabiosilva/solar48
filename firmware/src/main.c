@@ -28,6 +28,9 @@
 //sudo modprobe usbmon
 //sudo cat /sys/kernel/debug/usb/usbmon/1u
 // lsusb -d 0483:5740 -v | grep -iE 'manufacturer|product|serial'
+// GDB target remote :3333
+//info registers
+//p panic_irq
 volatile int hasError = 0;
 void usb_receive(uint8_t *, uint32_t);
 void usb_receive_complete();
@@ -38,15 +41,25 @@ SOLAR48_DATE sd;
 void setup()
 {
   __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
+#ifdef RTOS_SOLAR48
+  //__nvic_set_priority(PendSV_IRQn, 17);
+  //__nvic_set_priority(SVCall_IRQn, 18);
+#endif
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
   init_rtc(realtime);
   init_systick();
+#ifndef RTOS_SOLAR48 
+//  init_systick();
+#endif
   init_gpios();
   init_sensors();
 
   init_idw();
 
-  END_SETUP
+//END_SETUP // TODO remove
+#ifndef RTOS_SOLAR48 
+//  END_SETUP
+#endif
 }
 
 #ifdef RTOS_SOLAR48
@@ -70,28 +83,47 @@ void led_blink_task(void *params)
 void run(void)
 {
 
+  TaskHandle_t led_task_handle = NULL;
   usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
   //usb_printf("\nReady ...\n\n");
 //  blink_n(1);
-  //usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
+  usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
 
   BaseType_t err;
-  if ((err=xTaskCreate(led_blink_task, "LED", 2*128, NULL, 1, NULL)) != pdPASS) {
+  if ((err=xTaskCreate(led_blink_task, "LED", 2*128, NULL, 1, &led_task_handle)) != pdPASS) {
     usb_printf("\nUnable to create task %d ...\n\n", err);
-    blink_n(3);
-    while (1);
+    goto fail;
   }
 
-  //usb_printf("SYSTICK CTRL 2: 0x%08lx\n", SysTick->CTRL);
+//  usb_printf("Free heap: %u\n", xPortGetFreeHeapSize());
+  //usb_printf("Min ever free heap: %u\n", xPortGetMinimumEverFreeHeapSize());
+//  usb_printf("SYSTICK CTRL 2: 0x%08lx\ntask_handle %p\n", SysTick->CTRL, led_task_handle);
   //usb_printf("Free heap: %u\n", xPortGetFreeHeapSize());
   //usb_printf("Min ever free heap: %u\n", xPortGetMinimumEverFreeHeapSize());
   //blink_n(2);
   vTaskStartScheduler();
+init_systick();
+END_SETUP
 
-  do {
-    usb_printf("\nERROR\n");
-    //blink_n(3);
-  } while (0);
+volatile uint64_t m;
+
+fail:
+  usb_printf("\nERROR: Never can get here\n");
+  for (;;) {
+
+    iwd_refresh();
+    m = milliseconds() + 500;
+    ledon();
+
+    while (m > milliseconds());
+
+    iwd_refresh();
+    m = milliseconds() + 500;
+    ledoff();
+
+    while (m > milliseconds());
+
+  }
 }
 
 /*
@@ -110,7 +142,8 @@ void run(void)
 //usb_printf("AIRCR before: 0x%08lX\n", tmp);
 
 //__nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
-
+init_systick();
+END_SETUP
   blink_n(3);
 //usb_printf("AIRCR after:  0x%08lX\n", SCB->AIRCR);
   usb_printf("\nReady ...\n\n");

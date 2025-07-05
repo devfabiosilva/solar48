@@ -46,7 +46,7 @@ extern "C" {
 /* IAR includes. */
 // SOLAR48: Changed to CMSIS/cmsis_gcc.h -> https://github.com/ARM-software/CMSIS_5/issues/306
 //#include <intrinsics.h>
-#include <CMSIS/cmsis_gcc.h>
+#include <cmsis_gcc.h>
 
 /* Type definitions. */
 #define portCHAR		char

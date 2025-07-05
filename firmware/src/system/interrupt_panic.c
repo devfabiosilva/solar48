@@ -55,6 +55,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
   pc = pulFaultStackAddress[ 6 ];
   psr = pulFaultStackAddress[ 7 ];
 */
+/*
   do {
     usb_printf(
       "\nr0=%08X\nr1=%08X\nr2=%08X\n",
@@ -63,7 +64,8 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
       pulFaultStackAddress[ 2 ]
     );
   } while (0);
-
+*/
+/*
   do {
     usb_printf("r3=%08X\nr12=%08X\nlr=%08X\n",
       pulFaultStackAddress[ 3 ],
@@ -71,7 +73,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
       pulFaultStackAddress[ 5 ]
     );
   } while (0);
-
+*/
   do {
     usb_printf("pc=%08X\npsr=%08X\n",
       pulFaultStackAddress[ 6 ],
@@ -86,6 +88,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
 //https://www.freertos.org/Documentation/02-Kernel/03-Supported-devices/04-Demos/Others/Debugging-Hard-Faults-On-Cortex-M-Microcontrollers
 PANIC_IRQ(NMI_Handler)
 //PANIC_IRQ(HardFault_Handler)
+
 void HardFault_Handler(void)
 {
   panic_irq = "HardFault_Handler";
@@ -109,7 +112,7 @@ PANIC_IRQ(UsageFault_Handler)
 #ifndef RTOS_SOLAR48
 PANIC_IRQ(SVC_Handler)
 #else
-
+/*
 extern void *pxCurrentTCB;
 
 
@@ -125,7 +128,7 @@ __attribute__((naked)) void SVC_Handler(void)
   );
 
 }
-
+*/
 #endif
 
 PANIC_IRQ(DebugMon_Handler)
@@ -188,6 +191,7 @@ void halt_ir()
   DISABLE_SETUP
 }
 
+#ifdef RTOS_SOLAR48
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     (void)xTask;
@@ -203,4 +207,4 @@ void vApplicationMallocFailedHook(void)
     usb_printf("\nFailed malloc\n");
     while (1);
 }
-
+#endif

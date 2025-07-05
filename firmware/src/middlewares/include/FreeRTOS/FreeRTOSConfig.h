@@ -58,6 +58,7 @@
 
 #ifndef SOLAR48_ASM
 //#include <stm32f103x6.h>
+void xPortSysTickHandler(void);
 #endif
 #include <systick_config.h>
 #include <FreeRTOS/rtos_assert.h>
@@ -164,7 +165,7 @@ header file. */
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
 standard names. */
-//#define vPortSVCHandler    SVC_Handler
+#define vPortSVCHandler    SVC_Handler
 #define xPortPendSVHandler PendSV_Handler
 
 /* IMPORTANT: After 10.3.1 update, Systick_Handler comes from NVIC (if SYS timebase = systick), otherwise from cmsis_os2.c */
