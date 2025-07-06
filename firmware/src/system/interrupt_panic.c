@@ -55,7 +55,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
   pc = pulFaultStackAddress[ 6 ];
   psr = pulFaultStackAddress[ 7 ];
 */
-/*
+
   do {
     usb_printf(
       "\nr0=%08X\nr1=%08X\nr2=%08X\n",
@@ -64,8 +64,8 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
       pulFaultStackAddress[ 2 ]
     );
   } while (0);
-*/
-/*
+
+
   do {
     usb_printf("r3=%08X\nr12=%08X\nlr=%08X\n",
       pulFaultStackAddress[ 3 ],
@@ -73,7 +73,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
       pulFaultStackAddress[ 5 ]
     );
   } while (0);
-*/
+
   do {
     usb_printf("pc=%08X\npsr=%08X\n",
       pulFaultStackAddress[ 6 ],

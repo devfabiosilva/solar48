@@ -42,8 +42,8 @@ void setup()
 {
   __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
 #ifdef RTOS_SOLAR48
-  //__nvic_set_priority(PendSV_IRQn, 17);
-  //__nvic_set_priority(SVCall_IRQn, 18);
+//  __nvic_set_priority(PendSV_IRQn, 17);
+//  __nvic_set_priority(SVCall_IRQn, 18);
 #endif
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
   init_rtc(realtime);
@@ -83,14 +83,14 @@ void led_blink_task(void *params)
 void run(void)
 {
 
-  TaskHandle_t led_task_handle = NULL;
+  //TaskHandle_t led_task_handle = NULL;
   usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
   //usb_printf("\nReady ...\n\n");
 //  blink_n(1);
   usb_printf("SYSTICK CTRL 1: 0x%08lx\n", SysTick->CTRL);
 
   BaseType_t err;
-  if ((err=xTaskCreate(led_blink_task, "LED", 2*128, NULL, 1, &led_task_handle)) != pdPASS) {
+  if ((err=xTaskCreate(led_blink_task, "LED", 2*128, NULL, 1, NULL)) != pdPASS) {
     usb_printf("\nUnable to create task %d ...\n\n", err);
     goto fail;
   }
