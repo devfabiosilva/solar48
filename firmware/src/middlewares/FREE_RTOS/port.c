@@ -124,7 +124,23 @@ void xPortSysTickHandler( void );
 /*
  * Start first task is a separate function so it can be tested in isolation.
  */
-extern void vPortStartFirstTask( void );
+//extern void vPortStartFirstTask( void );
+static void vPortStartFirstTask( void )
+{
+    __asm volatile (
+        " ldr r0, =0xE000ED08   \n" /* Use the NVIC offset register to locate the stack. */
+        " ldr r0, [r0]          \n"
+        " ldr r0, [r0]          \n"
+        " msr msp, r0           \n" /* Set the msp back to the start of the stack. */
+        " cpsie i               \n" /* Globally enable interrupts. */
+        " cpsie f               \n"
+        " dsb                   \n"
+        " isb                   \n"
+        " svc 0                 \n" /* System call to start first task. */
+        " nop                   \n"
+        " .ltorg                \n"
+        );
+}
 
 /*
  * Used to catch tasks that attempt to return from their implementing function.
@@ -134,8 +150,60 @@ static void prvTaskExitError( void );
 /*
  * FreeRTOS handlers implemented in assembly.
  */
-extern void vPortSVCHandler( void );
-extern void xPortPendSVHandler( void );
+//extern void vPortSVCHandler( void );
+//extern void xPortPendSVHandler( void );
+void SVC_Handler( void )
+{
+    __asm volatile (
+        "   ldr r3, =pxCurrentTCB           \n" /* Restore the context. */
+        "   ldr r1, [r3]                    \n" /* Get the pxCurrentTCB address. */
+        "   ldr r0, [r1]                    \n" /* The first item in pxCurrentTCB is the task top of stack. */
+        "   ldmia r0!, {r4-r11}             \n" /* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
+        "   msr psp, r0                     \n" /* Restore the task stack pointer. */
+        "   isb                             \n"
+        "   mov r0, #0                      \n"
+        "   msr basepri, r0                 \n"
+        "   orr r14, #0xd                   \n"
+        "   bx r14                          \n"
+        "                                   \n"
+        "   .ltorg                          \n"
+        );
+}
+
+void PendSV_Handler( void )
+{
+    /* This is a naked function. */
+
+    __asm volatile
+    (
+        "   mrs r0, psp                         \n"
+        "   isb                                 \n"
+        "                                       \n"
+        "   ldr r3, =pxCurrentTCB               \n" /* Get the location of the current TCB. */
+        "   ldr r2, [r3]                        \n"
+        "                                       \n"
+        "   stmdb r0!, {r4-r11}                 \n" /* Save the remaining registers. */
+        "   str r0, [r2]                        \n" /* Save the new top of stack into the first member of the TCB. */
+        "                                       \n"
+        "   stmdb sp!, {r3, r14}                \n"
+        "   mov r0, %0                          \n"
+        "   msr basepri, r0                     \n"
+        "   bl vTaskSwitchContext               \n"
+        "   mov r0, #0                          \n"
+        "   msr basepri, r0                     \n"
+        "   ldmia sp!, {r3, r14}                \n"
+        "                                       \n" /* Restore the context, including the critical nesting count. */
+        "   ldr r1, [r3]                        \n"
+        "   ldr r0, [r1]                        \n" /* The first item in pxCurrentTCB is the task top of stack. */
+        "   ldmia r0!, {r4-r11}                 \n" /* Pop the registers. */
+        "   msr psp, r0                         \n"
+        "   isb                                 \n"
+        "   bx r14                              \n"
+        "                                       \n"
+        "   .ltorg                              \n"
+        ::"i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY )
+    );
+}
 /*-----------------------------------------------------------*/
 
 /* Each task maintains its own interrupt status in the critical nesting
@@ -221,6 +289,11 @@ static void prvTaskExitError( void )
 /*
  * See header file for description.
  */
+//TODO remove
+#include <usb_io.h>
+#include <time.h>
+#include <registers.h>
+//END TODO
 BaseType_t xPortStartScheduler( void )
 {
     /* An application can install FreeRTOS interrupt handlers in one of the
@@ -343,13 +416,21 @@ BaseType_t xPortStartScheduler( void )
 
     /* Make PendSV and SysTick the lowest priority interrupts, and make SVCall
      * the highest priority. */
-    portNVIC_SHPR3_REG |= portNVIC_PENDSV_PRI;
-    portNVIC_SHPR3_REG |= portNVIC_SYSTICK_PRI;
-    portNVIC_SHPR2_REG = 0;
+    //portNVIC_SHPR3_REG |= portNVIC_PENDSV_PRI;
+    //portNVIC_SHPR3_REG |= portNVIC_SYSTICK_PRI;
+    //portNVIC_SHPR2_REG = 0;
+
+     //TODO Test
+     __nvic_set_priority(SysTick_IRQn, 15);
+     __nvic_set_priority(PendSV_IRQn, 14);
+     __nvic_set_priority(SVCall_IRQn, 0);
+
+   //END TODO
 
     /* Start the timer that generates the tick ISR.  Interrupts are disabled
      * here already. */
-    vPortSetupTimerInterrupt();
+     init_systick();
+    //vPortSetupTimerInterrupt();
 
     /* Initialise the critical nesting count ready for the first task. */
     uxCriticalNesting = 0;

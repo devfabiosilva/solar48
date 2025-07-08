@@ -13,7 +13,7 @@ _ebss       End of bss
 
   .syntax unified
   .cpu cortex-m3
-  .fpu softvfp
+//  .fpu softvfp
   .thumb
 
 .global g_pfnVectors

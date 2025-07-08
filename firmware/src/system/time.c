@@ -3,14 +3,14 @@
 #include <watchdog.h>
 #include <systick_config.h>
 
-#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
+//#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
 
 #ifdef RTOS_SOLAR48
 // RTOS in Solar48
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
 
-#define SYS_TICK_DIV 1 // For FreeRTOS
+//#define SYS_TICK_DIV 1 // For FreeRTOS
 
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
@@ -19,7 +19,8 @@ void init_systick()
 {
 
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
-  __nvic_set_priority(SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY);
+  //__nvic_set_priority(SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY);
+  //__nvic_set_priority(SysTick_IRQn, SYSTICK_PRIO);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
   SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
                    SysTick_CTRL_TICKINT_Msk   |
@@ -30,13 +31,15 @@ void init_systick()
 #else
 // Default System in Solar48
 
-#define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
+#include <sys_interrupts.h>
+//#define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
 
 void init_systick()
 {
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
   //NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
-  __nvic_set_priority(SysTick_IRQn, 7);
+  //__nvic_set_priority(SysTick_IRQn, 7);
+  __nvic_set_priority(SysTick_IRQn, SYSTICK_PRIO);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
   SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk |*/
                    SysTick_CTRL_TICKINT_Msk   |
@@ -63,6 +66,7 @@ void SysTick_Handler()
     rtos_tick = 0;
 #endif
 }
+
 /*
 #ifdef RTOS_SOLAR48
 void SVC_Handler(void)

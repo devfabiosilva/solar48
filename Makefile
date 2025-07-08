@@ -3,7 +3,7 @@ CC = $(ARM_PREFIX)gcc
 OBJCOPY = $(ARM_PREFIX)objcopy
 HAS_RTOS=-DRTOS_SOLAR48
 #HAS_RTOS= 
-CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g -Wall -nostdlib -ffreestanding -DSOLAR48_DEBUG $(HAS_RTOS)
+CFLAGS = -mcpu=cortex-m3 -mthumb -O0 -g3 -Wall -nostdlib -ffreestanding -DSOLAR48_DEBUG $(HAS_RTOS)
 CFLAGS_RELEASE = -mcpu=cortex-m3 -mthumb -O2 -Wall -nostdlib -ffreestanding -Wl,--strip-debug $(HAS_RTOS)
 CUR_DIR = $(shell pwd)
 FIRMWARE_FOLDER=firmware

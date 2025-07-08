@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <usbd_ctlreq.h>
 #include <usbd_ioreq.h>
+#include <sys_interrupts.h>
 
 PCD_HandleTypeDef hpcd_USB_FS;
 
@@ -2825,7 +2826,8 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     /* Peripheral interrupt init */
     //HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
     //HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-    __nvic_set_priority(USB_LP_CAN1_RX0_IRQn, 1);
+    //__nvic_set_priority(USB_LP_CAN1_RX0_IRQn, 5);
+    __nvic_set_priority(USB_LP_CAN1_RX0_IRQn, USB_PRIO);
     __nvic_enable_irq(USB_LP_CAN1_RX0_IRQn);
   }
 }

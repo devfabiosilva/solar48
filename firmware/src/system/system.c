@@ -1,6 +1,9 @@
 //ter 20 mai 2025 19:28:25 
 #include <registers.h>
 #include <memory.h>
+#ifdef RTOS_SOLAR48
+#include <core_cm3.h>
+#endif
 
 void system_init(void)
 {
@@ -13,6 +16,12 @@ void system_init(void)
   while ((RCC_CFGR & SWS_mask) != PLL_selected_as_system_clock);
 //  RCC_APB2ENR |= IOPCEN;
 
+#ifdef RTOS_SOLAR48
+  SCB->VTOR = 0x08000000;
+#else
+  // Memory manager initialization
+  fill_stack_with_pattern();
+#endif
 /*
   .init :
   {
@@ -27,7 +36,5 @@ void system_init(void)
   } > FLASH
 */
 
-  // Memory manager initialization
-  fill_stack_with_pattern();
 }
 

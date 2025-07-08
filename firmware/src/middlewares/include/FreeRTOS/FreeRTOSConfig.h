@@ -97,7 +97,7 @@
 
 /* configTICK_RATE_HZ sets frequency of the tick interrupt in Hz, normally
  * calculated from the configCPU_CLOCK_HZ value. */
-#define configTICK_RATE_HZ                         ((TickType_t)SYS_TICK_FREQ_HZ)
+#define configTICK_RATE_HZ                         ((TickType_t)1000)
 
 /* Set configUSE_PREEMPTION to 1 to use pre-emptive scheduling.  Set
  * configUSE_PREEMPTION to 0 to use co-operative scheduling.
@@ -247,9 +247,9 @@
  * task, so its priority is set like any other task.  See
  * https://www.freertos.org/RTOS-software-timer-service-daemon-task.html  Only
  * used if configUSE_TIMERS is set to 1. */
-//#define configTIMER_TASK_PRIORITY       ( configMAX_PRIORITIES - 1 )
+#define configTIMER_TASK_PRIORITY       ( configMAX_PRIORITIES - 1 )
 //SOLAR48 CONFIG BEGIN
-#define configTIMER_TASK_PRIORITY 2
+//#define configTIMER_TASK_PRIORITY 2
 //SOLAR48 CONFIG END
 
 
@@ -338,7 +338,7 @@
 /* Interrupt nesting behaviour configuration. *********************************/
 /******************************************************************************/
 
-#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY   15
+#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY   16
 /* configKERNEL_INTERRUPT_PRIORITY sets the priority of the tick and context
  * switch performing interrupts.  Not supported by all FreeRTOS ports.  See
  * https://www.freertos.org/RTOS-Cortex-M3-M4.html for information specific to
@@ -364,7 +364,7 @@ function. */
 routine that makes calls to interrupt safe FreeRTOS API functions.  DO NOT CALL
 INTERRUPT SAFE FREERTOS API FUNCTIONS FROM ANY INTERRUPT THAT HAS A HIGHER
 PRIORITY THAN THIS! (higher priorities are lower numeric values. */
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 16
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 8
 /* Interrupt priorities used by the kernel port layer itself.  These are generic
 to all Cortex-M ports, and do not rely on any particular library functions. */
 
@@ -374,7 +374,8 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 
 /* Another name for configMAX_SYSCALL_INTERRUPT_PRIORITY - the name used depends
  * on the FreeRTOS port. */
-#define configMAX_API_CALL_INTERRUPT_PRIORITY    0
+//#define configMAX_API_CALL_INTERRUPT_PRIORITY    0
+#define configMAX_API_CALL_INTERRUPT_PRIORITY configMAX_SYSCALL_INTERRUPT_PRIORITY
 
 /******************************************************************************/
 /* Hook and callback function related definitions. ****************************/
@@ -557,9 +558,9 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 /* Set configNUMBER_OF_CORES to the number of available processor cores.
  * Defaults to 1 if left undefined. */
 
-/*
- #define configNUMBER_OF_CORES                     [Num of available cores]
- */
+//SOLAR48 BEGIN
+#define configNUMBER_OF_CORES                     1
+//SOLAR48 END
 
 /* When using SMP (i.e. configNUMBER_OF_CORES is greater than one), set
  * configRUN_MULTIPLE_PRIORITIES to 0 to allow multiple tasks to run
@@ -718,6 +719,9 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 #define xPortPendSVHandler PendSV_Handler
 #define USE_FreeRTOS_HEAP_4
 #define configASSERT_DEFINED 1
+#define portCRITICAL_NESTING_IN_TCB 1
+//#define xPortSysTickHandler SysTick_Handler
+//#define SVC_PRIORITY ( 6 << (8 - configPRIO_BITS) ) 
 //SOLAR48 CONFIG END
 
 #endif /* FREERTOS_CONFIG_H */

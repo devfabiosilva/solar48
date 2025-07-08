@@ -3,6 +3,7 @@
 #include <registers.h>
 #include <stm32f103x6.h>
 #include <core_cm3.h>
+#include <sys_interrupts.h>
 
 rtc_cb rtc_caller = NULL;
 
@@ -53,7 +54,8 @@ void init_rtc(rtc_cb rtc_callback)
   // Enable RTC interrupt and its priority
   //NVIC_EnableIRQ(RTC_IRQn);
   //NVIC_SetPriority(RTC_IRQn, 10);
-  __nvic_set_priority(RTC_IRQn, 6);
+  //__nvic_set_priority(RTC_IRQn, 6);
+  __nvic_set_priority(RTC_IRQn, RTC_PRIO);
   __nvic_enable_irq(RTC_IRQn);
 }
 

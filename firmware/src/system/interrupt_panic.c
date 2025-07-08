@@ -39,7 +39,7 @@ lr=08009B23
 pc=C8C0845C
 psr=00000000
 //https://developer.arm.com/documentation/dui0552/a/cortex-m3-peripherals/system-control-block
-//arm-none-eabi-addr2line -e solar48_release.elf 0x0800C500 -f -C
+//arm-none-eabi-addr2line -e solar48_release.elf 0x08013528 -f -C
 
 */
 void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
@@ -55,7 +55,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
   pc = pulFaultStackAddress[ 6 ];
   psr = pulFaultStackAddress[ 7 ];
 */
-
+/*
   do {
     usb_printf(
       "\nr0=%08X\nr1=%08X\nr2=%08X\n",
@@ -65,7 +65,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
     );
   } while (0);
 
-
+*/
   do {
     usb_printf("r3=%08X\nr12=%08X\nlr=%08X\n",
       pulFaultStackAddress[ 3 ],
@@ -73,14 +73,14 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
       pulFaultStackAddress[ 5 ]
     );
   } while (0);
-
+/*
   do {
     usb_printf("pc=%08X\npsr=%08X\n",
       pulFaultStackAddress[ 6 ],
       pulFaultStackAddress[ 7 ]
     );
   } while (0);
-
+*/
   Default_Handler();
 }
 
@@ -194,8 +194,6 @@ void halt_ir()
 #ifdef RTOS_SOLAR48
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
-    (void)xTask;
-    (void)pcTaskName;
     // Trap here for debug
     usb_printf("\nTask = %p and task name %s\n\n", xTask, pcTaskName);
     while (1);
