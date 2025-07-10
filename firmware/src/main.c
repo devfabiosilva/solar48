@@ -29,6 +29,7 @@
 //sudo cat /sys/kernel/debug/usb/usbmon/1u
 // lsusb -d 0483:5740 -v | grep -iE 'manufacturer|product|serial'
 // GDB target remote :3333
+//https://arm-software.github.io/CMSIS-FreeRTOS/main/page_create_project.html#configure_native_freertos
 //https://github.com/ARM-software/CMSIS-FreeRTOS/blob/main/Source/portable/GCC/ARM_CM3/portmacro.h
 //https://community.st.com/t5/stm32-mcus/how-to-debug-a-hardfault-on-an-arm-cortex-m-stm32/ta-p/672235
 //https://forums.freertos.org/t/svc-call-causing-hardfault-when-there-is-no-pre-emption-priority/20827/3

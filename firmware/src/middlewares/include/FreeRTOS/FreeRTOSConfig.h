@@ -720,6 +720,7 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 #define USE_FreeRTOS_HEAP_4
 #define configASSERT_DEFINED 1
 #define portCRITICAL_NESTING_IN_TCB 1
+//#define USE_PORTASM_S
 //#define xPortSysTickHandler SysTick_Handler
 //#define SVC_PRIORITY ( 6 << (8 - configPRIO_BITS) ) 
 //SOLAR48 CONFIG END

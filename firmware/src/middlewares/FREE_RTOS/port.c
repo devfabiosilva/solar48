@@ -122,9 +122,24 @@ void vPortSetupTimerInterrupt( void );
 void xPortSysTickHandler( void );
 
 /*
+ * Used to catch tasks that attempt to return from their implementing function.
+ */
+static void prvTaskExitError( void );
+
+/*
+ * FreeRTOS handlers implemented in assembly.
+ */
+//extern void vPortSVCHandler( void );
+//extern void xPortPendSVHandler( void );
+#ifdef USE_PORTASM_S
+extern void vPortStartFirstTask( void );
+extern void SVC_Handler(void);
+extern void PendSV_Handler(void);
+#else
+/*
  * Start first task is a separate function so it can be tested in isolation.
  */
-//extern void vPortStartFirstTask( void );
+
 static void vPortStartFirstTask( void )
 {
     __asm volatile (
@@ -142,16 +157,6 @@ static void vPortStartFirstTask( void )
         );
 }
 
-/*
- * Used to catch tasks that attempt to return from their implementing function.
- */
-static void prvTaskExitError( void );
-
-/*
- * FreeRTOS handlers implemented in assembly.
- */
-//extern void vPortSVCHandler( void );
-//extern void xPortPendSVHandler( void );
 void SVC_Handler( void )
 {
     __asm volatile (
@@ -204,6 +209,7 @@ void PendSV_Handler( void )
         ::"i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY )
     );
 }
+#endif
 /*-----------------------------------------------------------*/
 
 /* Each task maintains its own interrupt status in the critical nesting
