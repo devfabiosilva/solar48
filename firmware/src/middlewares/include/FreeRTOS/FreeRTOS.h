@@ -49,14 +49,13 @@
  */
 #include <stdint.h> /* READ COMMENT ABOVE. */
 
-#include <FreeRTOS/rtos_assert.h>
 /* Acceptable values for configTICK_TYPE_WIDTH_IN_BITS. */
 #define TICK_TYPE_WIDTH_16_BITS    0
 #define TICK_TYPE_WIDTH_32_BITS    1
 #define TICK_TYPE_WIDTH_64_BITS    2
 
 /* Application specific configuration options. */
-#include <FreeRTOS/FreeRTOSConfig.h>
+#include "FreeRTOSConfig.h"
 
 #if !defined( configUSE_16_BIT_TICKS ) && !defined( configTICK_TYPE_WIDTH_IN_BITS )
     #error Missing definition:  One of configUSE_16_BIT_TICKS and configTICK_TYPE_WIDTH_IN_BITS must be defined in FreeRTOSConfig.h.  See the Configuration section of the FreeRTOS API documentation for details.

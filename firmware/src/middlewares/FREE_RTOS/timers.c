@@ -323,7 +323,7 @@
             mtCOVERAGE_TEST_MARKER();
         }
 
-        configASSERT( xReturn , "xTimerCreateTimerTask error" );
+        configASSERT( xReturn );
 
         traceRETURN_xTimerCreateTimerTask( xReturn );
 
@@ -384,13 +384,13 @@
                  * variable of type StaticTimer_t equals the size of the real timer
                  * structure. */
                 volatile size_t xSize = sizeof( StaticTimer_t );
-                configASSERT( xSize == sizeof( Timer_t ) ,"xTimerCreateStatic cond 1" );
+                configASSERT( xSize == sizeof( Timer_t ) );
                 ( void ) xSize; /* Prevent unused variable warning when configASSERT() is not defined. */
             }
             #endif /* configASSERT_DEFINED */
 
             /* A pointer to a StaticTimer_t structure MUST be provided, use it. */
-            configASSERT( pxTimerBuffer != NULL , "pxTimerBuffer in xTimerCreateStatic");
+            configASSERT( pxTimerBuffer );
             /* MISRA Ref 11.3.1 [Misaligned access] */
             /* More details at: https://github.com/FreeRTOS/FreeRTOS-Kernel/blob/main/MISRA.md#rule-113 */
             /* coverity[misra_c_2012_rule_11_3_violation] */
@@ -422,7 +422,7 @@
                                        Timer_t * pxNewTimer )
     {
         /* 0 is not a valid value for xTimerPeriodInTicks. */
-        configASSERT( ( xTimerPeriodInTicks > 0 ) , "prvInitialiseNewTimer cond 1");
+        configASSERT( ( xTimerPeriodInTicks > 0 ) );
 
         /* Ensure the infrastructure used by the timer service task has been
          * created/initialised. */
@@ -467,7 +467,7 @@
             xMessage.u.xTimerParameters.xMessageValue = xOptionalValue;
             xMessage.u.xTimerParameters.pxTimer = xTimer;
 
-            configASSERT( xCommandID < tmrFIRST_FROM_ISR_COMMAND , "xTimerGenericCommandFromTask cond 1");
+            configASSERT( xCommandID < tmrFIRST_FROM_ISR_COMMAND );
 
             if( xCommandID < tmrFIRST_FROM_ISR_COMMAND )
             {
@@ -516,7 +516,7 @@
             xMessage.u.xTimerParameters.xMessageValue = xOptionalValue;
             xMessage.u.xTimerParameters.pxTimer = xTimer;
 
-            configASSERT( xCommandID >= tmrFIRST_FROM_ISR_COMMAND , "xTimerGenericCommandFromISR cond 1");
+            configASSERT( xCommandID >= tmrFIRST_FROM_ISR_COMMAND );
 
             if( xCommandID >= tmrFIRST_FROM_ISR_COMMAND )
             {
@@ -542,7 +542,7 @@
 
         /* If xTimerGetTimerDaemonTaskHandle() is called before the scheduler has been
          * started, then xTimerTaskHandle will be NULL. */
-        configASSERT( ( xTimerTaskHandle != NULL ) , "xTimerTaskHandle in xTimerGetTimerDaemonTaskHandle" );
+        configASSERT( ( xTimerTaskHandle != NULL ) );
 
         traceRETURN_xTimerGetTimerDaemonTaskHandle( xTimerTaskHandle );
 
@@ -556,7 +556,7 @@
 
         traceENTER_xTimerGetPeriod( xTimer );
 
-        configASSERT( xTimer != NULL , "xTimer in xTimerGetPeriod");
+        configASSERT( xTimer );
 
         traceRETURN_xTimerGetPeriod( pxTimer->xTimerPeriodInTicks );
 
@@ -571,7 +571,7 @@
 
         traceENTER_vTimerSetReloadMode( xTimer, xAutoReload );
 
-        configASSERT( xTimer != NULL , "xTimer in vTimerSetReloadMode" );
+        configASSERT( xTimer );
         taskENTER_CRITICAL();
         {
             if( xAutoReload != pdFALSE )
@@ -596,7 +596,7 @@
 
         traceENTER_xTimerGetReloadMode( xTimer );
 
-        configASSERT( xTimer != NULL , "xTimer in xTimerGetReloadMode" );
+        configASSERT( xTimer );
         portBASE_TYPE_ENTER_CRITICAL();
         {
             if( ( pxTimer->ucStatus & tmrSTATUS_IS_AUTORELOAD ) == 0U )
@@ -638,7 +638,7 @@
 
         traceENTER_xTimerGetExpiryTime( xTimer );
 
-        configASSERT( xTimer != NULL , "xTimer in xTimerGetExpiryTime" );
+        configASSERT( xTimer );
         xReturn = listGET_LIST_ITEM_VALUE( &( pxTimer->xTimerListItem ) );
 
         traceRETURN_xTimerGetExpiryTime( xReturn );
@@ -656,7 +656,7 @@
 
             traceENTER_xTimerGetStaticBuffer( xTimer, ppxTimerBuffer );
 
-            configASSERT( ppxTimerBuffer != NULL , "ppxTimerBuffer in xTimerGetStaticBuffer");
+            configASSERT( ppxTimerBuffer != NULL );
 
             if( ( pxTimer->ucStatus & tmrSTATUS_IS_STATICALLY_ALLOCATED ) != 0U )
             {
@@ -684,7 +684,7 @@
 
         traceENTER_pcTimerGetName( xTimer );
 
-        configASSERT( xTimer != NULL , "xTimer in pcTimerGetName" );
+        configASSERT( xTimer );
 
         traceRETURN_pcTimerGetName( pxTimer->pcTimerName );
 
@@ -950,7 +950,7 @@
 
                     /* The timer uses the xCallbackParameters member to request a
                      * callback be executed.  Check the callback is not NULL. */
-                    configASSERT( pxCallback != NULL , "pxCallback in prvProcessReceivedCommands");
+                    configASSERT( pxCallback );
 
                     /* Call the function. */
                     pxCallback->pxCallbackFunction( pxCallback->pvParameter1, pxCallback->ulParameter2 );
@@ -1035,7 +1035,7 @@
                         case tmrCOMMAND_CHANGE_PERIOD_FROM_ISR:
                             pxTimer->ucStatus |= ( uint8_t ) tmrSTATUS_IS_ACTIVE;
                             pxTimer->xTimerPeriodInTicks = xMessage.u.xTimerParameters.xMessageValue;
-                            configASSERT( ( pxTimer->xTimerPeriodInTicks > 0 ) , "prvProcessReceivedCommands cond 1" );
+                            configASSERT( ( pxTimer->xTimerPeriodInTicks > 0 ) );
 
                             /* The new period does not really have a reference, and can
                              * be longer or shorter than the old one.  The command time is
@@ -1169,7 +1169,7 @@
 
         traceENTER_xTimerIsTimerActive( xTimer );
 
-        configASSERT( xTimer != NULL , "xTimer in xTimerIsTimerActive");
+        configASSERT( xTimer );
 
         /* Is the timer in the list of active timers? */
         portBASE_TYPE_ENTER_CRITICAL();
@@ -1198,7 +1198,7 @@
 
         traceENTER_pvTimerGetTimerID( xTimer );
 
-        configASSERT( xTimer != NULL , "xTimer in pvTimerGetTimerID");
+        configASSERT( xTimer );
 
         taskENTER_CRITICAL();
         {
@@ -1219,7 +1219,7 @@
 
         traceENTER_vTimerSetTimerID( xTimer, pvNewID );
 
-        configASSERT( xTimer != NULL , "xTimer in vTimerSetTimerID" );
+        configASSERT( xTimer );
 
         taskENTER_CRITICAL();
         {
@@ -1276,7 +1276,7 @@
             /* This function can only be called after a timer has been created or
              * after the scheduler has been started because, until then, the timer
              * queue does not exist. */
-            configASSERT( xTimerQueue , "xTimerQueue in xTimerPendFunctionCall");
+            configASSERT( xTimerQueue );
 
             /* Complete the message with the function parameters and post it to the
              * daemon task. */

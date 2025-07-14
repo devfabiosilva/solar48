@@ -30,17 +30,10 @@
 * Implementation of functions defined in portable.h for the ARM CM3 port.
 *----------------------------------------------------------*/
 
-/* IAR includes. */
-#include <stdint.h>
-#include <cmsis_gcc.h>
-
 /* Scheduler includes. */
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
-
-#if ( configMAX_SYSCALL_INTERRUPT_PRIORITY == 0 )
-    #error configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to 0.  See http: /*www.FreeRTOS.org/RTOS-Cortex-M3-M4.html */
-#endif
+#include <time.h>
 
 /* Prototype of all Interrupt Service Routines (ISRs). */
 typedef void ( * portISR_t )( void );
@@ -83,7 +76,7 @@ typedef void ( * portISR_t )( void );
 #define portVECTACTIVE_MASK                   ( 0xFFUL )
 
 /* Constants required to set up the initial stack. */
-#define portINITIAL_XPSR                      ( 0x01000000 )
+#define portINITIAL_XPSR                      ( 0x01000000UL )
 
 /* The systick is a 24-bit counter. */
 #define portMAX_24_BIT_NUMBER                 ( 0xffffffUL )
@@ -109,6 +102,15 @@ typedef void ( * portISR_t )( void );
     #define portNVIC_SYSTICK_CLK_BIT_CONFIG    ( 0 )
 #endif
 
+/* Let the user override the pre-loading of the initial LR with the address of
+ * prvTaskExitError() in case it messes up unwinding of the stack in the
+ * debugger. */
+#ifdef configTASK_RETURN_ADDRESS
+    #define portTASK_RETURN_ADDRESS    configTASK_RETURN_ADDRESS
+#else
+    #define portTASK_RETURN_ADDRESS    prvTaskExitError
+#endif
+
 /*
  * Setup the timer to generate the tick interrupts.  The implementation in this
  * file is weak to allow application writers to change the timer used to
@@ -119,97 +121,20 @@ void vPortSetupTimerInterrupt( void );
 /*
  * Exception handlers.
  */
+void xPortPendSVHandler( void ) __attribute__( ( naked ) );
 void xPortSysTickHandler( void );
+void vPortSVCHandler( void ) __attribute__( ( naked ) );
+
+/*
+ * Start first task is a separate function so it can be tested in isolation.
+ */
+static void prvPortStartFirstTask( void ) __attribute__( ( naked ) );
 
 /*
  * Used to catch tasks that attempt to return from their implementing function.
  */
 static void prvTaskExitError( void );
 
-/*
- * FreeRTOS handlers implemented in assembly.
- */
-//extern void vPortSVCHandler( void );
-//extern void xPortPendSVHandler( void );
-#ifdef USE_PORTASM_S
-extern void vPortStartFirstTask( void );
-extern void SVC_Handler(void);
-extern void PendSV_Handler(void);
-#else
-/*
- * Start first task is a separate function so it can be tested in isolation.
- */
-
-static void vPortStartFirstTask( void )
-{
-    __asm volatile (
-        " ldr r0, =0xE000ED08   \n" /* Use the NVIC offset register to locate the stack. */
-        " ldr r0, [r0]          \n"
-        " ldr r0, [r0]          \n"
-        " msr msp, r0           \n" /* Set the msp back to the start of the stack. */
-        " cpsie i               \n" /* Globally enable interrupts. */
-        " cpsie f               \n"
-        " dsb                   \n"
-        " isb                   \n"
-        " svc 0                 \n" /* System call to start first task. */
-        " nop                   \n"
-        " .ltorg                \n"
-        );
-}
-
-void SVC_Handler( void )
-{
-    __asm volatile (
-        "   ldr r3, =pxCurrentTCB           \n" /* Restore the context. */
-        "   ldr r1, [r3]                    \n" /* Get the pxCurrentTCB address. */
-        "   ldr r0, [r1]                    \n" /* The first item in pxCurrentTCB is the task top of stack. */
-        "   ldmia r0!, {r4-r11}             \n" /* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
-        "   msr psp, r0                     \n" /* Restore the task stack pointer. */
-        "   isb                             \n"
-        "   mov r0, #0                      \n"
-        "   msr basepri, r0                 \n"
-        "   orr r14, #0xd                   \n"
-        "   bx r14                          \n"
-        "                                   \n"
-        "   .ltorg                          \n"
-        );
-}
-
-void PendSV_Handler( void )
-{
-    /* This is a naked function. */
-
-    __asm volatile
-    (
-        "   mrs r0, psp                         \n"
-        "   isb                                 \n"
-        "                                       \n"
-        "   ldr r3, =pxCurrentTCB               \n" /* Get the location of the current TCB. */
-        "   ldr r2, [r3]                        \n"
-        "                                       \n"
-        "   stmdb r0!, {r4-r11}                 \n" /* Save the remaining registers. */
-        "   str r0, [r2]                        \n" /* Save the new top of stack into the first member of the TCB. */
-        "                                       \n"
-        "   stmdb sp!, {r3, r14}                \n"
-        "   mov r0, %0                          \n"
-        "   msr basepri, r0                     \n"
-        "   bl vTaskSwitchContext               \n"
-        "   mov r0, #0                          \n"
-        "   msr basepri, r0                     \n"
-        "   ldmia sp!, {r3, r14}                \n"
-        "                                       \n" /* Restore the context, including the critical nesting count. */
-        "   ldr r1, [r3]                        \n"
-        "   ldr r0, [r1]                        \n" /* The first item in pxCurrentTCB is the task top of stack. */
-        "   ldmia r0!, {r4-r11}                 \n" /* Pop the registers. */
-        "   msr psp, r0                         \n"
-        "   isb                                 \n"
-        "   bx r14                              \n"
-        "                                       \n"
-        "   .ltorg                              \n"
-        ::"i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY )
-    );
-}
-#endif
 /*-----------------------------------------------------------*/
 
 /* Each task maintains its own interrupt status in the critical nesting
@@ -266,7 +191,7 @@ StackType_t * pxPortInitialiseStack( StackType_t * pxTopOfStack,
     pxTopOfStack--;
     *pxTopOfStack = ( ( StackType_t ) pxCode ) & portSTART_ADDRESS_MASK; /* PC */
     pxTopOfStack--;
-    *pxTopOfStack = ( StackType_t ) prvTaskExitError;                    /* LR */
+    *pxTopOfStack = ( StackType_t ) portTASK_RETURN_ADDRESS;             /* LR */
     pxTopOfStack -= 5;                                                   /* R12, R3, R2 and R1. */
     *pxTopOfStack = ( StackType_t ) pvParameters;                        /* R0 */
     pxTopOfStack -= 8;                                                   /* R11, R10, R9, R8, R7, R6, R5 and R4. */
@@ -277,29 +202,70 @@ StackType_t * pxPortInitialiseStack( StackType_t * pxTopOfStack,
 
 static void prvTaskExitError( void )
 {
+    volatile uint32_t ulDummy = 0UL;
+
     /* A function that implements a task must not exit or attempt to return to
      * its caller as there is nothing to return to.  If a task wants to exit it
      * should instead call vTaskDelete( NULL ).
      *
      * Artificially force an assert() to be triggered if configASSERT() is
      * defined, then stop here so application writers can catch the error. */
-    configASSERT( uxCriticalNesting == ~0UL, "uxCriticalNesting in prvTaskExitError" );
+    configASSERT( uxCriticalNesting == ~0UL );
     portDISABLE_INTERRUPTS();
 
-    for( ; ; )
+    while( ulDummy == 0 )
     {
+        /* This file calls prvTaskExitError() after the scheduler has been
+         * started to remove a compiler warning about the function being defined
+         * but never called.  ulDummy is used purely to quieten other warnings
+         * about code appearing after this function is called - making ulDummy
+         * volatile makes the compiler think the function could return and
+         * therefore not output an 'unreachable code' warning for code that appears
+         * after it. */
     }
+}
+/*-----------------------------------------------------------*/
+
+void vPortSVCHandler( void )
+{
+    __asm volatile (
+        "   ldr r3, =pxCurrentTCB           \n" /* Restore the context. */
+        "   ldr r1, [r3]                    \n" /* Get the pxCurrentTCB address. */
+        "   ldr r0, [r1]                    \n" /* The first item in pxCurrentTCB is the task top of stack. */
+        "   ldmia r0!, {r4-r11}             \n" /* Pop the registers that are not automatically saved on exception entry and the critical nesting count. */
+        "   msr psp, r0                     \n" /* Restore the task stack pointer. */
+        "   isb                             \n"
+        "   mov r0, #0                      \n"
+        "   msr basepri, r0                 \n"
+        "   orr r14, #0xd                   \n"
+        "   bx r14                          \n"
+        "                                   \n"
+        "   .ltorg                          \n"
+        );
+}
+/*-----------------------------------------------------------*/
+
+static void prvPortStartFirstTask( void )
+{
+    __asm volatile (
+        " ldr r0, =0xE000ED08   \n" /* Use the NVIC offset register to locate the stack. */
+        " ldr r0, [r0]          \n"
+        " ldr r0, [r0]          \n"
+        " msr msp, r0           \n" /* Set the msp back to the start of the stack. */
+        " cpsie i               \n" /* Globally enable interrupts. */
+        " cpsie f               \n"
+        " dsb                   \n"
+        " isb                   \n"
+        " svc 0                 \n" /* System call to start first task. */
+        " nop                   \n"
+        " .ltorg                \n"
+        );
 }
 /*-----------------------------------------------------------*/
 
 /*
  * See header file for description.
  */
-//TODO remove
-#include <usb_io.h>
-#include <time.h>
-#include <registers.h>
-//END TODO
 BaseType_t xPortStartScheduler( void )
 {
     /* An application can install FreeRTOS interrupt handlers in one of the
@@ -331,8 +297,8 @@ BaseType_t xPortStartScheduler( void )
          * Systems with a configurable address for the interrupt vector table
          * can also encounter assertion failures or even system faults here if
          * VTOR is not set correctly to point to the application's vector table. */
-        configASSERT( pxVectorTable[ portVECTOR_INDEX_SVC ] == vPortSVCHandler , "xPortStartScheduler cond 1");
-        configASSERT( pxVectorTable[ portVECTOR_INDEX_PENDSV ] == xPortPendSVHandler , "xPortStartScheduler cond 2");
+        configASSERT( pxVectorTable[ portVECTOR_INDEX_SVC ] == vPortSVCHandler );
+        configASSERT( pxVectorTable[ portVECTOR_INDEX_PENDSV ] == xPortPendSVHandler );
     }
     #endif /* configCHECK_HANDLER_INSTALLATION */
 
@@ -367,11 +333,11 @@ BaseType_t xPortStartScheduler( void )
          * register to 0 unmasks all interrupts, and interrupts with priority 0
          * cannot be masked using BASEPRI.
          * See https://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html */
-        configASSERT( ucMaxSysCallPriority, "xPortStartScheduler cond 3" );
+        configASSERT( ucMaxSysCallPriority );
 
         /* Check that the bits not implemented in hardware are zero in
          * configMAX_SYSCALL_INTERRUPT_PRIORITY. */
-        configASSERT( ( configMAX_SYSCALL_INTERRUPT_PRIORITY & ( uint8_t ) ( ~( uint32_t ) ucMaxPriorityValue ) ) == 0U , "xPortStartScheduler cond 4");
+        configASSERT( ( configMAX_SYSCALL_INTERRUPT_PRIORITY & ( ~ucMaxPriorityValue ) ) == 0U );
 
         /* Calculate the maximum acceptable priority group value for the number
          * of bits read back. */
@@ -401,7 +367,7 @@ BaseType_t xPortStartScheduler( void )
              * The following assert ensures that the sub-priority bit in the
              * configMAX_SYSCALL_INTERRUPT_PRIORITY is clear to avoid the above mentioned
              * confusion. */
-            configASSERT( ( configMAX_SYSCALL_INTERRUPT_PRIORITY & 0x1U ) == 0U , "xPortStartScheduler cond 5");
+            configASSERT( ( configMAX_SYSCALL_INTERRUPT_PRIORITY & 0x1U ) == 0U );
             ulMaxPRIGROUPValue = 0;
         }
         else
@@ -422,27 +388,28 @@ BaseType_t xPortStartScheduler( void )
 
     /* Make PendSV and SysTick the lowest priority interrupts, and make SVCall
      * the highest priority. */
-    //portNVIC_SHPR3_REG |= portNVIC_PENDSV_PRI;
-    //portNVIC_SHPR3_REG |= portNVIC_SYSTICK_PRI;
-    //portNVIC_SHPR2_REG = 0;
-
-     //TODO Test
-     __nvic_set_priority(SysTick_IRQn, 15);
-     __nvic_set_priority(PendSV_IRQn, 14);
-     __nvic_set_priority(SVCall_IRQn, 0);
-
-   //END TODO
+    portNVIC_SHPR3_REG |= portNVIC_PENDSV_PRI;
+    portNVIC_SHPR3_REG |= portNVIC_SYSTICK_PRI;
+    portNVIC_SHPR2_REG = 0;
 
     /* Start the timer that generates the tick ISR.  Interrupts are disabled
      * here already. */
-     init_systick();
-    //vPortSetupTimerInterrupt();
+    vPortSetupTimerInterrupt();
 
     /* Initialise the critical nesting count ready for the first task. */
     uxCriticalNesting = 0;
 
     /* Start the first task. */
-    vPortStartFirstTask();
+    prvPortStartFirstTask();
+
+    /* Should never get here as the tasks will now be executing!  Call the task
+     * exit error function to prevent compiler warnings about a static function
+     * not being called in the case that the application writer overrides this
+     * functionality by defining configTASK_RETURN_ADDRESS.  Call
+     * vTaskSwitchContext() so link time optimisation does not remove the
+     * symbol. */
+    vTaskSwitchContext();
+    prvTaskExitError();
 
     /* Should not get here! */
     return 0;
@@ -453,7 +420,7 @@ void vPortEndScheduler( void )
 {
     /* Not implemented in ports where there is nothing to return to.
      * Artificially force an assert. */
-    configASSERT( uxCriticalNesting == 1000UL , "uxCriticalNesting in vPortEndSchedule");
+    configASSERT( uxCriticalNesting == 1000UL );
 }
 /*-----------------------------------------------------------*/
 
@@ -469,20 +436,56 @@ void vPortEnterCritical( void )
      * assert function also uses a critical section. */
     if( uxCriticalNesting == 1 )
     {
-        configASSERT( ( portNVIC_INT_CTRL_REG & portVECTACTIVE_MASK ) == 0 , "vPortEnterCritical cond 1");
+        configASSERT( ( portNVIC_INT_CTRL_REG & portVECTACTIVE_MASK ) == 0 );
     }
 }
 /*-----------------------------------------------------------*/
 
 void vPortExitCritical( void )
 {
-    configASSERT( uxCriticalNesting , "vPortExitCritical");
+    configASSERT( uxCriticalNesting );
     uxCriticalNesting--;
 
     if( uxCriticalNesting == 0 )
     {
         portENABLE_INTERRUPTS();
     }
+}
+/*-----------------------------------------------------------*/
+
+void xPortPendSVHandler( void )
+{
+    /* This is a naked function. */
+
+    __asm volatile
+    (
+        "   mrs r0, psp                         \n"
+        "   isb                                 \n"
+        "                                       \n"
+        "   ldr r3, =pxCurrentTCB               \n" /* Get the location of the current TCB. */
+        "   ldr r2, [r3]                        \n"
+        "                                       \n"
+        "   stmdb r0!, {r4-r11}                 \n" /* Save the remaining registers. */
+        "   str r0, [r2]                        \n" /* Save the new top of stack into the first member of the TCB. */
+        "                                       \n"
+        "   stmdb sp!, {r3, r14}                \n"
+        "   mov r0, %0                          \n"
+        "   msr basepri, r0                     \n"
+        "   bl vTaskSwitchContext               \n"
+        "   mov r0, #0                          \n"
+        "   msr basepri, r0                     \n"
+        "   ldmia sp!, {r3, r14}                \n"
+        "                                       \n" /* Restore the context, including the critical nesting count. */
+        "   ldr r1, [r3]                        \n"
+        "   ldr r0, [r1]                        \n" /* The first item in pxCurrentTCB is the task top of stack. */
+        "   ldmia r0!, {r4-r11}                 \n" /* Pop the registers. */
+        "   msr psp, r0                         \n"
+        "   isb                                 \n"
+        "   bx r14                              \n"
+        "                                       \n"
+        "   .ltorg                              \n"
+        ::"i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY )
+    );
 }
 /*-----------------------------------------------------------*/
 
@@ -515,7 +518,7 @@ void xPortSysTickHandler( void )
 
 #if ( configUSE_TICKLESS_IDLE == 1 )
 
-    __weak void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
+    __attribute__( ( weak ) ) void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime )
     {
         uint32_t ulReloadValue, ulCompleteTickPeriods, ulCompletedSysTickDecrements, ulSysTickDecrementsLeft;
         TickType_t xModifiableIdleTime;
@@ -528,17 +531,17 @@ void xPortSysTickHandler( void )
 
         /* Enter a critical section but don't use the taskENTER_CRITICAL()
          * method as that will mask interrupts that should exit sleep mode. */
-        __disable_interrupt();
-        __DSB();
-        __ISB();
+        __asm volatile ( "cpsid i" ::: "memory" );
+        __asm volatile ( "dsb" );
+        __asm volatile ( "isb" );
 
         /* If a context switch is pending or a task is waiting for the scheduler
          * to be unsuspended then abandon the low power entry. */
         if( eTaskConfirmSleepModeStatus() == eAbortSleep )
         {
-            /* Re-enable interrupts - see comments above the __disable_interrupt()
-             * call above. */
-            __enable_interrupt();
+            /* Re-enable interrupts - see comments above the cpsid instruction
+             * above. */
+            __asm volatile ( "cpsie i" ::: "memory" );
         }
         else
         {
@@ -599,27 +602,27 @@ void xPortSysTickHandler( void )
 
             if( xModifiableIdleTime > 0 )
             {
-                __DSB();
-                __WFI();
-                __ISB();
+                __asm volatile ( "dsb" ::: "memory" );
+                __asm volatile ( "wfi" );
+                __asm volatile ( "isb" );
             }
 
             configPOST_SLEEP_PROCESSING( xExpectedIdleTime );
 
             /* Re-enable interrupts to allow the interrupt that brought the MCU
              * out of sleep mode to execute immediately.  See comments above
-             * the __disable_interrupt() call above. */
-            __enable_interrupt();
-            __DSB();
-            __ISB();
+             * the cpsid instruction above. */
+            __asm volatile ( "cpsie i" ::: "memory" );
+            __asm volatile ( "dsb" );
+            __asm volatile ( "isb" );
 
             /* Disable interrupts again because the clock is about to be stopped
              * and interrupts that execute while the clock is stopped will increase
              * any slippage between the time maintained by the RTOS and calendar
              * time. */
-            __disable_interrupt();
-            __DSB();
-            __ISB();
+            __asm volatile ( "cpsid i" ::: "memory" );
+            __asm volatile ( "dsb" );
+            __asm volatile ( "isb" );
 
             /* Disable the SysTick clock without reading the
              * portNVIC_SYSTICK_CTRL_REG register to ensure the
@@ -727,7 +730,7 @@ void xPortSysTickHandler( void )
             vTaskStepTick( ulCompleteTickPeriods );
 
             /* Exit with interrupts enabled. */
-            __enable_interrupt();
+            __asm volatile ( "cpsie i" ::: "memory" );
         }
     }
 
@@ -738,8 +741,7 @@ void xPortSysTickHandler( void )
  * Setup the systick timer to generate the tick interrupts at the required
  * frequency.
  */
-//__weak;void vPortSetupTimerInterrupt( void )
-void vPortSetupTimerInterrupt( void ) // TODO replace by system init_systick()
+__attribute__( ( weak ) ) void vPortSetupTimerInterrupt( void )
 {
     /* Calculate the constants required to configure the tick interrupt. */
     #if ( configUSE_TICKLESS_IDLE == 1 )
@@ -799,7 +801,7 @@ void vPortSetupTimerInterrupt( void ) // TODO replace by system init_systick()
              * The following links provide detailed information:
              * https://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html
              * https://www.freertos.org/Why-FreeRTOS/FAQs */
-            configASSERT( ucCurrentPriority >= ucMaxSysCallPriority , "vPortValidateInterruptPriority cond 1");
+            configASSERT( ucCurrentPriority >= ucMaxSysCallPriority );
         }
 
         /* Priority grouping:  The interrupt controller (NVIC) allows the bits
@@ -815,7 +817,7 @@ void vPortSetupTimerInterrupt( void ) // TODO replace by system init_systick()
          * scheduler.  Note however that some vendor specific peripheral libraries
          * assume a non-zero priority group setting, in which cases using a value
          * of zero will result in unpredictable behaviour. */
-        configASSERT( ( portAIRCR_REG & portPRIORITY_GROUP_MASK ) <= ulMaxPRIGROUPValue , "vPortValidateInterruptPriority cond 2");
+        configASSERT( ( portAIRCR_REG & portPRIORITY_GROUP_MASK ) <= ulMaxPRIGROUPValue );
     }
 
 #endif /* configASSERT_DEFINED */

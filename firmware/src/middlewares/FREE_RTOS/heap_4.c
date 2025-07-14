@@ -133,7 +133,7 @@ typedef struct A_BLOCK_LINK
 /* Assert that a heap block pointer is within the heap bounds. */
 #define heapVALIDATE_BLOCK_POINTER( pxBlock )                          \
     configASSERT( ( ( uint8_t * ) ( pxBlock ) >= &( ucHeap[ 0 ] ) ) && \
-                  ( ( uint8_t * ) ( pxBlock ) <= &( ucHeap[ configTOTAL_HEAP_SIZE - 1 ] ) ) , "heapVALIDATE_BLOCK_POINTER error" )
+                  ( ( uint8_t * ) ( pxBlock ) <= &( ucHeap[ configTOTAL_HEAP_SIZE - 1 ] ) ) )
 
 /*-----------------------------------------------------------*/
 
@@ -267,7 +267,7 @@ void * pvPortMalloc( size_t xWantedSize )
 
                     /* If the block is larger than required it can be split into
                      * two. */
-                    configASSERT( heapSUBTRACT_WILL_UNDERFLOW( pxBlock->xBlockSize, xWantedSize ) == 0 , "pvPortMalloc cond 1" );
+                    configASSERT( heapSUBTRACT_WILL_UNDERFLOW( pxBlock->xBlockSize, xWantedSize ) == 0 );
 
                     if( ( pxBlock->xBlockSize - xWantedSize ) > heapMINIMUM_BLOCK_SIZE )
                     {
@@ -276,7 +276,7 @@ void * pvPortMalloc( size_t xWantedSize )
                          * cast is used to prevent byte alignment warnings from the
                          * compiler. */
                         pxNewBlockLink = ( void * ) ( ( ( uint8_t * ) pxBlock ) + xWantedSize );
-                        configASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 , "pvPortMalloc cond 2");
+                        configASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 );
 
                         /* Calculate the sizes of two blocks split from the
                          * single block. */
@@ -346,7 +346,7 @@ void * pvPortMalloc( size_t xWantedSize )
     }
     #endif /* if ( configUSE_MALLOC_FAILED_HOOK == 1 ) */
 
-    configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 , "pvPortMalloc cond 3");
+    configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
     return pvReturn;
 }
 /*-----------------------------------------------------------*/
@@ -366,8 +366,8 @@ void vPortFree( void * pv )
         pxLink = ( void * ) puc;
 
         heapVALIDATE_BLOCK_POINTER( pxLink );
-        configASSERT( heapBLOCK_IS_ALLOCATED( pxLink ) != 0 , "heapBLOCK_IS_ALLOCATED in vPortFree" );
-        configASSERT( pxLink->pxNextFreeBlock == heapPROTECT_BLOCK_POINTER( NULL ) , "vPortFree cond 1");
+        configASSERT( heapBLOCK_IS_ALLOCATED( pxLink ) != 0 );
+        configASSERT( pxLink->pxNextFreeBlock == heapPROTECT_BLOCK_POINTER( NULL ) );
 
         if( heapBLOCK_IS_ALLOCATED( pxLink ) != 0 )
         {

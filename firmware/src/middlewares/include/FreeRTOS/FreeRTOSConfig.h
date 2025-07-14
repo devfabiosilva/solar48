@@ -43,12 +43,8 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#ifndef SOLAR48_ASM
 #include <stm32f103x6.h>
-#endif
-
 #include <systick_config.h>
-#include <FreeRTOS/rtos_assert.h>
 
 //SOLAR48 BEGIN
 #ifdef __NVIC_PRIO_BITS
@@ -61,6 +57,13 @@
    #define configPRIO_BITS 4
  #endif
 #endif
+
+#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY   16
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 8
+
+#define vPortSVCHandler    SVC_Handler
+#define xPortPendSVHandler PendSV_Handler
+
 //SOLAR48 END
 
 /******************************************************************************/
@@ -73,7 +76,7 @@
  * settings.  Your application will certainly need a different value so set this
  * correctly. This is very often, but not always, equal to the main system clock
  * frequency. */
-#define configCPU_CLOCK_HZ    ( CPU_FREQ_HZ )
+#define configCPU_CLOCK_HZ    ( ( unsigned long ) CPU_FREQ_HZ )
 
 /* configSYSTICK_CLOCK_HZ is an optional parameter for ARM Cortex-M ports only.
  *
@@ -97,7 +100,7 @@
 
 /* configTICK_RATE_HZ sets frequency of the tick interrupt in Hz, normally
  * calculated from the configCPU_CLOCK_HZ value. */
-#define configTICK_RATE_HZ                         ((TickType_t)1000)
+#define configTICK_RATE_HZ                         1000
 
 /* Set configUSE_PREEMPTION to 1 to use pre-emptive scheduling.  Set
  * configUSE_PREEMPTION to 0 to use co-operative scheduling.
@@ -156,7 +159,7 @@
  *
  * Defining configTICK_TYPE_WIDTH_IN_BITS as TICK_TYPE_WIDTH_64_BITS causes
  * TickType_t to be defined (typedef'ed) as an unsigned 64-bit type. */
-#define configTICK_TYPE_WIDTH_IN_BITS              TICK_TYPE_WIDTH_32_BITS
+#define configTICK_TYPE_WIDTH_IN_BITS              TICK_TYPE_WIDTH_16_BITS
 
 /* Set configIDLE_SHOULD_YIELD to 1 to have the Idle task yield to an
  * application task if there is an Idle priority (priority 0) application task
@@ -173,7 +176,7 @@
 /* configQUEUE_REGISTRY_SIZE sets the maximum number of queues and semaphores
  * that can be referenced from the queue registry.  Only required when using a
  * kernel aware debugger.  Defaults to 0 if left undefined. */
-#define configQUEUE_REGISTRY_SIZE                  8
+#define configQUEUE_REGISTRY_SIZE                  0
 
 /* Set configENABLE_BACKWARD_COMPATIBILITY to 1 to map function names and
  * datatypes from old version of FreeRTOS to their latest equivalent.  Defaults
@@ -248,20 +251,13 @@
  * https://www.freertos.org/RTOS-software-timer-service-daemon-task.html  Only
  * used if configUSE_TIMERS is set to 1. */
 #define configTIMER_TASK_PRIORITY       ( configMAX_PRIORITIES - 1 )
-//SOLAR48 CONFIG BEGIN
-//#define configTIMER_TASK_PRIORITY 2
-//SOLAR48 CONFIG END
-
 
 /* configTIMER_TASK_STACK_DEPTH sets the size of the stack allocated to the
  * timer task (in words, not in bytes!).  The timer task is a standard FreeRTOS
  * task.  See
  * https://www.freertos.org/RTOS-software-timer-service-daemon-task.html Only
  * used if configUSE_TIMERS is set to 1. */
-//#define configTIMER_TASK_STACK_DEPTH    configMINIMAL_STACK_SIZE
-//SOLAR48 CONFIG BEGIN
-#define configTIMER_TASK_STACK_DEPTH    256
-//SOLAR48 CONFIG end
+#define configTIMER_TASK_STACK_DEPTH    configMINIMAL_STACK_SIZE
 
 /* configTIMER_QUEUE_LENGTH sets the length of the queue (the number of discrete
  * items the queue can hold) used to send commands to the timer task.  See
@@ -314,7 +310,7 @@
  * or heap_4.c are included in the build.  This value is defaulted to 4096 bytes
  * but it must be tailored to each application.  Note the heap will appear in
  * the .bss section.  See https://www.freertos.org/a00111.html. */
-#define configTOTAL_HEAP_SIZE                        (6*1024)
+#define configTOTAL_HEAP_SIZE                        (4*1024)
 
 /* Set configAPPLICATION_ALLOCATED_HEAP to 1 to have the application allocate
  * the array used as the FreeRTOS heap.  Set to 0 to have the linker allocate
@@ -338,15 +334,11 @@
 /* Interrupt nesting behaviour configuration. *********************************/
 /******************************************************************************/
 
-#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY   16
 /* configKERNEL_INTERRUPT_PRIORITY sets the priority of the tick and context
  * switch performing interrupts.  Not supported by all FreeRTOS ports.  See
  * https://www.freertos.org/RTOS-Cortex-M3-M4.html for information specific to
  * ARM Cortex-M devices. */
-//#define configKERNEL_INTERRUPT_PRIORITY          0
-//SOLAR48 CONFIG BEGIN
-#define configKERNEL_INTERRUPT_PRIORITY 		( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
-//SOLAR48 CONFIG END
+#define configKERNEL_INTERRUPT_PRIORITY          ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
 
 /* configMAX_SYSCALL_INTERRUPT_PRIORITY sets the interrupt priority above which
  * FreeRTOS API calls must not be made.  Interrupts above this priority are
@@ -354,28 +346,11 @@
  * to the highest interrupt priority (0).  Not supported by all FreeRTOS ports.
  * See https://www.freertos.org/RTOS-Cortex-M3-M4.html for information specific
  * to ARM Cortex-M devices. */
-//SOLAR48 CONFIG BEGIN
-
-/* The lowest interrupt priority that can be used in a call to a "set priority"
-function. */
-//#define configLIBRARY_LOWEST_INTERRUPT_PRIORITY   15
-
-/* The highest interrupt priority that can be used by any interrupt service
-routine that makes calls to interrupt safe FreeRTOS API functions.  DO NOT CALL
-INTERRUPT SAFE FREERTOS API FUNCTIONS FROM ANY INTERRUPT THAT HAS A HIGHER
-PRIORITY THAN THIS! (higher priorities are lower numeric values. */
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 8
-/* Interrupt priorities used by the kernel port layer itself.  These are generic
-to all Cortex-M ports, and do not rely on any particular library functions. */
-
-//SOLAR48 CONFIG END
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY 	( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
-
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY      ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )
 
 /* Another name for configMAX_SYSCALL_INTERRUPT_PRIORITY - the name used depends
  * on the FreeRTOS port. */
-//#define configMAX_API_CALL_INTERRUPT_PRIORITY    0
-#define configMAX_API_CALL_INTERRUPT_PRIORITY configMAX_SYSCALL_INTERRUPT_PRIORITY
+#define configMAX_API_CALL_INTERRUPT_PRIORITY   configMAX_API_CALL_INTERRUPT_PRIORITY
 
 /******************************************************************************/
 /* Hook and callback function related definitions. ****************************/
@@ -427,7 +402,7 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
  * are used by trace and visualisation functions and tools.  Set to 0 to exclude
  * the additional information from the structures. Defaults to 0 if left
  * undefined. */
-#define configUSE_TRACE_FACILITY                1
+#define configUSE_TRACE_FACILITY                0
 
 /* Set to 1 to include the vTaskList() and vTaskGetRunTimeStats() functions in
  * the build.  Set to 0 to exclude these functions from the build.  These two
@@ -444,12 +419,12 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
  * build, or 0 to omit co-routine functionality from the build. To include
  * co-routines, croutine.c must be included in the project. Defaults to 0 if
  * left undefined. */
-#define configUSE_CO_ROUTINES              1
+#define configUSE_CO_ROUTINES              0
 
 /* configMAX_CO_ROUTINE_PRIORITIES defines the number of priorities available
  * to the application co-routines. Any number of co-routines can share the same
  * priority. Defaults to 0 if left undefined. */
-#define configMAX_CO_ROUTINE_PRIORITIES    2
+#define configMAX_CO_ROUTINE_PRIORITIES    1
 
 /******************************************************************************/
 /* Debugging assistance. ******************************************************/
@@ -463,7 +438,6 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
  * number of the failing assert (for example, "vAssertCalled( __FILE__, __LINE__
  * )" or it can simple disable interrupts and sit in a loop to halt all
  * execution on the failing line for viewing in a debugger. */
-/*
 #define configASSERT( x )         \
     if( ( x ) == 0 )              \
     {                             \
@@ -471,10 +445,7 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
         for( ; ; )                \
         ;                         \
     }
-*/
-//SOLAR48 CONFIG BEGIN
-#define configASSERT( x, msg ) configASSERT_fn(x, msg)
-//SOLAR48 CONFIG END
+
 /******************************************************************************/
 /* FreeRTOS MPU specific definitions. *****************************************/
 /******************************************************************************/
@@ -558,9 +529,8 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 /* Set configNUMBER_OF_CORES to the number of available processor cores.
  * Defaults to 1 if left undefined. */
 
-//SOLAR48 BEGIN
-#define configNUMBER_OF_CORES                     1
-//SOLAR48 END
+
+ #define configNUMBER_OF_CORES                     1
 
 /* When using SMP (i.e. configNUMBER_OF_CORES is greater than one), set
  * configRUN_MULTIPLE_PRIORITIES to 0 to allow multiple tasks to run
@@ -689,7 +659,7 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 #define configUSE_RECURSIVE_MUTEXES            1
 #define configUSE_COUNTING_SEMAPHORES          1
 #define configUSE_QUEUE_SETS                   0
-#define configUSE_APPLICATION_TASK_TAG         1
+#define configUSE_APPLICATION_TASK_TAG         0
 
 /* USE_POSIX_ERRNO enables the task global FreeRTOS_errno variable which will
  * contain the most recent error for that task. */
@@ -713,16 +683,5 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 #define INCLUDE_xTaskAbortDelay                0
 #define INCLUDE_xTaskGetHandle                 0
 #define INCLUDE_xTaskResumeFromISR             1
-
-//SOLAR48 CONFIG BEGIN
-#define vPortSVCHandler    SVC_Handler
-#define xPortPendSVHandler PendSV_Handler
-#define USE_FreeRTOS_HEAP_4
-#define configASSERT_DEFINED 1
-#define portCRITICAL_NESTING_IN_TCB 1
-//#define USE_PORTASM_S
-//#define xPortSysTickHandler SysTick_Handler
-//#define SVC_PRIORITY ( 6 << (8 - configPRIO_BITS) ) 
-//SOLAR48 CONFIG END
 
 #endif /* FREERTOS_CONFIG_H */

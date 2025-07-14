@@ -15,14 +15,14 @@
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
 
-void init_systick()
+void vPortSetupTimerInterrupt()
 {
 
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
   //__nvic_set_priority(SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY);
   //__nvic_set_priority(SysTick_IRQn, SYSTICK_PRIO);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
-  SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
+  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk | */
                    SysTick_CTRL_TICKINT_Msk   |
                    SysTick_CTRL_ENABLE_Msk;                         /* Enable SysTick IRQ and SysTick Timer */
 
@@ -57,7 +57,7 @@ void SysTick_Handler()
   ++tick;
 
 #ifdef RTOS_SOLAR48
-  SysTick->CTRL;
+//  SysTick->CTRL;
   if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
     // Call tick handler
      xPortSysTickHandler();

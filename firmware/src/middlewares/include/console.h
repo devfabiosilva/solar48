@@ -34,5 +34,7 @@ void milliseconds_cmd(char *);
 void cpuinfo_cmd(char *);
 void sensors_cmd(char *);
 
+int read_sensors_process(void *);
+
 #endif
 

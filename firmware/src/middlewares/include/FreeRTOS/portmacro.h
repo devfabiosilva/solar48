@@ -26,6 +26,7 @@
  *
  */
 
+
 #ifndef PORTMACRO_H
 #define PORTMACRO_H
 
@@ -38,10 +39,6 @@
  * These settings should not be altered.
  *-----------------------------------------------------------
  */
-
-/* IAR includes. */
-//#include <intrinsics.h>
-#include <cmsis_gcc.h>
 
 /* Type definitions. */
 #define portCHAR          char
@@ -75,21 +72,19 @@ typedef unsigned long    UBaseType_t;
 #define portSTACK_GROWTH      ( -1 )
 #define portTICK_PERIOD_MS    ( ( TickType_t ) 1000 / configTICK_RATE_HZ )
 #define portBYTE_ALIGNMENT    8
+#define portDONT_DISCARD      __attribute__( ( used ) )
 /*-----------------------------------------------------------*/
-
-/* Compiler directives. */
-#define portWEAK_SYMBOL    __attribute__( ( weak ) )
-
-/*-----------------------------------------------------------*/
-
 
 /* Scheduler utilities. */
 #define portYIELD()                                     \
     {                                                   \
         /* Set a PendSV to request a context switch. */ \
         portNVIC_INT_CTRL_REG = portNVIC_PENDSVSET_BIT; \
-        __DSB();                                        \
-        __ISB();                                        \
+                                                        \
+        /* Barriers are normally not required but do ensure the code is completely \
+         * within the specified behaviour for the architecture. */ \
+        __asm volatile ( "dsb" ::: "memory" );                     \
+        __asm volatile ( "isb" );                                  \
     }
 
 #define portNVIC_INT_CTRL_REG     ( *( ( volatile uint32_t * ) 0xe000ed04 ) )
@@ -108,7 +103,32 @@ typedef unsigned long    UBaseType_t;
         }                                        \
     } while( 0 )
 #define portYIELD_FROM_ISR( x )    portEND_SWITCHING_ISR( x )
+/*-----------------------------------------------------------*/
 
+/* Critical section management. */
+extern void vPortEnterCritical( void );
+extern void vPortExitCritical( void );
+#define portSET_INTERRUPT_MASK_FROM_ISR()         ulPortRaiseBASEPRI()
+#define portCLEAR_INTERRUPT_MASK_FROM_ISR( x )    vPortSetBASEPRI( x )
+#define portDISABLE_INTERRUPTS()                  vPortRaiseBASEPRI()
+#define portENABLE_INTERRUPTS()                   vPortSetBASEPRI( 0 )
+#define portENTER_CRITICAL()                      vPortEnterCritical()
+#define portEXIT_CRITICAL()                       vPortExitCritical()
+
+/*-----------------------------------------------------------*/
+
+/* Task function macros as described on the FreeRTOS.org WEB site.  These are
+ * not necessary for to use this port.  They are defined so the common demo files
+ * (which build with all the ports) will build. */
+#define portTASK_FUNCTION_PROTO( vFunction, pvParameters )    void vFunction( void * pvParameters )
+#define portTASK_FUNCTION( vFunction, pvParameters )          void vFunction( void * pvParameters )
+/*-----------------------------------------------------------*/
+
+/* Tickless idle/low power functionality. */
+#ifndef portSUPPRESS_TICKS_AND_SLEEP
+    extern void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime );
+    #define portSUPPRESS_TICKS_AND_SLEEP( xExpectedIdleTime )    vPortSuppressTicksAndSleep( xExpectedIdleTime )
+#endif
 /*-----------------------------------------------------------*/
 
 /* Architecture specific optimisations. */
@@ -116,7 +136,17 @@ typedef unsigned long    UBaseType_t;
     #define configUSE_PORT_OPTIMISED_TASK_SELECTION    1
 #endif
 
-#if ( configUSE_PORT_OPTIMISED_TASK_SELECTION == 1 )
+#if configUSE_PORT_OPTIMISED_TASK_SELECTION == 1
+
+/* Generic helper function. */
+    __attribute__( ( always_inline ) ) static inline uint8_t ucPortCountLeadingZeros( uint32_t ulBitmap )
+    {
+        uint8_t ucReturn;
+
+        __asm volatile ( "clz %0, %1" : "=r" ( ucReturn ) : "r" ( ulBitmap ) : "memory" );
+
+        return ucReturn;
+    }
 
 /* Check the configuration. */
     #if ( configMAX_PRIORITIES > 32 )
@@ -129,42 +159,10 @@ typedef unsigned long    UBaseType_t;
 
 /*-----------------------------------------------------------*/
 
-    #define portGET_HIGHEST_PRIORITY( uxTopPriority, uxReadyPriorities )    uxTopPriority = ( 31UL - ( ( uint32_t ) __CLZ( ( uxReadyPriorities ) ) ) )
+    #define portGET_HIGHEST_PRIORITY( uxTopPriority, uxReadyPriorities )    uxTopPriority = ( 31UL - ( uint32_t ) ucPortCountLeadingZeros( ( uxReadyPriorities ) ) )
 
 #endif /* configUSE_PORT_OPTIMISED_TASK_SELECTION */
-/*-----------------------------------------------------------*/
 
-/* Critical section management. */
-extern void vPortEnterCritical( void );
-extern void vPortExitCritical( void );
-
-#define portDISABLE_INTERRUPTS()                               \
-    {                                                          \
-        __set_BASEPRI( configMAX_SYSCALL_INTERRUPT_PRIORITY ); \
-        __DSB();                                               \
-        __ISB();                                               \
-    }
-
-#define portENABLE_INTERRUPTS()                   __set_BASEPRI( 0 )
-#define portENTER_CRITICAL()                      vPortEnterCritical()
-#define portEXIT_CRITICAL()                       vPortExitCritical()
-#define portSET_INTERRUPT_MASK_FROM_ISR()         __get_BASEPRI(); portDISABLE_INTERRUPTS()
-#define portCLEAR_INTERRUPT_MASK_FROM_ISR( x )    __set_BASEPRI( x )
-/*-----------------------------------------------------------*/
-
-/* Tickless idle/low power functionality. */
-#ifndef portSUPPRESS_TICKS_AND_SLEEP
-    extern void vPortSuppressTicksAndSleep( TickType_t xExpectedIdleTime );
-    #define portSUPPRESS_TICKS_AND_SLEEP( xExpectedIdleTime )    vPortSuppressTicksAndSleep( xExpectedIdleTime )
-#endif
-
-/*-----------------------------------------------------------*/
-
-/* Task function macros as described on the FreeRTOS.org WEB site.  These are
- * not necessary for to use this port.  They are defined so the common demo files
- * (which build with all the ports) will build. */
-#define portTASK_FUNCTION_PROTO( vFunction, pvParameters )    void vFunction( void * pvParameters )
-#define portTASK_FUNCTION( vFunction, pvParameters )          void vFunction( void * pvParameters )
 /*-----------------------------------------------------------*/
 
 #if ( configASSERT_DEFINED == 1 )
@@ -204,5 +202,52 @@ portFORCE_INLINE static BaseType_t xPortIsInsideInterrupt( void )
 }
 
 /*-----------------------------------------------------------*/
+
+portFORCE_INLINE static void vPortRaiseBASEPRI( void )
+{
+    uint32_t ulNewBASEPRI;
+
+    __asm volatile
+    (
+        "   mov %0, %1                                              \n" \
+        "   msr basepri, %0                                         \n" \
+        "   isb                                                     \n" \
+        "   dsb                                                     \n" \
+        : "=r" ( ulNewBASEPRI ) : "i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY ) : "memory"
+    );
+}
+
+/*-----------------------------------------------------------*/
+
+portFORCE_INLINE static uint32_t ulPortRaiseBASEPRI( void )
+{
+    uint32_t ulOriginalBASEPRI, ulNewBASEPRI;
+
+    __asm volatile
+    (
+        "   mrs %0, basepri                                         \n" \
+        "   mov %1, %2                                              \n" \
+        "   msr basepri, %1                                         \n" \
+        "   isb                                                     \n" \
+        "   dsb                                                     \n" \
+        : "=r" ( ulOriginalBASEPRI ), "=r" ( ulNewBASEPRI ) : "i" ( configMAX_SYSCALL_INTERRUPT_PRIORITY ) : "memory"
+    );
+
+    /* This return will not be reached but is necessary to prevent compiler
+     * warnings. */
+    return ulOriginalBASEPRI;
+}
+/*-----------------------------------------------------------*/
+
+portFORCE_INLINE static void vPortSetBASEPRI( uint32_t ulNewMaskValue )
+{
+    __asm volatile
+    (
+        "   msr basepri, %0 " ::"r" ( ulNewMaskValue ) : "memory"
+    );
+}
+/*-----------------------------------------------------------*/
+
+#define portMEMORY_BARRIER()    __asm volatile ( "" ::: "memory" )
 
 #endif /* PORTMACRO_H */

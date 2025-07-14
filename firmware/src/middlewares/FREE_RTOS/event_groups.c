@@ -90,7 +90,7 @@
             traceENTER_xEventGroupCreateStatic( pxEventGroupBuffer );
 
             /* A StaticEventGroup_t object must be provided. */
-            configASSERT( pxEventGroupBuffer != NULL,  "pxEventGroupBuffer in xEventGroupCreateStatic");
+            configASSERT( pxEventGroupBuffer );
 
             #if ( configASSERT_DEFINED == 1 )
             {
@@ -98,7 +98,7 @@
                  * variable of type StaticEventGroup_t equals the size of the real
                  * event group structure. */
                 volatile size_t xSize = sizeof( StaticEventGroup_t );
-                configASSERT( xSize == sizeof( EventGroup_t ), "xSize error size" );
+                configASSERT( xSize == sizeof( EventGroup_t ) );
             }
             #endif /* configASSERT_DEFINED */
 
@@ -194,11 +194,11 @@
 
         traceENTER_xEventGroupSync( xEventGroup, uxBitsToSet, uxBitsToWaitFor, xTicksToWait );
 
-        configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES )=0");
-        configASSERT( uxBitsToWaitFor != 0 , "uxBitsToWaitFor=0");
+        configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
+        configASSERT( uxBitsToWaitFor != 0 );
         #if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
         {
-            configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) , "xEventGroupSync cond 1" );
+            configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
         }
         #endif
 
@@ -324,12 +324,12 @@
 
         /* Check the user is not attempting to wait on the bits used by the kernel
          * itself, and that at least one bit is being requested. */
-        configASSERT( xEventGroup != NULL, "xEventGroup is NULL");
-        configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "xEventGroupWaitBits cond 1");
-        configASSERT( uxBitsToWaitFor != 0 , "uxBitsToWaitFor=0");
+        configASSERT( xEventGroup );
+        configASSERT( ( uxBitsToWaitFor & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
+        configASSERT( uxBitsToWaitFor != 0 );
         #if ( ( INCLUDE_xTaskGetSchedulerState == 1 ) || ( configUSE_TIMERS == 1 ) )
         {
-            configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) , "xEventGroupWaitBits cond 2");
+            configASSERT( !( ( xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED ) && ( xTicksToWait != 0 ) ) );
         }
         #endif
 
@@ -479,8 +479,8 @@
 
         /* Check the user is not attempting to clear the bits used by the kernel
          * itself. */
-        configASSERT( xEventGroup != NULL , "xEventGroup in xEventGroupClearBits");
-        configASSERT( ( uxBitsToClear & eventEVENT_BITS_CONTROL_BYTES ) == 0,  "xEventGroupClearBits cond 1");
+        configASSERT( xEventGroup );
+        configASSERT( ( uxBitsToClear & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
 
         taskENTER_CRITICAL();
         {
@@ -559,8 +559,8 @@
 
         /* Check the user is not attempting to set the bits used by the kernel
          * itself. */
-        configASSERT( xEventGroup != NULL , "xEventGroup in xEventGroupSetBits");
-        configASSERT( ( uxBitsToSet & eventEVENT_BITS_CONTROL_BYTES ) == 0 , "xEventGroupSetBits cond 1");
+        configASSERT( xEventGroup );
+        configASSERT( ( uxBitsToSet & eventEVENT_BITS_CONTROL_BYTES ) == 0 );
 
         pxList = &( pxEventBits->xTasksWaitingForBits );
         pxListEnd = listGET_END_MARKER( pxList );
@@ -654,7 +654,7 @@
 
         traceENTER_vEventGroupDelete( xEventGroup );
 
-        configASSERT( pxEventBits != NULL, "pxEventBits in vEventGroupDelete" );
+        configASSERT( pxEventBits );
 
         pxTasksWaitingForBits = &( pxEventBits->xTasksWaitingForBits );
 
@@ -666,7 +666,7 @@
             {
                 /* Unblock the task, returning 0 as the event list is being deleted
                  * and cannot therefore have any bits set. */
-                configASSERT( pxTasksWaitingForBits->xListEnd.pxNext != ( const ListItem_t * ) &( pxTasksWaitingForBits->xListEnd ) , "vEventGroupDelete cond 1");
+                configASSERT( pxTasksWaitingForBits->xListEnd.pxNext != ( const ListItem_t * ) &( pxTasksWaitingForBits->xListEnd ) );
                 vTaskRemoveFromUnorderedEventList( pxTasksWaitingForBits->xListEnd.pxNext, eventUNBLOCKED_DUE_TO_BIT_SET );
             }
         }
@@ -706,8 +706,8 @@
 
             traceENTER_xEventGroupGetStaticBuffer( xEventGroup, ppxEventGroupBuffer );
 
-            configASSERT( pxEventBits != NULL , "pxEventBits in xEventGroupGetStaticBuffer");
-            configASSERT( ppxEventGroupBuffer != NULL , "ppxEventGroupBuffer in xEventGroupGetStaticBuffer");
+            configASSERT( pxEventBits );
+            configASSERT( ppxEventGroupBuffer );
 
             #if ( configSUPPORT_DYNAMIC_ALLOCATION == 1 )
             {

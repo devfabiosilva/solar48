@@ -347,22 +347,22 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
         {
             /* Is a message buffer but not statically allocated. */
             ucFlags = sbFLAGS_IS_MESSAGE_BUFFER;
-            configASSERT( xBufferSizeBytes > sbBYTES_TO_STORE_MESSAGE_LENGTH , "prvInitialiseNewStreamBuffer cond 1");
+            configASSERT( xBufferSizeBytes > sbBYTES_TO_STORE_MESSAGE_LENGTH );
         }
         else if( xStreamBufferType == sbTYPE_STREAM_BATCHING_BUFFER )
         {
             /* Is a batching buffer but not statically allocated. */
             ucFlags = sbFLAGS_IS_BATCHING_BUFFER;
-            configASSERT( xBufferSizeBytes > 0 , "prvInitialiseNewStreamBuffer cond 2");
+            configASSERT( xBufferSizeBytes > 0 );
         }
         else
         {
             /* Not a message buffer and not statically allocated. */
             ucFlags = 0;
-            configASSERT( xBufferSizeBytes > 0 , "prvInitialiseNewStreamBuffer cond 3");
+            configASSERT( xBufferSizeBytes > 0 );
         }
 
-        configASSERT( xTriggerLevelBytes <= xBufferSizeBytes , "prvInitialiseNewStreamBuffer cond 3");
+        configASSERT( xTriggerLevelBytes <= xBufferSizeBytes );
 
         /* A trigger level of 0 would cause a waiting task to unblock even when
          * the buffer was empty. */
@@ -441,9 +441,9 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
 
         traceENTER_xStreamBufferGenericCreateStatic( xBufferSizeBytes, xTriggerLevelBytes, xStreamBufferType, pucStreamBufferStorageArea, pxStaticStreamBuffer, pxSendCompletedCallback, pxReceiveCompletedCallback );
 
-        configASSERT( pucStreamBufferStorageArea != NULL ,  "pucStreamBufferStorageArea in xStreamBufferGenericCreateStatic");
-        configASSERT( pxStaticStreamBuffer != NULL , "pxStaticStreamBuffer in xStreamBufferGenericCreateStatic" );
-        configASSERT( xTriggerLevelBytes <= xBufferSizeBytes , "xStreamBufferGenericCreateStatic cond 1");
+        configASSERT( pucStreamBufferStorageArea );
+        configASSERT( pxStaticStreamBuffer );
+        configASSERT( xTriggerLevelBytes <= xBufferSizeBytes );
 
         /* A trigger level of 0 would cause a waiting task to unblock even when
          * the buffer was empty. */
@@ -461,13 +461,13 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
         {
             /* Statically allocated message buffer. */
             ucFlags = sbFLAGS_IS_MESSAGE_BUFFER | sbFLAGS_IS_STATICALLY_ALLOCATED;
-            configASSERT( xBufferSizeBytes > sbBYTES_TO_STORE_MESSAGE_LENGTH , "xStreamBufferGenericCreateStatic cond 2");
+            configASSERT( xBufferSizeBytes > sbBYTES_TO_STORE_MESSAGE_LENGTH );
         }
         else if( xStreamBufferType == sbTYPE_STREAM_BATCHING_BUFFER )
         {
             /* Statically allocated batching buffer. */
             ucFlags = sbFLAGS_IS_BATCHING_BUFFER | sbFLAGS_IS_STATICALLY_ALLOCATED;
-            configASSERT( xBufferSizeBytes > 0 , "xStreamBufferGenericCreateStatic cond 3");
+            configASSERT( xBufferSizeBytes > 0 );
         }
         else
         {
@@ -481,7 +481,7 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
              * variable of type StaticStreamBuffer_t equals the size of the real
              * message buffer structure. */
             volatile size_t xSize = sizeof( StaticStreamBuffer_t );
-            configASSERT( xSize == sizeof( StreamBuffer_t ) , "xStreamBufferGenericCreateStatic cond 4");
+            configASSERT( xSize == sizeof( StreamBuffer_t ) );
         }
         #endif /* configASSERT_DEFINED */
 
@@ -529,9 +529,9 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
 
         traceENTER_xStreamBufferGetStaticBuffers( xStreamBuffer, ppucStreamBufferStorageArea, ppxStaticStreamBuffer );
 
-        configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferGetStaticBuffers" );
-        configASSERT( ppucStreamBufferStorageArea != NULL , "ppucStreamBufferStorageArea in xStreamBufferGetStaticBuffers" );
-        configASSERT( ppxStaticStreamBuffer != NULL , "ppxStaticStreamBuffer in xStreamBufferGetStaticBuffers");
+        configASSERT( pxStreamBuffer );
+        configASSERT( ppucStreamBufferStorageArea );
+        configASSERT( ppxStaticStreamBuffer );
 
         if( ( pxStreamBuffer->ucFlags & sbFLAGS_IS_STATICALLY_ALLOCATED ) != ( uint8_t ) 0 )
         {
@@ -560,7 +560,7 @@ void vStreamBufferDelete( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_vStreamBufferDelete( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in vStreamBufferDelete" );
+    configASSERT( pxStreamBuffer );
 
     traceSTREAM_BUFFER_DELETE( xStreamBuffer );
 
@@ -576,7 +576,7 @@ void vStreamBufferDelete( StreamBufferHandle_t xStreamBuffer )
         {
             /* Should not be possible to get here, ucFlags must be corrupt.
              * Force an assert. */
-            configASSERT( xStreamBuffer == ( StreamBufferHandle_t ) ~0 , "vStreamBufferDelete cond 1");
+            configASSERT( xStreamBuffer == ( StreamBufferHandle_t ) ~0 );
         }
         #endif
     }
@@ -603,7 +603,7 @@ BaseType_t xStreamBufferReset( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferReset( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferReset" );
+    configASSERT( pxStreamBuffer );
 
     #if ( configUSE_TRACE_FACILITY == 1 )
     {
@@ -665,7 +665,7 @@ BaseType_t xStreamBufferResetFromISR( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferResetFromISR( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferResetFromISR");
+    configASSERT( pxStreamBuffer );
 
     #if ( configUSE_TRACE_FACILITY == 1 )
     {
@@ -725,7 +725,7 @@ BaseType_t xStreamBufferSetTriggerLevel( StreamBufferHandle_t xStreamBuffer,
 
     traceENTER_xStreamBufferSetTriggerLevel( xStreamBuffer, xTriggerLevel );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferSetTriggerLevel" );
+    configASSERT( pxStreamBuffer );
 
     /* It is not valid for the trigger level to be 0. */
     if( xTriggerLevel == ( size_t ) 0 )
@@ -759,7 +759,7 @@ size_t xStreamBufferSpacesAvailable( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferSpacesAvailable( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferSpacesAvailable" );
+    configASSERT( pxStreamBuffer );
 
     /* The code below reads xTail and then xHead.  This is safe if the stream
      * buffer is updated once between the two reads - but not if the stream buffer
@@ -795,7 +795,7 @@ size_t xStreamBufferBytesAvailable( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferBytesAvailable( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferBytesAvailable");
+    configASSERT( pxStreamBuffer );
 
     xReturn = prvBytesInBuffer( pxStreamBuffer );
 
@@ -818,8 +818,8 @@ size_t xStreamBufferSend( StreamBufferHandle_t xStreamBuffer,
 
     traceENTER_xStreamBufferSend( xStreamBuffer, pvTxData, xDataLengthBytes, xTicksToWait );
 
-    configASSERT( pvTxData != NULL , "pvTxData in xStreamBufferSend" );
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferSend");
+    configASSERT( pvTxData );
+    configASSERT( pxStreamBuffer );
 
     /* The maximum amount of space a stream buffer will ever report is its length
      * minus 1. */
@@ -834,7 +834,7 @@ size_t xStreamBufferSend( StreamBufferHandle_t xStreamBuffer,
         xRequiredSpace += sbBYTES_TO_STORE_MESSAGE_LENGTH;
 
         /* Overflow? */
-        configASSERT( xRequiredSpace > xDataLengthBytes, "xStreamBufferSend cond 1" );
+        configASSERT( xRequiredSpace > xDataLengthBytes );
 
         /* If this is a message buffer then it must be possible to write the
          * whole message. */
@@ -882,7 +882,7 @@ size_t xStreamBufferSend( StreamBufferHandle_t xStreamBuffer,
                     ( void ) xTaskNotifyStateClearIndexed( NULL, pxStreamBuffer->uxNotificationIndex );
 
                     /* Should only be one writer. */
-                    configASSERT( pxStreamBuffer->xTaskWaitingToSend == NULL, "xStreamBufferSend cond 2" );
+                    configASSERT( pxStreamBuffer->xTaskWaitingToSend == NULL );
                     pxStreamBuffer->xTaskWaitingToSend = xTaskGetCurrentTaskHandle();
                 }
                 else
@@ -951,8 +951,8 @@ size_t xStreamBufferSendFromISR( StreamBufferHandle_t xStreamBuffer,
 
     traceENTER_xStreamBufferSendFromISR( xStreamBuffer, pvTxData, xDataLengthBytes, pxHigherPriorityTaskWoken );
 
-    configASSERT( pvTxData != NULL , "pvTxData in xStreamBufferSendFromISR" );
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferSendFromISR" );
+    configASSERT( pvTxData );
+    configASSERT( pxStreamBuffer );
 
     /* This send function is used to write to both message buffers and stream
      * buffers.  If this is a message buffer then the space needed must be
@@ -1014,7 +1014,7 @@ static size_t prvWriteMessageToBuffer( StreamBuffer_t * const pxStreamBuffer,
         xMessageLength = ( configMESSAGE_BUFFER_LENGTH_TYPE ) xDataLengthBytes;
 
         /* Ensure the data length given fits within configMESSAGE_BUFFER_LENGTH_TYPE. */
-        configASSERT( ( size_t ) xMessageLength == xDataLengthBytes , "prvWriteMessageToBuffer cond 1");
+        configASSERT( ( size_t ) xMessageLength == xDataLengthBytes );
 
         if( xSpace >= xRequiredSpace )
         {
@@ -1060,8 +1060,8 @@ size_t xStreamBufferReceive( StreamBufferHandle_t xStreamBuffer,
 
     traceENTER_xStreamBufferReceive( xStreamBuffer, pvRxData, xBufferLengthBytes, xTicksToWait );
 
-    configASSERT( pvRxData != NULL , "pvRxData in xStreamBufferReceive" );
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferReceive");
+    configASSERT( pvRxData );
+    configASSERT( pxStreamBuffer );
 
     /* This receive function is used by both message buffers, which store
      * discrete messages, and stream buffers, which store a continuous stream of
@@ -1104,7 +1104,7 @@ size_t xStreamBufferReceive( StreamBufferHandle_t xStreamBuffer,
                 ( void ) xTaskNotifyStateClearIndexed( NULL, pxStreamBuffer->uxNotificationIndex );
 
                 /* Should only be one reader. */
-                configASSERT( pxStreamBuffer->xTaskWaitingToReceive == NULL , "xStreamBufferReceive cond 1");
+                configASSERT( pxStreamBuffer->xTaskWaitingToReceive == NULL );
                 pxStreamBuffer->xTaskWaitingToReceive = xTaskGetCurrentTaskHandle();
             }
             else
@@ -1174,7 +1174,7 @@ size_t xStreamBufferNextMessageLengthBytes( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferNextMessageLengthBytes( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL, "pxStreamBuffer in xStreamBufferNextMessageLengthBytes");
+    configASSERT( pxStreamBuffer );
 
     /* Ensure the stream buffer is being used as a message buffer. */
     if( ( pxStreamBuffer->ucFlags & sbFLAGS_IS_MESSAGE_BUFFER ) != ( uint8_t ) 0 )
@@ -1195,7 +1195,7 @@ size_t xStreamBufferNextMessageLengthBytes( StreamBufferHandle_t xStreamBuffer )
              * ( sbBYTES_TO_STORE_MESSAGE_LENGTH + 1 ), so if xBytesAvailable is
              * less than sbBYTES_TO_STORE_MESSAGE_LENGTH the only other valid
              * value is 0. */
-            configASSERT( xBytesAvailable == 0 , "xStreamBufferNextMessageLengthBytes cond 1");
+            configASSERT( xBytesAvailable == 0 );
             xReturn = 0;
         }
     }
@@ -1220,8 +1220,8 @@ size_t xStreamBufferReceiveFromISR( StreamBufferHandle_t xStreamBuffer,
 
     traceENTER_xStreamBufferReceiveFromISR( xStreamBuffer, pvRxData, xBufferLengthBytes, pxHigherPriorityTaskWoken );
 
-    configASSERT( pvRxData != NULL , "pvRxData in xStreamBufferReceiveFromISR");
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferReceiveFromISR");
+    configASSERT( pvRxData );
+    configASSERT( pxStreamBuffer );
 
     /* This receive function is used by both message buffers, which store
      * discrete messages, and stream buffers, which store a continuous stream of
@@ -1336,7 +1336,7 @@ BaseType_t xStreamBufferIsEmpty( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferIsEmpty( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferIsEmpty" );
+    configASSERT( pxStreamBuffer );
 
     /* True if no bytes are available. */
     xTail = pxStreamBuffer->xTail;
@@ -1364,7 +1364,7 @@ BaseType_t xStreamBufferIsFull( StreamBufferHandle_t xStreamBuffer )
 
     traceENTER_xStreamBufferIsFull( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferIsFull");
+    configASSERT( pxStreamBuffer );
 
     /* This generic version of the receive function is used by both message
      * buffers, which store discrete messages, and stream buffers, which store a
@@ -1404,7 +1404,7 @@ BaseType_t xStreamBufferSendCompletedFromISR( StreamBufferHandle_t xStreamBuffer
 
     traceENTER_xStreamBufferSendCompletedFromISR( xStreamBuffer, pxHigherPriorityTaskWoken );
 
-    configASSERT( pxStreamBuffer != NULL , ", pxStreamBuffer in xStreamBufferSendCompletedFromISR" );
+    configASSERT( pxStreamBuffer );
 
     /* MISRA Ref 4.7.1 [Return value shall be checked] */
     /* More details at: https://github.com/FreeRTOS/FreeRTOS-Kernel/blob/main/MISRA.md#dir-47 */
@@ -1443,7 +1443,7 @@ BaseType_t xStreamBufferReceiveCompletedFromISR( StreamBufferHandle_t xStreamBuf
 
     traceENTER_xStreamBufferReceiveCompletedFromISR( xStreamBuffer, pxHigherPriorityTaskWoken );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in xStreamBufferReceiveCompletedFromISR" );
+    configASSERT( pxStreamBuffer );
 
     /* MISRA Ref 4.7.1 [Return value shall be checked] */
     /* More details at: https://github.com/FreeRTOS/FreeRTOS-Kernel/blob/main/MISRA.md#dir-47 */
@@ -1480,7 +1480,7 @@ static size_t prvWriteBytesToBuffer( StreamBuffer_t * const pxStreamBuffer,
 {
     size_t xFirstLength;
 
-    configASSERT( xCount > ( size_t ) 0 , "prvWriteBytesToBuffer cond 1");
+    configASSERT( xCount > ( size_t ) 0 );
 
     /* Calculate the number of bytes that can be added in the first write -
      * which may be less than the total number of bytes that need to be added if
@@ -1488,7 +1488,7 @@ static size_t prvWriteBytesToBuffer( StreamBuffer_t * const pxStreamBuffer,
     xFirstLength = configMIN( pxStreamBuffer->xLength - xHead, xCount );
 
     /* Write as many bytes as can be written in the first write. */
-    configASSERT( ( xHead + xFirstLength ) <= pxStreamBuffer->xLength , "prvWriteBytesToBuffer cond 2");
+    configASSERT( ( xHead + xFirstLength ) <= pxStreamBuffer->xLength );
     ( void ) memcpy( ( void * ) ( &( pxStreamBuffer->pucBuffer[ xHead ] ) ), ( const void * ) pucData, xFirstLength );
 
     /* If the number of bytes written was less than the number that could be
@@ -1496,7 +1496,7 @@ static size_t prvWriteBytesToBuffer( StreamBuffer_t * const pxStreamBuffer,
     if( xCount > xFirstLength )
     {
         /* ...then write the remaining bytes to the start of the buffer. */
-        configASSERT( ( xCount - xFirstLength ) <= pxStreamBuffer->xLength , "prvWriteBytesToBuffer cond 3");
+        configASSERT( ( xCount - xFirstLength ) <= pxStreamBuffer->xLength );
         ( void ) memcpy( ( void * ) pxStreamBuffer->pucBuffer, ( const void * ) &( pucData[ xFirstLength ] ), xCount - xFirstLength );
     }
     else
@@ -1526,7 +1526,7 @@ static size_t prvReadBytesFromBuffer( StreamBuffer_t * pxStreamBuffer,
 {
     size_t xFirstLength;
 
-    configASSERT( xCount != ( size_t ) 0 , "prvReadBytesFromBuffer cond 1" );
+    configASSERT( xCount != ( size_t ) 0 );
 
     /* Calculate the number of bytes that can be read - which may be
      * less than the number wanted if the data wraps around to the start of
@@ -1535,8 +1535,8 @@ static size_t prvReadBytesFromBuffer( StreamBuffer_t * pxStreamBuffer,
 
     /* Obtain the number of bytes it is possible to obtain in the first
      * read.  Asserts check bounds of read and write. */
-    configASSERT( xFirstLength <= xCount , "prvReadBytesFromBuffer cond 2");
-    configASSERT( ( xTail + xFirstLength ) <= pxStreamBuffer->xLength , "prvReadBytesFromBuffer cond 3");
+    configASSERT( xFirstLength <= xCount );
+    configASSERT( ( xTail + xFirstLength ) <= pxStreamBuffer->xLength );
     ( void ) memcpy( ( void * ) pucData, ( const void * ) &( pxStreamBuffer->pucBuffer[ xTail ] ), xFirstLength );
 
     /* If the total number of wanted bytes is greater than the number
@@ -1601,7 +1601,7 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
          * memory.  Don't use 0xA5 as that is the stack fill value and could
          * result in confusion as to what is actually being observed. */
         #define STREAM_BUFFER_BUFFER_WRITE_VALUE    ( 0x55 )
-        configASSERT( memset( pucBuffer, ( int ) STREAM_BUFFER_BUFFER_WRITE_VALUE, xBufferSizeBytes ) == pucBuffer , "prvInitialiseNewStreamBuffer cond 1");
+        configASSERT( memset( pucBuffer, ( int ) STREAM_BUFFER_BUFFER_WRITE_VALUE, xBufferSizeBytes ) == pucBuffer );
     }
     #endif
 
@@ -1638,7 +1638,7 @@ UBaseType_t uxStreamBufferGetStreamBufferNotificationIndex( StreamBufferHandle_t
 
     traceENTER_uxStreamBufferGetStreamBufferNotificationIndex( xStreamBuffer );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in uxStreamBufferGetStreamBufferNotificationIndex" );
+    configASSERT( pxStreamBuffer );
 
     traceRETURN_uxStreamBufferGetStreamBufferNotificationIndex( pxStreamBuffer->uxNotificationIndex );
 
@@ -1653,14 +1653,14 @@ void vStreamBufferSetStreamBufferNotificationIndex( StreamBufferHandle_t xStream
 
     traceENTER_vStreamBufferSetStreamBufferNotificationIndex( xStreamBuffer, uxNotificationIndex );
 
-    configASSERT( pxStreamBuffer != NULL , "pxStreamBuffer in vStreamBufferSetStreamBufferNotificationIndex");
+    configASSERT( pxStreamBuffer );
 
     /* There should be no task waiting otherwise we'd never resume them. */
-    configASSERT( pxStreamBuffer->xTaskWaitingToReceive == NULL, "vStreamBufferSetStreamBufferNotificationIndex cond 1" );
-    configASSERT( pxStreamBuffer->xTaskWaitingToSend == NULL , "vStreamBufferSetStreamBufferNotificationIndex cond 2");
+    configASSERT( pxStreamBuffer->xTaskWaitingToReceive == NULL );
+    configASSERT( pxStreamBuffer->xTaskWaitingToSend == NULL );
 
     /* Check that the task notification index is valid. */
-    configASSERT( uxNotificationIndex < configTASK_NOTIFICATION_ARRAY_ENTRIES , "vStreamBufferSetStreamBufferNotificationIndex cond 3" );
+    configASSERT( uxNotificationIndex < configTASK_NOTIFICATION_ARRAY_ENTRIES );
 
     pxStreamBuffer->uxNotificationIndex = uxNotificationIndex;
 

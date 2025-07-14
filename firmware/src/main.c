@@ -84,11 +84,24 @@ void led_blink_task(void *params)
     //iwd_refresh();
     //usb_printf("\nPass1 ...\n\n");
     //blink_n(3);
+    iwd_refresh();
     ledoff();
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    //usb_printf("\nPass2 ...\n\n");
+    vTaskDelay(pdMS_TO_TICKS(500));
+//    usb_printf("\nPass2 ...\n\n");
+    iwd_refresh();
     ledon();
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(500));
+  }
+}
+
+void run_proc_task(void *params)
+{
+  (void)params;
+
+  while (1) {
+    //iwd_refresh();
+    run_process(); // TODO implement process task here
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
 
@@ -108,20 +121,37 @@ void run(void)
   }
 */
   static StaticTask_t exampleTaskTCB;
-  static StackType_t exampleTaskStack[ 4*configMINIMAL_STACK_SIZE ];
+  static StaticTask_t processTaskTCB;
+  static StackType_t exampleTaskStack[ 2*configMINIMAL_STACK_SIZE ];
+  static StackType_t processTaskStack[ 2*configMINIMAL_STACK_SIZE ];
 
   TaskHandle_t task_handle = xTaskCreateStatic( led_blink_task,
                                 "led",
-                                2*configMINIMAL_STACK_SIZE,
+                                1*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                configMAX_PRIORITIES - 1U,
+                                1,
                                 //&( exampleTaskStack[ 0 ] ),
                                 exampleTaskStack,
                                 &( exampleTaskTCB ) );
 
+  TaskHandle_t process_task_handle = xTaskCreateStatic( run_proc_task,
+                                "process",
+                                1*configMINIMAL_STACK_SIZE,
+                                NULL,
+//                                configMAX_PRIORITIES - 1U,
+                                2,
+                                //&( exampleTaskStack[ 0 ] ),
+                                processTaskStack,
+                                &( processTaskTCB ) );
 
 if (task_handle == NULL) {
     usb_printf("Erro ao criar a tarefa!\n");
+    while(1);
+}
+
+
+if (process_task_handle == NULL) {
+    usb_printf("Erro ao criar a tarefa process_task_handle!\n");
     while(1);
 }
 
@@ -134,7 +164,8 @@ if (task_handle == NULL) {
 //  usb_printf("SHPR2 (SVCall): 0x%08lx\nSHPR3 (PendSV/SysTick): 0x%08lx\n\n", *(volatile uint32_t *)0xE000ED1C, *(volatile uint32_t *)0xE000ED20);
   //__nvic_set_priority(SVCall_IRQn, 0);
   vTaskStartScheduler();
-init_systick();
+//init_systick();
+vPortSetupTimerInterrupt();
 END_SETUP
 
 volatile uint64_t m;
@@ -174,7 +205,7 @@ void run(void)
 //usb_printf("AIRCR before: 0x%08lX\n", tmp);
 
 //__nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
-init_systick();
+//init_systick();
 END_SETUP
   blink_n(3);
 //usb_printf("AIRCR after:  0x%08lX\n", SCB->AIRCR);
