@@ -3,6 +3,8 @@
 #include <memory.h>
 #include <stdarg.h>
 #include <usbd_cdc_if.h>
+#include <console.h>
+#include <string.h>
 
 /*
 sudo usermod -aG dialout $USER
@@ -17,6 +19,9 @@ DETAILED_FLASH df;
 
 static char printf_buffer[APP_TX_DATA_SIZE];
 #define PRINTF_BUF_MAX_LEN sizeof(printf_buffer)
+
+static char text[APP_TX_DATA_SIZE];
+size_t text_sz = 0;
 
 // Return USBD_OK if transmit was success, else error
 uint8_t usb_printf(const char *fmt, ...)
@@ -35,6 +40,86 @@ uint8_t usb_printf(const char *fmt, ...)
     return CDC_Transmit_FS((uint8_t*)printf_buffer, len);
 
   return USBD_OK;
+}
+
+void usb_receive(uint8_t *buf, uint32_t buf_sz)
+{
+  if ((size_t)buf_sz > sizeof(text)-1)
+    text_sz = sizeof(text)-1;
+  else
+    text_sz = (size_t)buf_sz;
+
+  text[text_sz] = 0;
+  char *p = text;
+  size_t tmp = text_sz;
+
+  while (tmp > 0) {
+
+    char c = *(buf++);
+    if ((c != '\r') && (c != '\n'))
+      *(p++) = c;
+    else {
+      *p = 0;
+      break;
+    }
+ 
+    --tmp;
+  }
+}
+
+
+void usb_receive_complete()
+{
+
+//  if (text_sz <= 2)
+//    return;
+
+  COMMAND_CHECK_CALL_ARG(ping)
+  COMMAND_CHECK_CALL_ARG(meminfo)
+  COMMAND_CHECK_CALL_ARG(timestamp)
+  COMMAND_CHECK_CALL_ARG(setdate)
+  COMMAND_CHECK_CALL_ARG(getdate)
+  COMMAND_CHECK_CALL_ARG(help)
+  COMMAND_CHECK_CALL_ARG(milliseconds)
+  COMMAND_CHECK_CALL_ARG(cpuinfo)
+  COMMAND_CHECK_CALL_ARG(sensors)
+
+  usb_printf("Invalid command %.*s\n\n", text_sz, text);
+
+}
+
+volatile static int usbHasError = 0;
+
+void usb_error(int value)
+{
+  usbHasError = value;
+/*
+  switch(value) {
+    case E_USB_INIT:
+      hasError = 7;
+      break;
+    case E_USB_REGISTER_CLASS:
+      hasError = 6;
+      break;
+    case E_USB_REGISTER_INTERFACE:
+      hasError = 4;
+      break;
+    case E_USB_START:
+      hasError = 3;
+      break;
+    case E_USB_TRANSMIT_BUSY:
+      hasError =1;
+      break;
+    case E_USB_TRANSMIT_FAIL:
+      hasError = 2;
+      break;
+    case E_USB_HAL_PCD_HS:
+      hasError = 8;
+      break;
+    default:
+      hasError = 5;
+  }
+*/
 }
 
 void usb_print_memory_info(void)

@@ -23,10 +23,9 @@ void run_process()
   if (proc) {
     void *ctx = (void *)ctx_ptr;
     ret_code = proc(ctx);
+    proc = NULL;
+    ctx_ptr = NULL;
   }
-
-  proc = NULL;
-  ctx_ptr = NULL;
 }
 
 // If executed, returns last return code and clean it, NULL if process is not executed yet

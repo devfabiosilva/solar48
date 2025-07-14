@@ -16,25 +16,7 @@ void system_init(void)
   while ((RCC_CFGR & SWS_mask) != PLL_selected_as_system_clock);
 //  RCC_APB2ENR |= IOPCEN;
 
-#ifdef RTOS_SOLAR48
   SCB->VTOR = 0x08000000;
-#else
-  // Memory manager initialization
   fill_stack_with_pattern();
-#endif
-/*
-  .init :
-  {
-    *(.init.*)
-    _einit = .;
-  } > FLASH
-
-  .fini :
-  {
-    *(.fini.*)
-    _efini = .;
-  } > FLASH
-*/
-
 }
 
