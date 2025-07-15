@@ -23,7 +23,6 @@ void HAL_NVIC_EnableIRQ(IRQn_Type IRQn);
 void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle);
 static void USB_DevInit(USB_TypeDef *USBx);
 HAL_StatusTypeDef USB_SetCurrentMode(USB_TypeDef *USBx, USB_ModeTypeDef mode);
-HAL_StatusTypeDef USB_CoreInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg);
 void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority);
 
 error_callback_t error_cb = NULL;
@@ -1041,25 +1040,6 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 }
 
 /**
-  * @brief  USB_SetDevAddress Stop the usb device mode
-  * @param  USBx Selected device
-  * @param  address new device address to be assigned
-  *          This parameter can be a value from 0 to 255
-  * @retval HAL status
-  */
-HAL_StatusTypeDef  USB_SetDevAddress(USB_TypeDef *USBx, uint8_t address)
-{
-  if (address == 0U)
-  {
-    /* set device address and enable function */
-    USBx->DADDR = (uint16_t)USB_DADDR_EF;
-  }
-
-  return HAL_OK;
-}
-
-
-/**
   * @brief  Set the USB Device address.
   * @param  hpcd PCD handle
   * @param  address new device address
@@ -1069,7 +1049,13 @@ HAL_StatusTypeDef HAL_PCD_SetAddress(PCD_HandleTypeDef *hpcd, uint8_t address)
 {
   __HAL_LOCK(hpcd);
   hpcd->USB_Address = address;
-  (void)USB_SetDevAddress(hpcd->Instance, address);
+
+  if (address == 0U)
+  {
+    USB_TypeDef *USBx = hpcd->Instance;
+    /* set device address and enable function */
+    USBx->DADDR = (uint16_t)USB_DADDR_EF;
+  }
   __HAL_UNLOCK(hpcd);
 
   return HAL_OK;
@@ -2235,13 +2221,6 @@ HAL_StatusTypeDef HAL_PCD_Init(PCD_HandleTypeDef *hpcd)
   /* Disable the Interrupts */
   __HAL_PCD_DISABLE(hpcd);
 
-  /*Init the Core (common init.) */
-  if (USB_CoreInit(hpcd->Instance, hpcd->Init) != HAL_OK)
-  {
-    hpcd->State = HAL_PCD_STATE_ERROR;
-    return HAL_ERROR;
-  }
-
   /* Force Device Mode */
   if (USB_SetCurrentMode(hpcd->Instance, USB_DEVICE_MODE) != HAL_OK)
   {
@@ -2646,28 +2625,6 @@ HAL_StatusTypeDef USB_SetCurrentMode(USB_TypeDef *USBx, USB_ModeTypeDef mode)
               only by USB OTG FS peripheral.
             - This function is added to ensure compatibility across platforms.
    */
-  return HAL_OK;
-}
-
-
-/**
-  * @brief  Initializes the USB Core
-  * @param  USBx USB Instance
-  * @param  cfg pointer to a USB_CfgTypeDef structure that contains
-  *         the configuration information for the specified USBx peripheral.
-  * @retval HAL status
-  */
-HAL_StatusTypeDef USB_CoreInit(USB_TypeDef *USBx, USB_CfgTypeDef cfg)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(USBx);
-  UNUSED(cfg);
-
-  /* NOTE : - This function is not required by USB Device FS peripheral, it is used
-              only by USB OTG FS peripheral.
-            - This function is added to ensure compatibility across platforms.
-   */
-
   return HAL_OK;
 }
 
