@@ -64,21 +64,6 @@ USBD_StatusTypeDef USBD_Get_USB_Status(HAL_StatusTypeDef hal_status)
 }
 
 /**
-* @brief  USBD_RunTestMode
-*         Launch test mode process
-* @param  pdev: device instance
-* @retval status
-*/
-//TODO Remove or add test to development
-//USBD_StatusTypeDef  USBD_RunTestMode(USBD_HandleTypeDef  *pdev)
-//{
-  /* Prevent unused argument compilation warning */
-//  UNUSED(pdev);
-
-//  return USBD_OK;
-//}
-
-/**
 * @brief  USBD_DataInStage
 *         Handle data in stage
 * @param  pdev: device instance
@@ -159,23 +144,6 @@ USBD_StatusTypeDef USBD_LL_DataInStage(USBD_HandleTypeDef *pdev,
   return USBD_OK;
 }
 
-
-/**
-* @brief  USBD_IsoINIncomplete
-*         Handle iso in incomplete event
-* @param  pdev: device instance
-* @retval status
-*/
-USBD_StatusTypeDef USBD_LL_IsoINIncomplete(USBD_HandleTypeDef *pdev,
-                                           uint8_t epnum)
-{
-  /* Prevent unused arguments compilation warning */
-  UNUSED(pdev);
-  UNUSED(epnum);
-
-  return USBD_OK;
-}
-
 /**
   * @brief  ISOINIncomplete callback.
   * @param  hpcd: PCD handle
@@ -188,7 +156,7 @@ static void PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
-  USBD_LL_IsoINIncomplete((USBD_HandleTypeDef*)hpcd->pData, epnum);
+  // DO NOTHING
 }
 
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
@@ -783,27 +751,6 @@ USBD_StatusTypeDef USBD_LL_DevDisconnected(USBD_HandleTypeDef *pdev)
 }
 
 /**
-* @brief  USBD_SOF
-*         Handle SOF event
-* @param  pdev: device instance
-* @retval status
-*/
-
-USBD_StatusTypeDef USBD_LL_SOF(USBD_HandleTypeDef *pdev)
-{
-  if (pdev->dev_state == USBD_STATE_CONFIGURED)
-  {
-    if (pdev->pClass->SOF != NULL)
-    {
-      pdev->pClass->SOF(pdev);
-    }
-  }
-
-  return USBD_OK;
-}
-
-
-/**
   * @brief  USB_EPSetStall set a stall condition over an EP
   * @param  USBx Selected device
   * @param  ep pointer to endpoint structure
@@ -919,7 +866,15 @@ static void PCD_SOFCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_SOFCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
-  USBD_LL_SOF((USBD_HandleTypeDef*)hpcd->pData);
+  USBD_HandleTypeDef *pdev = (USBD_HandleTypeDef *)hpcd->pData;
+
+  if (pdev->dev_state == USBD_STATE_CONFIGURED)
+  {
+    if (pdev->pClass->SOF != NULL)
+    {
+      pdev->pClass->SOF(pdev);
+    }
+  }
 }
 
 /**
@@ -1472,24 +1427,6 @@ HAL_StatusTypeDef  USB_DevConnect(USB_TypeDef *USBx)
 }
 
 /**
-  * @brief  Software Device Connection,
-  *         this function is not required by USB OTG FS peripheral, it is used
-  *         only by USB Device FS peripheral.
-  * @param  hpcd PCD handle
-  * @param  state connection state (0 : disconnected / 1: connected)
-  * @retval None
-  */
-void HAL_PCDEx_SetConnectionState(PCD_HandleTypeDef *hpcd, uint8_t state)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hpcd);
-  UNUSED(state);
-  /* NOTE : This function Should not be modified, when the callback is needed,
-            the HAL_PCDEx_SetConnectionState could be implemented in the user file
-   */
-}
-
-/**
   * @brief  USB_EnableGlobalInt
   *         Enables the controller's Global Int in the AHB Config reg
   * @param  USBx Selected device
@@ -1523,10 +1460,6 @@ HAL_StatusTypeDef HAL_PCD_Start(PCD_HandleTypeDef *hpcd)
 {
   __HAL_LOCK(hpcd);
   __HAL_PCD_ENABLE(hpcd);
-
-#if defined (USB)
-  HAL_PCDEx_SetConnectionState(hpcd, 1U);
-#endif /* defined (USB) */
 
   (void)USB_DevConnect(hpcd->Instance);
   __HAL_UNLOCK(hpcd);
@@ -2760,56 +2693,6 @@ HAL_StatusTypeDef USB_DisableGlobalInt(USB_TypeDef *USBx)
   return HAL_OK;
 }
 
-
-/**
-  * @brief  Enables a device specific interrupt in the NVIC interrupt controller.
-  * @note   To configure interrupts priority correctly, the NVIC_PriorityGroupConfig()
-  *         function should be called before. 
-  * @param  IRQn External interrupt number.
-  *         This parameter can be an enumerator of IRQn_Type enumeration
-  *         (For the complete STM32 Devices IRQ Channels list, please refer to the appropriate CMSIS device file (stm32f10xxx.h))
-  * @retval None
-  */
-/*
-//TODO REMOVE IT
-void HAL_NVIC_EnableIRQ(IRQn_Type IRQn)
-{
-  // Check the parameters 
-  assert_param(IS_NVIC_DEVICE_IRQ(IRQn));
-
-  // Enable interrupt
-  NVIC_EnableIRQ(IRQn);
-}
-*/
-
-/**
-  * @brief  Sets the priority of an interrupt.
-  * @param  IRQn: External interrupt number.
-  *         This parameter can be an enumerator of IRQn_Type enumeration
-  *         (For the complete STM32 Devices IRQ Channels list, please refer to the appropriate CMSIS device file (stm32f10xx.h))
-  * @param  PreemptPriority: The preemption priority for the IRQn channel.
-  *         This parameter can be a value between 0 and 15
-  *         A lower priority value indicates a higher priority 
-  * @param  SubPriority: the subpriority level for the IRQ channel.
-  *         This parameter can be a value between 0 and 15
-  *         A lower priority value indicates a higher priority.          
-  * @retval None
-  */
-/*
-TODO remove
-void HAL_NVIC_SetPriority(IRQn_Type IRQn, uint32_t PreemptPriority, uint32_t SubPriority)
-{ 
-  uint32_t prioritygroup = 0x00U;
-  
-  // Check the parameters
-  assert_param(IS_NVIC_SUB_PRIORITY(SubPriority));
-  assert_param(IS_NVIC_PREEMPTION_PRIORITY(PreemptPriority));
-  
-  prioritygroup = NVIC_GetPriorityGrouping();
-  
-  NVIC_SetPriority(IRQn, NVIC_EncodePriority(prioritygroup, PreemptPriority, SubPriority));
-}
-*/
 #define __HAL_RCC_USB_CLK_ENABLE   do { \
                                         __IO uint32_t tmpreg; \
                                         SET_BIT(RCC->APB1ENR, RCC_APB1ENR_USBEN);\
@@ -2824,9 +2707,6 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     __HAL_RCC_USB_CLK_ENABLE;
 
     /* Peripheral interrupt init */
-    //HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
-    //HAL_NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-    //__nvic_set_priority(USB_LP_CAN1_RX0_IRQn, 5);
     __nvic_set_priority(USB_LP_CAN1_RX0_IRQn, USB_PRIO);
     __nvic_enable_irq(USB_LP_CAN1_RX0_IRQn);
   }
