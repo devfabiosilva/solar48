@@ -1,9 +1,7 @@
 //ter 20 mai 2025 19:28:25 
 #include <registers.h>
 #include <memory.h>
-#ifdef RTOS_SOLAR48
 #include <core_cm3.h>
-#endif
 
 void system_init(void)
 {

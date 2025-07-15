@@ -8,12 +8,16 @@
 #include <sensors.h>
 #include <registers.h>
 
-#include <process.h>
-
 #ifdef RTOS_SOLAR48
 
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
+#include <instances.h>
+
+#else
+
+#include <usb_io.h>
+#include <process.h>
 
 #endif
 
@@ -54,65 +58,11 @@ void setup()
 
 #ifdef RTOS_SOLAR48
 
-void led_blink_task(void *params)
-{
-  (void)params;
-
-  while (1) {
-    iwd_refresh();
-    ledoff();
-    vTaskDelay(pdMS_TO_TICKS(500));
-//    usb_printf("\nPass2 ...\n\n");
-    iwd_refresh();
-    ledon();
-    vTaskDelay(pdMS_TO_TICKS(500));
-  }
-}
-
-void run_proc_task(void *params)
-{
-  (void)params;
-
-  while (1) {
-    //iwd_refresh();
-    run_process();
-    vTaskDelay(pdMS_TO_TICKS(1));
-  }
-}
-
 void run(void)
 {
 
-  static StaticTask_t exampleTaskTCB;
-  static StaticTask_t processTaskTCB;
-  static StackType_t exampleTaskStack[ 1*configMINIMAL_STACK_SIZE ];
-  static StackType_t processTaskStack[ 2*configMINIMAL_STACK_SIZE ];
-
-  TaskHandle_t task_handle = xTaskCreateStatic( led_blink_task,
-                                "led",
-                                1*configMINIMAL_STACK_SIZE,
-                                NULL,
-                                1,
-                                exampleTaskStack,
-                                &( exampleTaskTCB ) );
-
-  TaskHandle_t process_task_handle = xTaskCreateStatic( run_proc_task,
-                                "process",
-                                2*configMINIMAL_STACK_SIZE,
-                                NULL,
-                                2,
-                                processTaskStack,
-                                &( processTaskTCB ) );
-
-  if (task_handle == NULL) {
-      usb_printf("Led task error!\n");
-      halt();
-  }
-
-  if (process_task_handle == NULL) {
-    usb_printf("Process task error\n");
-    halt();
-  }
+  init_led_blink();
+  init_process_task();
 
   vTaskStartScheduler();
 }
