@@ -15,7 +15,6 @@ USBD_StatusTypeDef USBD_LL_Transmit(USBD_HandleTypeDef *pdev, uint8_t ep_addr, u
 USBD_StatusTypeDef USBD_LL_SetUSBAddress(USBD_HandleTypeDef *pdev, uint8_t dev_addr);
 USBD_StatusTypeDef USBD_LL_StallEP(USBD_HandleTypeDef *pdev, uint8_t ep_addr);
 HAL_StatusTypeDef HAL_PCD_EP_SetStall(PCD_HandleTypeDef *hpcd, uint8_t ep_addr);
-USBD_StatusTypeDef USBD_LL_DevConnected(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_LL_DevDisconnected(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_LL_PrepareReceive(USBD_HandleTypeDef *pdev, uint8_t ep_addr, uint8_t *pbuf, uint16_t size);
 USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
@@ -501,7 +500,7 @@ static void PCD_ConnectCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_ConnectCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
-  USBD_LL_DevConnected((USBD_HandleTypeDef*)hpcd->pData);
+  //DO NOTHING
 }
 
 /**
@@ -720,19 +719,6 @@ HAL_StatusTypeDef HAL_PCD_RegisterCallback(PCD_HandleTypeDef *hpcd,
 }
 
 #endif
-/**
-* @brief  USBD_DevConnected
-*         Handle device connection event
-* @param  pdev: device instance
-* @retval status
-*/
-USBD_StatusTypeDef USBD_LL_DevConnected(USBD_HandleTypeDef *pdev)
-{
-  /* Prevent unused argument compilation warning */
-  UNUSED(pdev);
-
-  return USBD_OK;
-}
 
 /**
 * @brief  USBD_DevDisconnected
