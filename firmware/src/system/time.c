@@ -10,8 +10,6 @@
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
 
-//#define SYS_TICK_DIV 1 // For FreeRTOS
-
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
 
@@ -19,10 +17,9 @@ void vPortSetupTimerInterrupt()
 {
 
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
-  //__nvic_set_priority(SysTick_IRQn, configKERNEL_INTERRUPT_PRIORITY);
   //__nvic_set_priority(SysTick_IRQn, SYSTICK_PRIO);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
-  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk | */
+  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk | */ // Clock div 8 if commented
                    SysTick_CTRL_TICKINT_Msk   |
                    SysTick_CTRL_ENABLE_Msk;                         /* Enable SysTick IRQ and SysTick Timer */
 
@@ -37,11 +34,9 @@ void vPortSetupTimerInterrupt()
 void init_systick()
 {
   SysTick->LOAD  = (uint32_t)(SYSTICK_TICKS); /* set reload register */
-  //NVIC_SetPriority (SysTick_IRQn, (1UL << __NVIC_PRIO_BITS) - 1UL); /* set Priority for Systick Interrupt */
-  //__nvic_set_priority(SysTick_IRQn, 7);
   __nvic_set_priority(SysTick_IRQn, SYSTICK_PRIO);
   SysTick->VAL   = 0UL;                                             /* Load the SysTick Counter Value */
-  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk |*/
+  SysTick->CTRL  = /*SysTick_CTRL_CLKSOURCE_Msk |*/ // Clock div 8 if commented
                    SysTick_CTRL_TICKINT_Msk   |
                    SysTick_CTRL_ENABLE_Msk;                         /* Enable SysTick IRQ and SysTick Timer */
 
@@ -67,35 +62,10 @@ void SysTick_Handler()
 #endif
 }
 
-/*
-#ifdef RTOS_SOLAR48
-void SVC_Handler(void)
-{
-  vPortSVCHandler();
-}
-
-void PendSV_Handler(void)
-{
-  vPortPendSVHandler();
-}
-#endif
-*/
-
 uint64_t milliseconds()
 {
   return (volatile uint64_t)tick;
 }
-
-/*
-uint64_t milliseconds()
-{
-  uint64_t t;
-  __disable_irq();
-  t = tick;
-  __enable_irq();
-  return t;
-}
-*/
 
 #ifdef RTOS_SOLAR48
 int has_rtos_ticks()
