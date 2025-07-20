@@ -91,8 +91,9 @@
 
 //BEGIN Clock->RCC_APB1ENR (Page 115)
 #define RCC_APB1ENR (*(volatile uint32_t *)(RCC_BASE + 0x1C))
-#define USBEN (1<<23)
-#define PWREN (1<<28)
+ #define USBEN (1<<23)
+ #define PWREN (1<<28)
+ #define I2C1EN (1<<21)
 //TODO implement read/sets for RCC_APB1ENR if needed
 //END Clock->RCC_APB1ENR
 
@@ -211,5 +212,16 @@ void __nvic_set_priority(IRQn_Type, uint32_t);
 uint32_t get_priority_grouping();
 
 void safe_nvic_prioritygroup_init(uint32_t);
+
+#define I2C_CR1 (*(volatile uint16_t *)(I2C1_BASE + 0x00)) // Page 772: 26.6.1
+ #define PE (1<<0)
+#define I2C1_CCR (*(volatile uint16_t *)(I2C1_BASE + 0x1C)) // Page 768: 26.6.8
+#define I2C1_TRISE (*(volatile uint16_t *)(I2C1_BASE + 0x20)) // Page 782: 26.6.9
+#define I2C1_CR2 (*(volatile uint16_t *)(I2C1_BASE + 0x04)) // Page 774: 26.6.2
+ #define ITBUFEN (1<<10)
+ #define ITEVTEN (1<<9)
+ #define ITERREN (1<<8)
+
+
 #endif
 

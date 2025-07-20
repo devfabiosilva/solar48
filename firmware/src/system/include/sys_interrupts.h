@@ -2,7 +2,9 @@
  #define SYS_INTERRUPTS_H
 
 #ifdef RTOS_SOLAR48
- #define USB_PRIO     12
+ #define USB_PRIO     10
+ #define I2C1_EV_PRIO 11
+ #define I2C1_ER_PRIO 12
  #define SYSTICK_PRIO 14
  #define RTC_PRIO     13
  #define PEND_SV_PRIO 15
@@ -10,9 +12,11 @@
 
 #else
 
- #define USB_PRIO 5
- #define SYSTICK_PRIO 6
- #define RTC_PRIO 7
+ #define USB_PRIO      3
+ #define I2C1_EV_PRIO  4
+ #define I2C1_ER_PRIO  5
+ #define SYSTICK_PRIO  6
+ #define RTC_PRIO      7
 
 #endif
 

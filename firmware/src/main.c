@@ -7,6 +7,7 @@
 #include <watchdog.h>
 #include <sensors.h>
 #include <registers.h>
+#include <hal_i2c.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -42,6 +43,7 @@ void setup()
   __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
 
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
+  hal_i2c1_init();
   init_rtc(realtime);
 #ifndef RTOS_SOLAR48 
   init_systick();
