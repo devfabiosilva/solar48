@@ -141,6 +141,12 @@
 #define GPIOC_CRH    (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
 #define GPIOC_ODR    (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
 
+#define GPIOB_CRL (*(volatile uint32_t *)(GPIOB_BASE + 0x00)) //page 171 9.2.1
+ #define GPIOB_MODE6_VAL(val) (val<<24)
+ #define GPIOB_MODE7_VAL(val) (val<<28)
+ #define GPIOB_CNF6_VAL(val) (val<<26)
+ #define GPIOB_CNF7_VAL(val) (val<<30)
+
 // Independent Watchdog configuration: Page 496
 #define IWDG_KR (*(volatile uint32_t *)(IWDG_BASE + 0x00))
 #define IWDG_PR (*(volatile uint32_t *)(IWDG_BASE + 0x04))
@@ -213,7 +219,9 @@ uint32_t get_priority_grouping();
 
 void safe_nvic_prioritygroup_init(uint32_t);
 
-#define I2C_CR1 (*(volatile uint16_t *)(I2C1_BASE + 0x00)) // Page 772: 26.6.1
+#define I2C1_CR1 (*(volatile uint16_t *)(I2C1_BASE + 0x00)) // Page 772: 26.6.1
+ #define START (1<<8)
+ #define STOP (1<<9)
  #define PE (1<<0)
 #define I2C1_CCR (*(volatile uint16_t *)(I2C1_BASE + 0x1C)) // Page 768: 26.6.8
 #define I2C1_TRISE (*(volatile uint16_t *)(I2C1_BASE + 0x20)) // Page 782: 26.6.9
@@ -222,6 +230,17 @@ void safe_nvic_prioritygroup_init(uint32_t);
  #define ITEVTEN (1<<9)
  #define ITERREN (1<<8)
 
+#define I2C1_SR1 (*(volatile uint16_t *)(I2C1_BASE + 0x14)) // Page 777: 26.6.6
+ #define AF (1<<10)
+ #define TxE (1<<7)
+ #define BTF (1<<2)
+ #define ADDR (1<<1)
+ #define SB (1<<0)
+
+#define I2C1_SR2 (*(volatile uint16_t *)(I2C1_BASE + 0x18)) // Page 780: 26.6.7
+ #define BUSY (1<<1)
+
+#define I2C1_DR (*(volatile uint16_t *)(I2C1_BASE + 0x10)) // Page 777: 26.6.5
 
 #endif
 

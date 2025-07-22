@@ -1,5 +1,6 @@
 //#include "ssd1306.h"
 #include <peripheral/ssd1306/ssd1306.h>
+#include <system.h>
 
 // Screenbuffer
 static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
@@ -7,6 +8,7 @@ static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
 // Screen object
 static SSD1306_t SSD1306;
 
+extern uint64_t milliseconds();
 
 //
 //  Send a byte to the command register
@@ -14,17 +16,31 @@ static SSD1306_t SSD1306;
 static int ssd1306_WriteCommand(uint8_t command)
 {
     //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
-    return hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
+    if (SSD1306.Initialized)
+      return hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 10);
+ 
+    return 20;
 }
 
 
 //
 //  Initialize the oled screen
 //
-uint8_t ssd1306_Init()
+int ssd1306_Init()
 {
     // Wait for the screen to boot
     //HAL_Delay(100); // TODO implement correct HAL delay implementation
+
+    SSD1306.Initialized = 1;
+
+#ifdef RTOS_SOLAR48
+  END_SETUP // Enable interrupt
+#endif
+
+    uint64_t delay_ms = milliseconds() + 100; // 100ms
+
+    while (delay_ms > milliseconds());
+
     int status = 0;
 
     // Init LCD
@@ -62,6 +78,12 @@ uint8_t ssd1306_Init()
     status += ssd1306_WriteCommand(0xAF);   // Turn on SSD1306 panel
 
     if (status != 0) {
+        SSD1306.Initialized = 0;
+
+#ifdef RTOS_SOLAR48
+  DISABLE_SETUP // Disable interrupt
+#endif
+
         return 1;
     }
 
@@ -75,7 +97,11 @@ uint8_t ssd1306_Init()
     SSD1306.CurrentX = 0;
     SSD1306.CurrentY = 0;
 
-    SSD1306.Initialized = 1;
+#ifdef RTOS_SOLAR48
+  DISABLE_SETUP // Disable interrupt
+#endif
+
+//    SSD1306.Initialized = 1;
 
     return 0;
 }
@@ -106,7 +132,7 @@ void ssd1306_UpdateScreen()
         ssd1306_WriteCommand(0x00);
         ssd1306_WriteCommand(0x10);
 
-        hal_i2c1_write(SSD1306_I2C_ADDR, 0x40, 1, &SSD1306_Buffer[SSD1306_WIDTH * i], SSD1306_WIDTH, 100);
+        hal_i2c1_write(SSD1306_I2C_ADDR, 0x40, &SSD1306_Buffer[SSD1306_WIDTH * i], SSD1306_WIDTH, 100);
     }
 }
 

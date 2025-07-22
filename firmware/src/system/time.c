@@ -25,7 +25,8 @@ void vPortSetupTimerInterrupt()
 
 }
 
-#else
+#endif
+//#else
 // Default System in Solar48
 
 #include <sys_interrupts.h>
@@ -42,7 +43,7 @@ void init_systick()
 
 }
 
-#endif
+//#endif
 
 static volatile uint64_t tick = 0;
 static volatile int rtos_tick = 0;

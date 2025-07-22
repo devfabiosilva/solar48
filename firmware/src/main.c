@@ -8,6 +8,7 @@
 #include <sensors.h>
 #include <registers.h>
 #include <hal_i2c.h>
+#include <peripheral/ssd1306/ssd1306.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -45,17 +46,23 @@ void setup()
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
   hal_i2c1_init();
   init_rtc(realtime);
-#ifndef RTOS_SOLAR48 
-  init_systick();
-#endif
+//#ifndef RTOS_SOLAR48 
+  init_systick(); // If RTOS_SOLAR48 so this is used temporary for update peripherals timing systems
+//#endif
   init_gpios();
   init_sensors();
 
   init_idw();
 
 #ifndef RTOS_SOLAR48
-  END_SETUP
+  END_SETUP // Enable all interrupt for non RTOS system
 #endif
+
+// init peripherals below
+
+// OLED Panel
+  ssd1306_Init();
+
 }
 
 #ifdef RTOS_SOLAR48
