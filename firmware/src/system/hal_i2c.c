@@ -15,7 +15,6 @@ void hal_i2c1_init()
 {
 
   RCC_APB2ENR |= IOPBEN; // IO port B clock enable page 114
-  //TODO configure Port B output for I2C
 
   //I2C1 (PB6=SCL, PB7=SDA)
   GPIOB_CRL &= ~(GPIOB_MODE6_VAL(0b11) | GPIOB_MODE7_VAL(0b11) | GPIOB_CNF6_VAL(0b11) | GPIOB_CNF7_VAL(0b11)); // Clear PB6 and PB7 before configure these 2 pins. Page 171
@@ -80,9 +79,6 @@ enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t
   while ((!(I2C1_SR1 & SB)) && (timing > milliseconds()));
 
   CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_START_BUS)
-
-//  while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
-//  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_BEFORE_DEV_ADDRESS_BUS_TIMEOUT)
 
   // Begin address send
   (void)I2C1_SR1;  // Clear bit SB
