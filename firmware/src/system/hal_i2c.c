@@ -113,10 +113,9 @@ void hal_i2c1_init()
   I2C1_CR1 |= PE;
 
 }
-
+//    I2C1_SR1 &= ~AF;
 #define CHECK_I2C_NACK_OR_TIMEOUT(fn, errorCode) \
   if (I2C1_SR1 & AF) {\
-    I2C1_SR1 &= ~AF; \
     err = errorCode##_NACK;\
     goto fn##_finish;\
   }\
@@ -130,6 +129,7 @@ void hal_i2c1_init()
 //https://www.st.com/content/ccc/resource/technical/document/errata_sheet/7d/02/75/64/17/fc/4d/fd/CD00190234.pdf/files/CD00190234.pdf/jcr:content/translations/en.CD00190234.pdf#page26
 //https://electronics.stackexchange.com/questions/267972/i2c-busy-flag-strange-behaviour
 //760 Page master transmitting
+//https://github.com/afiskon/stm32-ssd1306
 
 enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t *data, uint16_t data_size, uint64_t timeout)
 {
@@ -146,6 +146,7 @@ enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t
   CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_BUSY_BUS)
 
   I2C1_SR1 &= ~AF; // Clear ACK Failure bit
+  I2C1_SR1 &= ~(POS); // Clear POS
 
   // Generating start
   I2C1_CR1 |= START;
@@ -165,64 +166,48 @@ enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t
   CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_ADDRESS_BUS)
 
   I2C1_DR = (uint8_t)mem_address; // Add memory address
-  while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
+  //while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
 
-  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
+  //CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
 
   while (data_size > 0) {
-    I2C1_DR = (uint8_t)*data;
     while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
 
     CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
 
+    I2C1_DR = (uint8_t)*data;
+
     --data_size;
     ++data;
+
+    if ((I2C1_SR1 & BTF) && (data_size > 0)) {
+      I2C1_DR = (uint8_t)*data;
+
+      --data_size;
+      ++data;
+    }
+
+    while ((!(I2C1_SR1 & BTF)) && (timing > milliseconds()));
+
+    CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_STOP_BUS);
   }
 
 hal_i2c1_write_finish:
 
-  while ((!(I2C1_SR1 & BTF)) && (timing > milliseconds()));
+  if (err != I2C1_SUCCESS) {
+    if (I2C1_SR1 & AF) {
+      I2C1_SR1 &= ~AF;
+      I2C1_CR1 |= STOP;
+    }
+    return err;
+  }
 
-  if (timing > milliseconds())
-    err = I2C1_ERR_DEV_STOP_BUS_TIMEOUT;
-//  else
   I2C1_CR1 |= STOP; //// Generating stop
-
-  return err;
-}
-
-/*
-volatile static uint8_t i2c1_addr = 0;
-volatile static uint8_t i2c1_dev_address = 0;
-volatile static uint8_t i2c1_mem_address = 0;
-volatile static uint8_t *i2c1_data = NULL;
-volatile static uint16_t i2c1_data_size = 0;
-volatile static uint64_t i2c1_timing = 0;
-volatile static uint16_t i2c1_error = 0;
-
-enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t *data, uint16_t data_size, uint64_t timeout)
-{
-
-  if (data_size == 0 || data == NULL)
-    return I2C1_SUCCESS;
-
-  if (I2C1_SR2 & BUSY)
-    return I2C1_ERR_BUSY_BUS_NACK;
-
-  i2c1_addr = dev_address;
-  i2c1_mem_address = (dev_address << 1);
-  i2c1_mem_address = mem_address;
-  i2c1_data = data;
-  i2c1_data_size = data_size;
-  i2c1_timing = milliseconds() + timeout;
-  i2c1_error = 0;
-
-  // Generating start
-  I2C1_CR1 |= START;
 
   return I2C1_SUCCESS;
 }
 
+/*
 void I2C1_EV_IRQHandler()
 {
   uint16_t sr = I2C1_SR1;

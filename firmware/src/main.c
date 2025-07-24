@@ -10,6 +10,7 @@
 #include <hal_i2c.h>
 #include <peripheral/ssd1306/ssd1306.h>
 #include <registers.h>
+#include <process.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -20,7 +21,6 @@
 #else
 
 #include <usb_io.h>
-#include <process.h>
 
 #endif
 
@@ -80,7 +80,12 @@ void run(void)
   err = ssd1306_Init();
 
   //DISABLE_SETUP
-  //ssd1306_WriteString("Test", Font_11x18, White);
+
+  ssd1306_WriteString("Test", Font_11x18, White);
+  ssd1306_WriteString("Test 2", Font_7x10, White);
+  ssd1306_WriteString("Test 3", Font_16x26, White);
+  ssd1306_UpdateScreen();
+
 //  usb_printf("oled return %d", err);
   //  ssd1306_WriteString("Test", Font_11x18, White);
   init_led_blink();
@@ -107,9 +112,26 @@ void run(void)
 
 #ifdef RTOS_SOLAR48
 //TODO refactor. Will be removed to rtc.c
+static char buf[20];
+#include <stdio.h>
+
+int print_text(void *ctx)
+{
+  get_solar48_date(&sd, NULL);
+  //usb_printf("\nTimestamp: %u\n oled %d\nfirst %d\n last %d", time, err, oled_first_error(), oled_last_error());
+  snprintf(buf, sizeof(buf), "%s-%u/%u/%u", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
+  ssd1306_SetCursor(0, 18);
+  ssd1306_WriteString(buf, Font_7x10, White);
+  ssd1306_SetCursor(0, 32);
+  snprintf(buf, sizeof(buf), "%02d:%02d:%02d", (int)sd.hour, (int)sd.minute, (int)sd.second);
+  ssd1306_WriteString(buf, Font_7x10, White);
+  ssd1306_UpdateScreen();
+
+  return 0;
+}
 void realtime(uint32_t time)
 {
-  usb_printf("\nTimestamp: %u\n HAS RTOS TICKS: %d oled %d\n", time, has_rtos_ticks(), err);
+  add_process(print_text, NULL);
 }
 #else
 
@@ -121,7 +143,7 @@ void realtime(uint32_t time)
   get_solar48_date(&sd, &tm);
 
   usb_printf("\n\nTIME: %u:%u:%u\n\n", sd.hour, (uint32_t)sd.minute, (uint32_t)sd.second);
-  usb_printf("\n\nDay (yyyy/mm/dd): %s - %u/%u/%u\n\n", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (uint32_t)sd.month, (uint32_t)sd.day);
+  usb_printf("\n\nDay (yyyy/mm/dd): %s - %u/%u/%u\n\n", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
 
   if (blink) {
     ledon();

@@ -13,12 +13,46 @@ extern uint64_t milliseconds();
 //
 //  Send a byte to the command register
 //
+/*
 static int ssd1306_WriteCommand(uint8_t command)
 {
     //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
     if (SSD1306.Initialized)
-      if (!hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 10))
+      return hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 10)
+ 
+    return 1;
+}
+*/
+//TODO remove it
+//https://stackoverflow.com/questions/59143031/i2c-oled-will-not-turn-on-or-display
+//https://github.com/adafruit/Adafruit_SSD1306
+//https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
+int oled_last_error()
+{
+  return SSD1306.last_error;
+}
+
+int oled_first_error()
+{
+  return SSD1306.first_error;
+}
+
+//TODO remove (testing only)
+static int ssd1306_WriteCommand(uint8_t command)
+{
+    //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
+
+    if (SSD1306.Initialized) {
+      int err = hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 100);
+
+      if (!err)
         return 0;
+
+      if (!SSD1306.first_error)
+        SSD1306.first_error = err;
+      else
+        SSD1306.last_error = err;
+    }
  
     return 1;
 }
