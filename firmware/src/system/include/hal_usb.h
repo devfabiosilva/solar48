@@ -5,7 +5,6 @@
 #include <stm32f103x6.h>
 #include <usb_def.h>
 
-#define UNUSED(X) (void)X
 #define USE_HAL_PCD_REGISTER_CALLBACKS 0U
 
 /********************  Bit definition for USB_COUNTn_RX register  *************/

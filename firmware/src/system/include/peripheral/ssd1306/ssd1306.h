@@ -22,7 +22,8 @@
 
 // I2c address
 #ifndef SSD1306_I2C_ADDR
-#define SSD1306_I2C_ADDR        0x78
+//#define SSD1306_I2C_ADDR        0x78
+#define SSD1306_I2C_ADDR        0x3C
 #endif // SSD1306_I2C_ADDR
 
 // SSD1306 width in pixels

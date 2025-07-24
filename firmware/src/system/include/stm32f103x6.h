@@ -7,6 +7,7 @@
 //From core_cm3.h
 #define     __O     volatile             /*!< Defines 'write only' permissions */
 #define     __IO    volatile             /*!< Defines 'read / write' permissions */
+#define UNUSED(X) (void)X
 //End
 
 #define __CM3_REV                  0x0200U  /*!< Core Revision r2p0                           */

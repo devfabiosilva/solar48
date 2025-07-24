@@ -9,6 +9,7 @@
 #include <registers.h>
 #include <hal_i2c.h>
 #include <peripheral/ssd1306/ssd1306.h>
+#include <registers.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -29,6 +30,7 @@
 // lsusb -d 0483:5740 -v | grep -iE 'manufacturer|product|serial'
 // GDB target remote :3333
 //info registers
+//monitor reset halt
 //p panic_irq
 
 extern void usb_receive(uint8_t *, uint32_t);
@@ -36,9 +38,11 @@ extern void usb_receive_complete();
 extern void usb_error(int);
 extern void halt();
 
+//static int oled_fail = 0;
+
 void realtime(uint32_t);
 SOLAR48_DATE sd;
-
+//https://community.st.com/t5/stm32-mcus-products/stm32f107-i2c-scl-stays-low/m-p/301186#M70029
 void setup()
 {
   __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
@@ -61,15 +65,24 @@ void setup()
 // init peripherals below
 
 // OLED Panel
-  ssd1306_Init();
+//  oled_fail = ssd1306_Init();
 
 }
 
 #ifdef RTOS_SOLAR48
-
+volatile static int err = 0;
 void run(void)
 {
 
+  END_SETUP
+  //err = hal_i2c1_write(12, 3, &data, 1, 100);
+  //err = hal_i2c1_write(0xAA, 4, &data, 1, 200);
+  err = ssd1306_Init();
+
+  //DISABLE_SETUP
+  //ssd1306_WriteString("Test", Font_11x18, White);
+//  usb_printf("oled return %d", err);
+  //  ssd1306_WriteString("Test", Font_11x18, White);
   init_led_blink();
   init_process_task();
 
@@ -96,7 +109,7 @@ void run(void)
 //TODO refactor. Will be removed to rtc.c
 void realtime(uint32_t time)
 {
-  usb_printf("\nTimestamp: %u\n HAS RTOS TICKS: %d\n", time, has_rtos_ticks());
+  usb_printf("\nTimestamp: %u\n HAS RTOS TICKS: %d oled %d\n", time, has_rtos_ticks(), err);
 }
 #else
 

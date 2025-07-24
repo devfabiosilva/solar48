@@ -59,6 +59,7 @@
 //BEGIN Clock->RCC_APB1RSTR (Page 109)
 #define RCC_APB1RSTR (*(volatile uint32_t *)(RCC_BASE + 0x10))
 //TODO implement read/sets for RCC_APB1RSTR if needed
+  #define I2C1RST (1<<21)
 //END Clock->RCC_APB1RSTR
 
 //BEGIN Clock->RCC_APB1RSTR (Page 111)
@@ -220,8 +221,10 @@ uint32_t get_priority_grouping();
 void safe_nvic_prioritygroup_init(uint32_t);
 
 #define I2C1_CR1 (*(volatile uint16_t *)(I2C1_BASE + 0x00)) // Page 772: 26.6.1
+ #define SWRST (1<<15)
  #define START (1<<8)
  #define STOP (1<<9)
+ #define NOSTRETCH (1<<7)
  #define PE (1<<0)
 #define I2C1_CCR (*(volatile uint16_t *)(I2C1_BASE + 0x1C)) // Page 768: 26.6.8
 #define I2C1_TRISE (*(volatile uint16_t *)(I2C1_BASE + 0x20)) // Page 782: 26.6.9
@@ -242,5 +245,28 @@ void safe_nvic_prioritygroup_init(uint32_t);
 
 #define I2C1_DR (*(volatile uint16_t *)(I2C1_BASE + 0x10)) // Page 777: 26.6.5
 
+#define __HAL_RCC_GPIOB_CLK_ENABLE()   do { \
+                                        __IO uint32_t tmpreg; \
+                                        SET_BIT(RCC->APB2ENR, RCC_APB2ENR_IOPBEN);\
+                                        /* Delay after an RCC peripheral clock enabling */\
+                                        tmpreg = READ_BIT(RCC->APB2ENR, RCC_APB2ENR_IOPBEN);\
+                                        UNUSED(tmpreg); \
+                                      } while(0U)
+
+#define __HAL_RCC_I2C1_CLK_ENABLE()   do { \
+                                        __IO uint32_t tmpreg; \
+                                        SET_BIT(RCC->APB1ENR, RCC_APB1ENR_I2C1EN);\
+                                        /* Delay after an RCC peripheral clock enabling */\
+                                        tmpreg = READ_BIT(RCC->APB1ENR, RCC_APB1ENR_I2C1EN);\
+                                        UNUSED(tmpreg); \
+                                      } while(0U)
+
+#define __HAL_RCC_AFIO_CLK_ENABLE()   do { \
+                                        __IO uint32_t tmpreg; \
+                                        SET_BIT(RCC->APB2ENR, RCC_APB2ENR_AFIOEN);\
+                                        /* Delay after an RCC peripheral clock enabling */\
+                                        tmpreg = READ_BIT(RCC->APB2ENR, RCC_APB2ENR_AFIOEN);\
+                                        UNUSED(tmpreg); \
+                                      } while(0U)
 #endif
 
