@@ -9,7 +9,7 @@
 
 #define PCLK1_FREQ_IN_MHZ 36
 
-extern uint64_t milliseconds();
+extern volatile uint64_t milliseconds();
 
 void hal_i2c1_init2()
 {

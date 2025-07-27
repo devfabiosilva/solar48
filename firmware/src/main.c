@@ -69,25 +69,32 @@ void setup()
 
 }
 
-#ifdef RTOS_SOLAR48
 volatile static int err = 0;
+void init_oled(char *msg)
+{
+  if ((err = ssd1306_Init()))
+    return;
+
+  ssd1306_WriteString(msg, Font_11x18, White);
+  ssd1306_UpdateScreen();
+
+}
+
+#ifdef RTOS_SOLAR48
+
 void run(void)
 {
 
   END_SETUP
   //err = hal_i2c1_write(12, 3, &data, 1, 100);
   //err = hal_i2c1_write(0xAA, 4, &data, 1, 200);
-  err = ssd1306_Init();
 
+  init_oled("Solar48rtos");
   //DISABLE_SETUP
-
-  ssd1306_WriteString("Test", Font_11x18, White);
-  ssd1306_WriteString("Test 2", Font_7x10, White);
-  ssd1306_WriteString("Test 3", Font_16x26, White);
-  ssd1306_UpdateScreen();
 
 //  usb_printf("oled return %d", err);
   //  ssd1306_WriteString("Test", Font_11x18, White);
+  set_milliseconds_caller();
   init_led_blink();
   init_process_task();
 
@@ -98,7 +105,9 @@ void run(void)
 
 void run(void)
 {
-  usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
+//  usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
+
+  init_oled("Solar48bm");
 
   blink_n(3);
   usb_printf("\nReady ...\n\n");
@@ -110,8 +119,6 @@ void run(void)
 
 #endif
 
-#ifdef RTOS_SOLAR48
-//TODO refactor. Will be removed to rtc.c
 static char buf[20];
 #include <stdio.h>
 
@@ -129,9 +136,14 @@ int print_text(void *ctx)
 
   return 0;
 }
+
+#ifdef RTOS_SOLAR48
+//TODO refactor. Will be removed to rtc.c
+
 void realtime(uint32_t time)
 {
-  add_process(print_text, NULL);
+  if (!err)
+    add_process(print_text, NULL);
 }
 #else
 
@@ -139,12 +151,14 @@ void realtime(uint32_t time)
 volatile int blink = 0;
 void realtime(uint32_t time)
 {
+/*
   uint32_t tm = time;
   get_solar48_date(&sd, &tm);
 
   usb_printf("\n\nTIME: %u:%u:%u\n\n", sd.hour, (uint32_t)sd.minute, (uint32_t)sd.second);
   usb_printf("\n\nDay (yyyy/mm/dd): %s - %u/%u/%u\n\n", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
-
+*/
+  add_process(print_text, NULL);
   if (blink) {
     ledon();
     blink = 0;

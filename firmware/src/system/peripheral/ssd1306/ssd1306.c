@@ -13,31 +13,23 @@ extern uint64_t milliseconds();
 //
 //  Send a byte to the command register
 //
-/*
+
 static int ssd1306_WriteCommand(uint8_t command)
 {
     //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
     if (SSD1306.Initialized)
-      return hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 10)
+      return hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 10);
  
     return 1;
 }
-*/
+
 //TODO remove it
 //https://stackoverflow.com/questions/59143031/i2c-oled-will-not-turn-on-or-display
 //https://github.com/adafruit/Adafruit_SSD1306
 //https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
-int oled_last_error()
-{
-  return SSD1306.last_error;
-}
-
-int oled_first_error()
-{
-  return SSD1306.first_error;
-}
 
 //TODO remove (testing only)
+/*
 static int ssd1306_WriteCommand(uint8_t command)
 {
     //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
@@ -56,92 +48,14 @@ static int ssd1306_WriteCommand(uint8_t command)
  
     return 1;
 }
+*/
 //Other example: https://github.com/raspberrypi/pico-examples/blob/master/i2c/ssd1306_i2c/ssd1306_i2c.c
 
 //https://gist.github.com/pulsar256/564fda3b9e8fc6b06b89
 /**
  * according to http://www.adafruit.com/datasheets/UG-2864HSWEG01.pdf Chapter 4.4 Page 15
  */
-/*
-int ssd1306_Init(void)
-{
-    SSD1306.Initialized = 1;
 
-#ifdef RTOS_SOLAR48
-  END_SETUP // Enable interrupt
-#endif
-
-    uint64_t delay_ms = milliseconds() + 100; // 100ms
-
-    while (delay_ms > milliseconds());
-
-    int status = 0;
-
-    status += ssd1306_WriteCommand(0xAE); // Set display OFF		
- 
-    status += ssd1306_WriteCommand(0xD5); // Set Display Clock Divide Ratio / OSC Frequency
-    status += ssd1306_WriteCommand(0x80); // Display Clock Divide Ratio / OSC Frequency 
- 
-    status += ssd1306_WriteCommand(0xA8); // Set Multiplex Ratio
-    status += ssd1306_WriteCommand(0x3F); // Multiplex Ratio for 128x64 (64-1)
- 
-    status += ssd1306_WriteCommand(0xD3); // Set Display Offset
-    status += ssd1306_WriteCommand(0x00); // Display Offset
- 
-    status += ssd1306_WriteCommand(0x40); // Set Display Start Line
- 
-    status += ssd1306_WriteCommand(0x8D); // Set Charge Pump
-    status += ssd1306_WriteCommand(0x14); // Charge Pump (0x10 External, 0x14 Internal DC/DC)
- 
-    status += ssd1306_WriteCommand(0xA1); // Set Segment Re-Map
-    status += ssd1306_WriteCommand(0xC8); // Set Com Output Scan Direction
- 
-    status += ssd1306_WriteCommand(0xDA); // Set COM Hardware Configuration
-    status += ssd1306_WriteCommand(0x12); // COM Hardware Configuration
- 
-    status += ssd1306_WriteCommand(0x81); // Set Contrast
-    status += ssd1306_WriteCommand(0xCF); // Contrast
- 
-    status += ssd1306_WriteCommand(0xD9); // Set Pre-Charge Period
-    status += ssd1306_WriteCommand(0xF1); // Set Pre-Charge Period (0x22 External, 0xF1 Internal)
- 
-    status += ssd1306_WriteCommand(0xDB); // Set VCOMH Deselect Level
-    status += ssd1306_WriteCommand(0x40); // VCOMH Deselect Level
- 
-    status += ssd1306_WriteCommand(0xA4); // Set all pixels OFF
-    status += ssd1306_WriteCommand(0xA6); // Set display not inverted
-    status += ssd1306_WriteCommand(0xAF); // Set display On
-
-
-    if (status != 0) {
-        SSD1306.Initialized = 0;
-
-#ifdef RTOS_SOLAR48
-  DISABLE_SETUP // Disable interrupt
-#endif
-
-        return status;
-    }
-
-    // Clear screen
-    ssd1306_Fill(Black);
-
-    // Flush buffer to screen
-    ssd1306_UpdateScreen();
-
-    // Set default values for screen object
-    SSD1306.CurrentX = 0;
-    SSD1306.CurrentY = 0;
-
-#ifdef RTOS_SOLAR48
-  DISABLE_SETUP // Disable interrupt
-#endif
-
-//    SSD1306.Initialized = 1;
-
-    return 0;
-}
-*/
 //
 //  Initialize the oled screen
 //

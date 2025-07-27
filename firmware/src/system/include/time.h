@@ -5,8 +5,11 @@ uint64_t milliseconds();
 
 #ifdef RTOS_SOLAR48
 
+typedef uint64_t (*milliseconds_caller)(void);
+
 int has_rtos_ticks();
 void vPortSetupTimerInterrupt();
+void set_milliseconds_caller();
 
 #else
 #define delay_seconds(n) delay(1000*n)

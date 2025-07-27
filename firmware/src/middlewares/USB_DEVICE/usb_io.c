@@ -67,12 +67,11 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
   }
 }
 
-
 void usb_receive_complete()
 {
 
-//  if (text_sz <= 2)
-//    return;
+  if (text_sz <= 2)
+    return;
 
   COMMAND_CHECK_CALL_ARG(ping)
   COMMAND_CHECK_CALL_ARG(meminfo)

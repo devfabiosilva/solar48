@@ -9,6 +9,7 @@
 // RTOS in Solar48
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
+#include <time.h>
 
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
@@ -63,18 +64,43 @@ void SysTick_Handler()
 #endif
 }
 
-uint64_t milliseconds()
+#ifdef RTOS_SOLAR48
+
+static uint64_t milliseconds_sys()
 {
   return (volatile uint64_t)tick;
 }
 
-#ifdef RTOS_SOLAR48
+static uint64_t milliseconds_rtos()
+{
+  return (uint64_t)xTaskGetTickCount();
+}
+
+static milliseconds_caller milli_caller = milliseconds_sys;
+
+// NOTE: THIS MUST BE INITIALIZED BEFORE FREERTOS
+void set_milliseconds_caller()
+{
+  milli_caller = milliseconds_rtos;
+}
+
+uint64_t milliseconds()
+{
+  return milli_caller();
+}
+
 int has_rtos_ticks()
 {
   return rtos_tick;
 }
 
 #else
+
+uint64_t milliseconds()
+{
+  return (volatile uint64_t)tick;
+}
+
 void delay(uint64_t milliseconds)
 {
   uint64_t lim = tick + milliseconds;

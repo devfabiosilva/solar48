@@ -61,13 +61,7 @@ typedef struct {
     uint16_t CurrentY;
     uint8_t Inverted;
     uint8_t Initialized;
-int first_error;
-int last_error;
 } SSD1306_t;
-
-//TODO remove
-int oled_last_error();
-int oled_first_error();
 
 //
 //  Function definitions
