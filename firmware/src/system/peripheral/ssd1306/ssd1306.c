@@ -28,27 +28,6 @@ static int ssd1306_WriteCommand(uint8_t command)
 //https://github.com/adafruit/Adafruit_SSD1306
 //https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
 
-//TODO remove (testing only)
-/*
-static int ssd1306_WriteCommand(uint8_t command)
-{
-    //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
-
-    if (SSD1306.Initialized) {
-      int err = hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 100);
-
-      if (!err)
-        return 0;
-
-      if (!SSD1306.first_error)
-        SSD1306.first_error = err;
-      else
-        SSD1306.last_error = err;
-    }
- 
-    return 1;
-}
-*/
 //Other example: https://github.com/raspberrypi/pico-examples/blob/master/i2c/ssd1306_i2c/ssd1306_i2c.c
 
 //https://gist.github.com/pulsar256/564fda3b9e8fc6b06b89
@@ -159,12 +138,16 @@ void ssd1306_UpdateScreen()
 {
     uint8_t i;
 
+   int status  = 0; // Added. status avoids long delay and does not starts watchdog.
     for (i = 0; i < 8; i++) {
-        ssd1306_WriteCommand(0xB0 + i);
-        ssd1306_WriteCommand(0x00);
-        ssd1306_WriteCommand(0x10);
+        status = ssd1306_WriteCommand(0xB0 + i);
+        status += ssd1306_WriteCommand(0x00);
+        status += ssd1306_WriteCommand(0x10);
 
-        hal_i2c1_write(SSD1306_I2C_ADDR, 0x40, &SSD1306_Buffer[SSD1306_WIDTH * i], SSD1306_WIDTH, 100);
+        status += hal_i2c1_write(SSD1306_I2C_ADDR, 0x40, &SSD1306_Buffer[SSD1306_WIDTH * i], SSD1306_WIDTH, 100);
+
+        if (status)
+          break;
     }
 }
 

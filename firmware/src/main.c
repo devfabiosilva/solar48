@@ -85,7 +85,7 @@ void init_oled(char *msg)
 void run(void)
 {
 
-  END_SETUP
+//  END_SETUP
   //err = hal_i2c1_write(12, 3, &data, 1, 100);
   //err = hal_i2c1_write(0xAA, 4, &data, 1, 200);
 
@@ -94,7 +94,7 @@ void run(void)
 
 //  usb_printf("oled return %d", err);
   //  ssd1306_WriteString("Test", Font_11x18, White);
-  set_milliseconds_caller();
+  init_rtos_milli();
   init_led_blink();
   init_process_task();
 

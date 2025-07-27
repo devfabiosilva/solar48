@@ -5,6 +5,8 @@
 
 //#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
 
+static volatile uint64_t tick = 0;
+
 #ifdef RTOS_SOLAR48
 // RTOS in Solar48
 #include <FreeRTOS/FreeRTOS.h>
@@ -13,6 +15,14 @@
 
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
+
+void rtos_milli_task(void *param)
+{
+  while (1) {
+    vTaskDelay(pdMS_TO_TICKS(1));
+    ++tick;
+  }
+}
 
 void vPortSetupTimerInterrupt()
 {
@@ -46,60 +56,25 @@ void init_systick()
 
 //#endif
 
-static volatile uint64_t tick = 0;
-static volatile int rtos_tick = 0;
-
 void SysTick_Handler()
 {
-  ++tick;
 
 #ifdef RTOS_SOLAR48
 //  SysTick->CTRL;
   if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
     // Call tick handler
      xPortSysTickHandler();
-     rtos_tick = 1;
   } else
-    rtos_tick = 0;
 #endif
+    ++tick;
 }
-
-#ifdef RTOS_SOLAR48
-
-static uint64_t milliseconds_sys()
-{
-  return (volatile uint64_t)tick;
-}
-
-static uint64_t milliseconds_rtos()
-{
-  return (uint64_t)xTaskGetTickCount();
-}
-
-static milliseconds_caller milli_caller = milliseconds_sys;
-
-// NOTE: THIS MUST BE INITIALIZED BEFORE FREERTOS
-void set_milliseconds_caller()
-{
-  milli_caller = milliseconds_rtos;
-}
-
-uint64_t milliseconds()
-{
-  return milli_caller();
-}
-
-int has_rtos_ticks()
-{
-  return rtos_tick;
-}
-
-#else
 
 uint64_t milliseconds()
 {
   return (volatile uint64_t)tick;
 }
+
+#ifndef RTOS_SOLAR48
 
 void delay(uint64_t milliseconds)
 {

@@ -168,7 +168,7 @@ CMD_BEGIN_NOARG(help)
   );
 CMD_END
 
-int read_sensors_process(void *ctx)
+static int read_sensors_process(void *ctx)
 {
   float temp_sensor = read_internal_temp_sensor();
   float vref = read_vref();
@@ -183,9 +183,25 @@ CMD_BEGIN_NOARG(sensors)
   usb_printf((add_process(read_sensors_process, NULL))?"\n\nReading sensors...\n":"\n\nUnable reading sensors. Process busy\n\n");
 CMD_END
 
-CMD_BEGIN_NOARG(milliseconds)
+#define MILLISECONDS_MSG "\nMilliseconds = %s\n"
+#ifdef RTOS_SOLAR48
+static int milliseconds_process(void *ctx)
+{
   char u64val[MIN_U64TOA_SIZE];
-  usb_printf("\nMilliseconds = %s\n", u64toa(u64val, sizeof(u64val), milliseconds()));
+  usb_printf(MILLISECONDS_MSG, u64toa(u64val, sizeof(u64val), milliseconds()));
+
+  return 0;
+}
+#endif
+
+CMD_BEGIN_NOARG(milliseconds)
+#ifdef RTOS_SOLAR48
+  if (!add_process(milliseconds_process, NULL))
+    usb_printf("\n\nUnable get milliseconds. Process busy\n\n");
+#else
+  char u64val[MIN_U64TOA_SIZE];
+  usb_printf(MILLISECONDS_MSG, u64toa(u64val, sizeof(u64val), milliseconds()));
+#endif
 CMD_END
 
 CMD_BEGIN_ARG(getdate)
