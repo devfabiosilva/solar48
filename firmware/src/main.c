@@ -58,15 +58,7 @@ void setup()
 
   init_idw();
 
-#ifndef RTOS_SOLAR48
-  END_SETUP // Enable all interrupt for non RTOS system
-#endif
-
-// init peripherals below
-
-// OLED Panel
-//  oled_fail = ssd1306_Init();
-
+  END_SETUP // Enable all interrupts
 }
 
 volatile static int err = 0;
@@ -85,15 +77,10 @@ void init_oled(char *msg)
 void run(void)
 {
 
-//  END_SETUP
-  //err = hal_i2c1_write(12, 3, &data, 1, 100);
-  //err = hal_i2c1_write(0xAA, 4, &data, 1, 200);
-
   init_oled("Solar48rtos");
-  //DISABLE_SETUP
 
-//  usb_printf("oled return %d", err);
-  //  ssd1306_WriteString("Test", Font_11x18, White);
+  DISABLE_SETUP // Disable all interrupts
+
   init_rtos_milli();
   init_led_blink();
   init_process_task();

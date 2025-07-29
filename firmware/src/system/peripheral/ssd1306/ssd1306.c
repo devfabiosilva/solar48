@@ -44,10 +44,6 @@ int ssd1306_Init()
 
     SSD1306.Initialized = 1;
 
-#ifdef RTOS_SOLAR48
-  END_SETUP // Enable interrupt
-#endif
-
     uint64_t delay_ms = milliseconds() + 100; // 100ms
 
     while (delay_ms > milliseconds());
@@ -91,10 +87,6 @@ int ssd1306_Init()
     if (status != 0) {
         SSD1306.Initialized = 0;
 
-#ifdef RTOS_SOLAR48
-  DISABLE_SETUP // Disable interrupt
-#endif
-
         return status;
     }
 
@@ -107,10 +99,6 @@ int ssd1306_Init()
     // Set default values for screen object
     SSD1306.CurrentX = 0;
     SSD1306.CurrentY = 0;
-
-#ifdef RTOS_SOLAR48
-  DISABLE_SETUP // Disable interrupt
-#endif
 
 //    SSD1306.Initialized = 1;
 

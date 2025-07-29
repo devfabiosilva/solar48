@@ -1,7 +1,6 @@
 #include <registers.h>
 #include <core_cm3.h>
 #include <watchdog.h>
-#include <systick_config.h>
 
 //#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
 
@@ -40,6 +39,7 @@ void vPortSetupTimerInterrupt()
 //#else
 // Default System in Solar48
 
+#include <solar48_config.h>
 #include <sys_interrupts.h>
 //#define SYS_TICK_DIV     8// Use 8 if disable SysTick_CTRL_CLKSOURCE_Msk
 

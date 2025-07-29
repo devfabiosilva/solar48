@@ -6,13 +6,17 @@
 #include <registers.h>
 #include <sys_interrupts.h>
 #include <hal_i2c.h>
+#include <stdbool.h>
 
 #define PCLK1_FREQ_IN_MHZ 36
 
 extern volatile uint64_t milliseconds();
+volatile bool i2c1_lock;
 
 void hal_i2c1_init2()
 {
+
+  i2c1_lock = false;
 
   RCC_APB2ENR |= IOPBEN; // IO port B clock enable page 114
 
@@ -72,7 +76,6 @@ void hal_i2c1_init()
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   // fPCLK1 = 36MHz or TPCLK1 = 27.78ns
-  //RCC_APB1ENR |= I2C1EN; // I2C1 clock enable, page 116
   __HAL_RCC_I2C1_CLK_ENABLE();
 
   __HAL_RCC_AFIO_CLK_ENABLE();
@@ -89,8 +92,6 @@ void hal_i2c1_init()
   //Reset I2C
   I2C1_CR1 |= SWRST;
   I2C1_CR1 &= ~SWRST;
-
-//  I2C1_CR1 |= NOSTRETCH;
 
   // According to page 778 I2C_CCR = 180, thus 180 x 27,78ns ~ 5000ns to allow 100KHz SCL (Slow mode)
   I2C1_CCR = 180;
@@ -113,7 +114,7 @@ void hal_i2c1_init()
   I2C1_CR1 |= PE;
 
 }
-//    I2C1_SR1 &= ~AF;
+
 #define CHECK_I2C_NACK_OR_TIMEOUT(fn, errorCode) \
   if (I2C1_SR1 & AF) {\
     err = errorCode##_NACK;\
@@ -136,6 +137,11 @@ enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t
 
   if (data_size == 0 || data == NULL)
     return I2C1_SUCCESS;
+
+  if (i2c1_lock)
+    return I2C1_I2C1_PORT_BUSY;
+
+  i2c1_lock = true;
 
   enum i2c1_err_e err = I2C1_SUCCESS;
   uint64_t timing = milliseconds() + timeout;
@@ -204,9 +210,12 @@ hal_i2c1_write_finish:
 
   I2C1_CR1 |= STOP; //// Generating stop
 
+  i2c1_lock = false;
+
   return I2C1_SUCCESS;
 }
 
+//https://freertos.org/Documentation/02-Kernel/04-API-references/05-Direct-to-task-notifications/08-xTaskNotifyWait
 /*
 void I2C1_EV_IRQHandler()
 {

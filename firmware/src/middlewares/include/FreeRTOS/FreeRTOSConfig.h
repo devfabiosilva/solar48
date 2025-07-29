@@ -44,7 +44,7 @@
 #define FREERTOS_CONFIG_H
 
 #include <stm32f103x6.h>
-#include <systick_config.h>
+#include <solar48_config.h>
 
 //SOLAR48 BEGIN
 #ifdef __NVIC_PRIO_BITS
