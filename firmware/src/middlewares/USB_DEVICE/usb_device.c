@@ -2,7 +2,7 @@
 #include <stm32f103x6.h>
 #include <errors.h>
 #include <stddef.h>
-#include <usb_def.h>
+#include <usbd_def.h>
 #include <usb_device.h>
 #include <usbd_cdc.h>
 #include <usbd_cdc_if.h>

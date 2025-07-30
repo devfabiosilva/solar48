@@ -11,6 +11,8 @@
 #include <cpu.h>
 #include <sensors.h>
 #include <process.h>
+#include <solar48_config.h>
+#include <usbd_def.h>
 
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
@@ -153,19 +155,43 @@ CMD_BEGIN_ARG(setdate)
 
 CMD_END
 
-CMD_BEGIN_NOARG(help)
-  usb_printf(\
+#define HELP_USAGE01 \
     "\n\n=== SOLAR48 USAGE ===\n\n"\
     "cpuinfo                            -> information about microcontroller\n"\
-    "getdate [timestamp]                -> reads current Solar48 system time or date from parsed timestamp in seconds\n"\
+    "getdate [timestamp]                -> reads current Solar48 system time or date from parsed timestamp in seconds\n"
+
+_Static_assert(sizeof(HELP_USAGE01) < APP_TX_DATA_SIZE, "HELP_USAGE01 Help too long");
+
+#define HELP_USAGE02 \
     "help                               -> shows this help\n"\
     "meminfo                            -> reads Solar48 system memory\n"\
     "milliseconds                       -> returns current system in milliseconds\n"
+
+_Static_assert(sizeof(HELP_USAGE02) < APP_TX_DATA_SIZE, "HELP_USAGE02 Help too long");
+
+#define HELP_USAGE03 \
     "ping                               -> test connection between host and Solar48\n"\
-    "sensors                            -> reads sensors\n"
-    "setdate yyyy mm dd [hh] [mm] [ss]  -> sets Solar48 system data. E.g: 'setdate 2025 01 01 15 20 00'\n"\
-    "timestamp                          -> returns current system timestamp in seconds\n"
-  );
+    "sensors                            -> reads sensors\n" \
+    "setdate yyyy mm dd [hh] [mm] [ss]  -> sets Solar48 system data. E.g: 'setdate 2025 01 01 15 20 00'\n"
+
+_Static_assert(sizeof(HELP_USAGE03) < APP_TX_DATA_SIZE, "HELP_USAGE03 Help too long");
+
+#define HELP_USAGE04    "timestamp                          -> returns current system timestamp in seconds\n"
+
+_Static_assert(sizeof(HELP_USAGE04) < APP_TX_DATA_SIZE, "HELP_USAGE04 Help too long");
+
+int print_help(void *param)
+{
+  const char *help_usage[] = {HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04};
+
+_Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error parameters");
+  for (size_t i = 0; i < sizeof(help_usage)/sizeof(const char *);)
+    while(usb_printf(help_usage[i++]) != USBD_BUSY);
+
+}
+
+CMD_BEGIN_NOARG(help)
+  usb_printf((add_process(print_help, NULL))?"\n\nReading help...\n":"\n\nUnable reading help. Process busy\n\n");
 CMD_END
 
 static int read_sensors_process(void *ctx)

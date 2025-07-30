@@ -13,5 +13,12 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 
 // *****************************************
 
+// ****      USB CDC configuration      ****
+/* Define size for the receive and transmit buffer over CDC */
+#define APP_RX_DATA_SIZE  256
+#define APP_TX_DATA_SIZE  256
+// *****************************************
+
+
 #endif
 

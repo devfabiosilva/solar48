@@ -2,11 +2,8 @@
 #ifndef __USBD_CDC_IF_H__
 #define __USBD_CDC_IF_H__
 
-#include "usbd_cdc.h"
-
-/* Define size for the receive and transmit buffer over CDC */
-#define APP_RX_DATA_SIZE  256
-#define APP_TX_DATA_SIZE  256
+#include <usbd_cdc.h>
+#include <solar48_config.h>
 
 /** @defgroup USBD_CDC_IF_Exported_Variables USBD_CDC_IF_Exported_Variables
   * @brief Public variables.

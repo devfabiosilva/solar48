@@ -17,6 +17,9 @@ extern void xPortSysTickHandler (void);
 
 void rtos_milli_task(void *param)
 {
+
+  (void)param;
+
   while (1) {
     vTaskDelay(pdMS_TO_TICKS(1));
     ++tick;
@@ -61,10 +64,10 @@ void SysTick_Handler()
 
 #ifdef RTOS_SOLAR48
 //  SysTick->CTRL;
-  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
-    // Call tick handler
+// Call tick handler
+  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
      xPortSysTickHandler();
-  } else
+  else
 #endif
     ++tick;
 }

@@ -1,4 +1,3 @@
-//#include "ssd1306.h"
 #include <peripheral/ssd1306/ssd1306.h>
 #include <system.h>
 
@@ -16,24 +15,11 @@ extern uint64_t milliseconds();
 
 static int ssd1306_WriteCommand(uint8_t command)
 {
-    //return HAL_I2C_Mem_Write(hi2c, SSD1306_I2C_ADDR, 0x00, 1, &command, 1, 10);
     if (SSD1306.Initialized)
       return hal_i2c1_write(SSD1306_I2C_ADDR, 0x00, &command, 1, 10);
  
     return 1;
 }
-
-//TODO remove it
-//https://stackoverflow.com/questions/59143031/i2c-oled-will-not-turn-on-or-display
-//https://github.com/adafruit/Adafruit_SSD1306
-//https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
-
-//Other example: https://github.com/raspberrypi/pico-examples/blob/master/i2c/ssd1306_i2c/ssd1306_i2c.c
-
-//https://gist.github.com/pulsar256/564fda3b9e8fc6b06b89
-/**
- * according to http://www.adafruit.com/datasheets/UG-2864HSWEG01.pdf Chapter 4.4 Page 15
- */
 
 //
 //  Initialize the oled screen
@@ -122,7 +108,7 @@ void ssd1306_Fill(SSD1306_COLOR color)
 //
 //  Write the screenbuffer with changed to the screen
 //
-void ssd1306_UpdateScreen()
+int ssd1306_UpdateScreen_ret()
 {
     uint8_t i;
 
@@ -137,6 +123,8 @@ void ssd1306_UpdateScreen()
         if (status)
           break;
     }
+
+   return status;
 }
 
 //
@@ -250,4 +238,15 @@ void ssd1306_SetCursor(uint8_t x, uint8_t y)
 {
     SSD1306.CurrentX = x;
     SSD1306.CurrentY = y;
+}
+
+
+inline uint16_t ssd1306_GetCursorX()
+{
+  return SSD1306.CurrentX;
+}
+
+inline uint16_t ssd1306_GetCursorY()
+{
+  return SSD1306.CurrentY;
 }

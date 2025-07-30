@@ -8,9 +8,9 @@
 #include <sensors.h>
 #include <registers.h>
 #include <hal_i2c.h>
-#include <peripheral/ssd1306/ssd1306.h>
 #include <registers.h>
 #include <process.h>
+#include <peripheral/ssd1306/oled_utils.h>
 
 #ifdef RTOS_SOLAR48
 
@@ -109,17 +109,31 @@ void run(void)
 static char buf[20];
 #include <stdio.h>
 
+//TODO remove. For testing only
+#define USE_OLED_PRINTF
+
 int print_text(void *ctx)
 {
   get_solar48_date(&sd, NULL);
-  //usb_printf("\nTimestamp: %u\n oled %d\nfirst %d\n last %d", time, err, oled_first_error(), oled_last_error());
+
+#ifdef USE_OLED_PRINTF
+  ssd1306_SetCursor(0, 18);
+  oled_printf(
+    "%s-%u/%u/%u\n%02d:%02d:%02d",
+    get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
+    (int)sd.hour, (int)sd.minute, (int)sd.second
+  );
+//  ssd1306_SetCursor(0, 28);
+//  err = oled_printf("%02d:%02d:%02d", (int)sd.hour, (int)sd.minute, (int)sd.second);
+#else
   snprintf(buf, sizeof(buf), "%s-%u/%u/%u", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
   ssd1306_SetCursor(0, 18);
   ssd1306_WriteString(buf, Font_7x10, White);
-  ssd1306_SetCursor(0, 32);
+  ssd1306_SetCursor(0, 28);
   snprintf(buf, sizeof(buf), "%02d:%02d:%02d", (int)sd.hour, (int)sd.minute, (int)sd.second);
   ssd1306_WriteString(buf, Font_7x10, White);
   ssd1306_UpdateScreen();
+#endif
 
   return 0;
 }
@@ -129,8 +143,14 @@ int print_text(void *ctx)
 
 void realtime(uint32_t time)
 {
-  if (!err)
-    add_process(print_text, NULL);
+  if (!err) {
+    if (!add_process(print_text, NULL))
+      usb_printf("\nProcess busy\n");
+  } else {
+    usb_printf("Error %d\n", err);
+    err = 0;
+  }
+  usb_printf("Time %u\n", time);
 }
 #else
 
@@ -145,7 +165,15 @@ void realtime(uint32_t time)
   usb_printf("\n\nTIME: %u:%u:%u\n\n", sd.hour, (uint32_t)sd.minute, (uint32_t)sd.second);
   usb_printf("\n\nDay (yyyy/mm/dd): %s - %u/%u/%u\n\n", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
 */
-  add_process(print_text, NULL);
+  get_solar48_date(&sd, NULL);
+
+  ssd1306_SetCursor(0, 18);
+  oled_printf(
+    "%s-%u/%u/%u\n%02d:%02d:%02d",
+    get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
+    (int)sd.hour, (int)sd.minute, (int)sd.second
+  );
+
   if (blink) {
     ledon();
     blink = 0;

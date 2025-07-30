@@ -24,22 +24,27 @@ static char text[APP_TX_DATA_SIZE];
 size_t text_sz = 0;
 
 // Return USBD_OK if transmit was success, else error
-uint8_t usb_printf(const char *fmt, ...)
+int usb_printf(const char *fmt, ...)
 {
-  size_t len;
+  _ssize_t len;
   va_list arg;
 
   va_start(arg, fmt);
   len = vsnprintf(printf_buffer, PRINTF_BUF_MAX_LEN, fmt, arg);
   va_end(arg);
 
-  if (len > PRINTF_BUF_MAX_LEN)
-    len = PRINTF_BUF_MAX_LEN;
+  if (len > PRINTF_BUF_MAX_LEN) {
+    len = PRINTF_BUF_MAX_LEN - 1;
+    printf_buffer[len] = 0;
+  }
 
-  if (len)
-    return CDC_Transmit_FS((uint8_t*)printf_buffer, len);
+  if (len > 0)
+    return (int)CDC_Transmit_FS((uint8_t*)printf_buffer, len);
 
-  return USBD_OK;
+  if (len == 0)
+    return USBD_OK;
+
+  return USBD_FAIL;
 }
 
 void usb_receive(uint8_t *buf, uint32_t buf_sz)

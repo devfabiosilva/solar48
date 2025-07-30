@@ -68,12 +68,18 @@ typedef struct {
 //
 
 int ssd1306_Init();
-void ssd1306_UpdateScreen();
+//void ssd1306_UpdateScreen();
+int ssd1306_UpdateScreen_ret();
 void ssd1306_Fill(SSD1306_COLOR color);
 void ssd1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color);
 char ssd1306_WriteChar(char ch, FontDef Font, SSD1306_COLOR color);
 char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color);
 void ssd1306_SetCursor(uint8_t x, uint8_t y);
 void ssd1306_InvertColors(void);
+
+uint16_t ssd1306_GetCursorX();
+uint16_t ssd1306_GetCursorY();
+
+#define ssd1306_UpdateScreen ssd1306_UpdateScreen_ret
 
 #endif  // _SSD1306_H

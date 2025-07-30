@@ -3,7 +3,7 @@
 
 #include <errors.h>
 #include <stm32f103x6.h>
-#include <usb_def.h>
+#include <usbd_def.h>
 
 #define USE_HAL_PCD_REGISTER_CALLBACKS 0U
 
