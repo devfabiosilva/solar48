@@ -106,52 +106,32 @@ void run(void)
 
 #endif
 
-static char buf[20];
-#include <stdio.h>
-
-//TODO remove. For testing only
-#define USE_OLED_PRINTF
+#ifdef RTOS_SOLAR48
+//TODO refactor. Will be removed to rtc.c
 
 int print_text(void *ctx)
 {
   get_solar48_date(&sd, NULL);
 
-#ifdef USE_OLED_PRINTF
   ssd1306_SetCursor(0, 18);
   oled_printf(
     "%s-%u/%u/%u\n%02d:%02d:%02d",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second
   );
-//  ssd1306_SetCursor(0, 28);
-//  err = oled_printf("%02d:%02d:%02d", (int)sd.hour, (int)sd.minute, (int)sd.second);
-#else
-  snprintf(buf, sizeof(buf), "%s-%u/%u/%u", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
-  ssd1306_SetCursor(0, 18);
-  ssd1306_WriteString(buf, Font_7x10, White);
-  ssd1306_SetCursor(0, 28);
-  snprintf(buf, sizeof(buf), "%02d:%02d:%02d", (int)sd.hour, (int)sd.minute, (int)sd.second);
-  ssd1306_WriteString(buf, Font_7x10, White);
-  ssd1306_UpdateScreen();
-#endif
 
   return 0;
 }
-
-#ifdef RTOS_SOLAR48
-//TODO refactor. Will be removed to rtc.c
 
 void realtime(uint32_t time)
 {
   if (!err) {
     if (!add_process(print_text, NULL))
       usb_printf("\nProcess busy\n");
-  } else {
+  } else
     usb_printf("Error %d\n", err);
-    err = 0;
-  }
-  usb_printf("Time %u\n", time);
 }
+
 #else
 
 //TODO refactor. Will be removed to rtc.c

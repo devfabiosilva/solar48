@@ -77,6 +77,16 @@ uint64_t milliseconds()
   return (volatile uint64_t)tick;
 }
 
+void init_timeout_ms(uint64_t *timeout_ms)
+{
+  *timeout_ms = (volatile uint64_t)tick + (*timeout_ms);
+}
+
+bool is_timeout_ms(uint64_t *timeout_ms)
+{
+  return (volatile uint64_t)tick >= (*timeout_ms);
+}
+
 #ifndef RTOS_SOLAR48
 
 void delay(uint64_t milliseconds)

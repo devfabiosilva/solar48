@@ -602,5 +602,10 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
   return result;
 }
 
+inline int cdc_transmit_is_busy()
+{
+  return ((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState;
+}
+
 #undef USB_ERROR
 

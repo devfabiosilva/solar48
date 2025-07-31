@@ -1,7 +1,13 @@
 #ifndef TIME_H
  #define TIME_H
 
+#include <stdbool.h>
+
 uint64_t milliseconds();
+
+void init_timeout_ms(uint64_t *timeout_ms);
+
+bool is_timeout_ms(uint64_t *timeout_ms);
 
 #ifdef RTOS_SOLAR48
 

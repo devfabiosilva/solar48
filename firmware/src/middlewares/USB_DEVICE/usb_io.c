@@ -92,12 +92,11 @@ void usb_receive_complete()
 
 }
 
-volatile static int usbHasError = 0;
-
+#include <peripheral/ssd1306/oled_utils.h>
+int n = 0;
 void usb_error(int value)
 {
-  usbHasError = value;
-/*
+  int hasError;
   switch(value) {
     case E_USB_INIT:
       hasError = 7;
@@ -123,7 +122,10 @@ void usb_error(int value)
     default:
       hasError = 5;
   }
-*/
+
+  ssd1306_SetCursor(0, 40);
+  oled_printf("USB error %d - %d", hasError, ++n);
+
 }
 
 void usb_print_memory_info(void)

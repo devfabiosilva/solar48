@@ -13,6 +13,9 @@
 #include <process.h>
 #include <solar48_config.h>
 #include <usbd_def.h>
+#include <watchdog.h>
+
+extern int cdc_transmit_is_busy();
 
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
@@ -183,11 +186,24 @@ _Static_assert(sizeof(HELP_USAGE04) < APP_TX_DATA_SIZE, "HELP_USAGE04 Help too l
 int print_help(void *param)
 {
   const char *help_usage[] = {HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04};
+  uint64_t timeout_ms = 10;
+
+  init_timeout_ms(&timeout_ms);
 
 _Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error parameters");
-  for (size_t i = 0; i < sizeof(help_usage)/sizeof(const char *);)
-    while(usb_printf(help_usage[i++]) != USBD_BUSY);
+  for (size_t i = 0; i < sizeof(help_usage)/sizeof(const char *);) {
+    while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
 
+    iwd_refresh();
+
+    if (is_timeout_ms(&timeout_ms))
+      return -10;
+
+    if (usb_printf(help_usage[i++]))
+      return -11;
+  }
+
+  return 0;
 }
 
 CMD_BEGIN_NOARG(help)
