@@ -26,8 +26,5 @@ void delay(uint64_t);
 
 void init_systick();
 
-//TODO remove it. For tests only. Delegate it to FreeRTOS
-void delay_5us();
-
 #endif
 

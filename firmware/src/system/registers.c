@@ -18,6 +18,20 @@ void __nvic_enable_irq(IRQn_Type IRQn)
 }
 
 /**
+  \brief   Disable Interrupt
+  \details Disables a device specific interrupt in the NVIC interrupt controller.
+  \param [in]      IRQn  Device specific interrupt number.
+  \note    IRQn must not be negative.
+ */
+// IRQn Should be >= 0
+void __nvic_disable_irq(IRQn_Type IRQn)
+{
+  NVIC->ICER[(((uint32_t)IRQn) >> 5UL)] = (uint32_t)(1UL << (((uint32_t)IRQn) & 0x1FUL));
+  __DSB();
+  __ISB();
+}
+
+/**
   \brief   Set Priority Grouping
   \details Sets the priority grouping field using the required unlock sequence.
            The parameter PriorityGroup is assigned to the field SCB->AIRCR [10:8] PRIGROUP field.

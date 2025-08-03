@@ -1,12 +1,12 @@
 #ifndef CONSOLE_H
   #define CONSOLE_H
-
+/*
 #define COMMAND_CHECK_CALL_ARG(command) \
   if (strncmp(text, #command, sizeof(#command)-1) == 0) {\
     command##_cmd(text); \
     return; \
   }
-/*
+
 #define COMMAND_CHECK(cmd, ...) \
   if (strncmp(text, cmd, sizeof(cmd)) == 0) { \
     usb_printf(__VA_ARGS__); \

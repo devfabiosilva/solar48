@@ -14,6 +14,7 @@
 #include <solar48_config.h>
 #include <usbd_def.h>
 #include <watchdog.h>
+#include <hal_usb.h>
 
 extern int cdc_transmit_is_busy();
 
@@ -136,7 +137,7 @@ CMD_BEGIN_ARG(setdate)
   else if (has_longint_error(&ss, arg6, "ss"))
     return;
 
-  if ((yyyy < 0) || (yyyy > 65535) || (month < 0) || (month > 255) | (dd < 0) || (dd > 255) ||
+  if ((yyyy < 0) || (yyyy > 65535) || (month < 0) || (month > 255) || (dd < 0) || (dd > 255) ||
      (hh < 0) || (hh > 255) || (min < 0) || (min > 255) || (ss < 0) || (ss > 255)) {
     usb_printf("\n\nCalendar: Number(s) out of range\n\n");
     return;
@@ -183,13 +184,13 @@ _Static_assert(sizeof(HELP_USAGE03) < APP_TX_DATA_SIZE, "HELP_USAGE03 Help too l
 
 _Static_assert(sizeof(HELP_USAGE04) < APP_TX_DATA_SIZE, "HELP_USAGE04 Help too long");
 
-int print_help(void *param)
-{
+CMD_BEGIN_NOARG(help)
   const char *help_usage[] = {HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04};
   uint64_t timeout_ms = 10;
 
   init_timeout_ms(&timeout_ms);
 
+  HAL_USB_enable_irq();
 _Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error parameters");
   for (size_t i = 0; i < sizeof(help_usage)/sizeof(const char *);) {
     while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
@@ -197,53 +198,29 @@ _Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error p
     iwd_refresh();
 
     if (is_timeout_ms(&timeout_ms))
-      return -10;
+      goto help_exit;
 
     if (usb_printf(help_usage[i++]))
-      return -11;
+      goto help_exit;
   }
 
-  return 0;
-}
+help_exit:
+  HAL_USB_disable_irq();
 
-CMD_BEGIN_NOARG(help)
-  usb_printf((add_process(print_help, NULL))?"\n\nReading help...\n":"\n\nUnable reading help. Process busy\n\n");
 CMD_END
 
-static int read_sensors_process(void *ctx)
-{
+CMD_BEGIN_NOARG(sensors)
   float temp_sensor = read_internal_temp_sensor();
   float vref = read_vref();
   usb_printf(
     "\n\nTemp (°C)    : %.2f\n"\
     "Vref (V)     : %.2f\n",
   temp_sensor, vref);
-  return 0;
-}
-
-CMD_BEGIN_NOARG(sensors)
-  usb_printf((add_process(read_sensors_process, NULL))?"\n\nReading sensors...\n":"\n\nUnable reading sensors. Process busy\n\n");
 CMD_END
 
-#define MILLISECONDS_MSG "\nMilliseconds = %s\n"
-#ifdef RTOS_SOLAR48
-static int milliseconds_process(void *ctx)
-{
-  char u64val[MIN_U64TOA_SIZE];
-  usb_printf(MILLISECONDS_MSG, u64toa(u64val, sizeof(u64val), milliseconds()));
-
-  return 0;
-}
-#endif
-
 CMD_BEGIN_NOARG(milliseconds)
-#ifdef RTOS_SOLAR48
-  if (!add_process(milliseconds_process, NULL))
-    usb_printf("\n\nUnable get milliseconds. Process busy\n\n");
-#else
   char u64val[MIN_U64TOA_SIZE];
-  usb_printf(MILLISECONDS_MSG, u64toa(u64val, sizeof(u64val), milliseconds()));
-#endif
+  usb_printf("\nMilliseconds = %s\n", u64toa(u64val, sizeof(u64val), milliseconds()));
 CMD_END
 
 CMD_BEGIN_ARG(getdate)

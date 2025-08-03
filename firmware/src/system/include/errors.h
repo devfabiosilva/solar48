@@ -23,6 +23,19 @@ void error_handler(int error);
 // USB HAL CALBACK ERROR
 #define E_USB_HAL_PCD_HS 130
 
+// USB HAL RECEIVE ERROR
+#define E_USB_RECEIVE_ERROR 140
+
+// USB HAL LOCK ERROR
+#define E_USB_LOCK_ERROR 150
+
+// USB HAL RECEIVE PROCESS BUSY
+#define E_USB_RECEIVE_PROC_BUSY 160
+///////////////////////////////////
+
+// ERROR IN PROCESS
+#define PROCESS_BUSY 90
+
 #define E_NOT_IMPLEMENTED -1
 
 #endif

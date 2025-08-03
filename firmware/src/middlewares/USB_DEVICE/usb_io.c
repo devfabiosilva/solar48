@@ -5,6 +5,10 @@
 #include <usbd_cdc_if.h>
 #include <console.h>
 #include <string.h>
+#include <process.h>
+#include <errors.h>
+#include <time.h>
+#include <watchdog.h>
 
 /*
 sudo usermod -aG dialout $USER
@@ -14,14 +18,36 @@ cat /dev/ttyACM0
 watch -n 0.5 "ls /dev/ttyACM*"
 */
 
+#define COMMAND_CHECK_CALL_ARG(command) \
+  if (strncmp(text, #command, sizeof(#command)-1) == 0) {\
+    command##_cmd(text); \
+    goto usb_receive_complete_process_finish; \
+  }
+
 DETAILED_RAM dr;
 DETAILED_FLASH df;
+
+extern error_callback_t usb_err_fn;
+volatile bool usb_io_locked = false;
+
+#define USB_IO_ERROR(error) ERROR_CALLBACK(usb_err_fn, error)
 
 static char printf_buffer[APP_TX_DATA_SIZE];
 #define PRINTF_BUF_MAX_LEN sizeof(printf_buffer)
 
 static char text[APP_TX_DATA_SIZE];
 size_t text_sz = 0;
+
+#include <peripheral/ssd1306/oled_utils.h>
+int n = 0;
+volatile static int last_usb_error;
+void usb_error(int value)
+{
+  last_usb_error = value;
+// TODO Add error handler here
+  ssd1306_SetCursor(0, 40);
+  oled_printf("USBerr %d-%d", value, ++n);
+}
 
 // Return USBD_OK if transmit was success, else error
 int usb_printf(const char *fmt, ...)
@@ -49,6 +75,22 @@ int usb_printf(const char *fmt, ...)
 
 void usb_receive(uint8_t *buf, uint32_t buf_sz)
 {
+
+  if (usb_io_locked) {
+    init_idw();
+    USB_IO_ERROR(E_USB_LOCK_ERROR)
+    return;
+  }
+
+  if (cdc_transmit_is_busy()) {
+    init_idw();
+    USB_IO_ERROR(E_USB_RECEIVE_ERROR)
+    return;
+  }
+
+  usb_io_locked = true;
+  HAL_USB_disable_irq();
+
   if ((size_t)buf_sz > sizeof(text)-1)
     text_sz = sizeof(text)-1;
   else
@@ -72,11 +114,18 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
   }
 }
 
-void usb_receive_complete()
+int usb_receive_complete_process(void *ctx)
 {
 
-  if (text_sz <= 2)
-    return;
+  int err = 0;
+  uint64_t timeout_ms = 16;
+
+  init_timeout_ms(&timeout_ms);
+
+  if (text_sz <= 2) {
+    err = -2;
+    goto usb_receive_complete_process_finish;
+  }
 
   COMMAND_CHECK_CALL_ARG(ping)
   COMMAND_CHECK_CALL_ARG(meminfo)
@@ -90,42 +139,41 @@ void usb_receive_complete()
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 
+usb_receive_complete_process_finish:
+  last_usb_error = 0;
+  while (!is_timeout_ms(&timeout_ms));
+
+  HAL_USB_enable_irq();
+  usb_io_locked = false;
+
+  return err;
 }
 
-#include <peripheral/ssd1306/oled_utils.h>
-int n = 0;
-void usb_error(int value)
+void usb_receive_complete()
 {
-  int hasError;
-  switch(value) {
-    case E_USB_INIT:
-      hasError = 7;
-      break;
-    case E_USB_REGISTER_CLASS:
-      hasError = 6;
-      break;
-    case E_USB_REGISTER_INTERFACE:
-      hasError = 4;
-      break;
-    case E_USB_START:
-      hasError = 3;
-      break;
-    case E_USB_TRANSMIT_BUSY:
-      hasError =1;
-      break;
-    case E_USB_TRANSMIT_FAIL:
-      hasError = 2;
-      break;
-    case E_USB_HAL_PCD_HS:
-      hasError = 8;
-      break;
-    default:
-      hasError = 5;
+/*
+  if (last_usb_error == E_USB_LOCK_ERROR || last_usb_error == E_USB_RECEIVE_ERROR) {
+
+    if (!is_process_running(usb_receive_complete_process)) {
+      usb_io_locked = false;
+      HAL_USB_enable_irq();    
+    }
+
+    last_usb_error = 0;
+
+    return;
   }
+*/
+  if (add_process(usb_receive_complete_process, NULL))
+    return;
 
-  ssd1306_SetCursor(0, 40);
-  oled_printf("USB error %d - %d", hasError, ++n);
-
+  if (is_process_running(usb_receive_complete_process)) {
+    usb_error(E_USB_RECEIVE_PROC_BUSY);
+  } else {
+    usb_error(PROCESS_BUSY);
+    usb_io_locked = false;
+    HAL_USB_enable_irq();
+  }
 }
 
 void usb_print_memory_info(void)

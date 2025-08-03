@@ -7,4 +7,6 @@ typedef int (*process_caller)(void *);
 void run_process();
 bool add_process(process_caller, void *);
 
-#endif 
+bool is_process_running(process_caller);
+#endif
+

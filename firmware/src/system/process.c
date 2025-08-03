@@ -40,3 +40,8 @@ int *get_ret_process(int *ret)
   return ret;
 }
 
+inline bool is_process_running(process_caller caller)
+{
+  return caller == proc;
+}
+

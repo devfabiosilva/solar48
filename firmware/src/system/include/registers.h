@@ -220,6 +220,8 @@ uint32_t get_priority_grouping();
 
 void safe_nvic_prioritygroup_init(uint32_t);
 
+void __nvic_disable_irq(IRQn_Type);
+
 #define I2C1_CR1 (*(volatile uint16_t *)(I2C1_BASE + 0x00)) // Page 772: 26.6.1
  #define SWRST (1<<15)
  #define POS (1<<11)

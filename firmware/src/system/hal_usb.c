@@ -2651,4 +2651,12 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
   }
 }
 
+inline void HAL_USB_enable_irq()
+{
+  __nvic_enable_irq(USB_LP_CAN1_RX0_IRQn);
+}
 
+inline void HAL_USB_disable_irq()
+{
+  __nvic_disable_irq(USB_LP_CAN1_RX0_IRQn);
+}
