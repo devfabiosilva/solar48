@@ -45,8 +45,8 @@ void usb_error(int value)
 {
   last_usb_error = value;
 // TODO Add error handler here
-  ssd1306_SetCursor(0, 40);
-  oled_printf("USBerr %d-%d", value, ++n);
+//  ssd1306_SetCursor(0, 40);
+//  oled_printf("USBerr %d-%d", value, ++n);
 }
 
 // Return USBD_OK if transmit was success, else error
@@ -77,13 +77,13 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
 {
 
   if (usb_io_locked) {
-    init_idw();
+    iwd_refresh();
     USB_IO_ERROR(E_USB_LOCK_ERROR)
     return;
   }
 
   if (cdc_transmit_is_busy()) {
-    init_idw();
+    iwd_refresh();
     USB_IO_ERROR(E_USB_RECEIVE_ERROR)
     return;
   }
@@ -151,10 +151,11 @@ usb_receive_complete_process_finish:
 
 void usb_receive_complete()
 {
-/*
-  if (last_usb_error == E_USB_LOCK_ERROR || last_usb_error == E_USB_RECEIVE_ERROR) {
+  int err = last_usb_error;
 
-    if (!is_process_running(usb_receive_complete_process)) {
+  if (err == E_USB_LOCK_ERROR || err == E_USB_RECEIVE_ERROR) {
+
+    if (!is_process_int_ext_running(usb_receive_complete_process)) {
       usb_io_locked = false;
       HAL_USB_enable_irq();    
     }
@@ -163,11 +164,11 @@ void usb_receive_complete()
 
     return;
   }
-*/
-  if (add_process(usb_receive_complete_process, NULL))
+
+  if (add_process_int_ext(usb_receive_complete_process, NULL))
     return;
 
-  if (is_process_running(usb_receive_complete_process)) {
+  if (is_process_int_ext_running(usb_receive_complete_process)) {
     usb_error(E_USB_RECEIVE_PROC_BUSY);
   } else {
     usb_error(PROCESS_BUSY);

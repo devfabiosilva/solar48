@@ -10,7 +10,7 @@ extern void halt();
 static StaticTask_t exampleTaskTCB;
 static StackType_t exampleTaskStack[ 1*configMINIMAL_STACK_SIZE ];
 
-void led_blink_task(void *params)
+static void led_blink_task(void *params)
 {
   (void)params;
 /*

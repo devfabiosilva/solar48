@@ -139,7 +139,7 @@ enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t
     return I2C1_SUCCESS;
 
   if (i2c1_lock)
-    return I2C1_I2C1_PORT_BUSY;
+    return I2C1_PORT_BUSY;
 
   i2c1_lock = true;
 
@@ -205,6 +205,9 @@ hal_i2c1_write_finish:
       I2C1_SR1 &= ~AF;
       I2C1_CR1 |= STOP;
     }
+
+    i2c1_lock = false;
+
     return err;
   }
 

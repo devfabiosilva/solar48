@@ -32,7 +32,7 @@ static float read_vref_util()
 #ifdef RTOS_SOLAR48
   vTaskDelay(pdMS_TO_TICKS(1));
 #else
-  delay_5us();
+  delay(1);
 #endif
 
   ADC1_CR2 |= ADON; // Begin conversion
@@ -60,7 +60,7 @@ static float read_internal_temp_sensor_util()
 #ifdef RTOS_SOLAR48
   vTaskDelay(pdMS_TO_TICKS(1));
 #else
-  delay_5us();
+  delay(1);
 #endif
   ADC1_SQR3 = 16;      // Channel 16 = Internal temperature sensor
 
@@ -69,7 +69,7 @@ static float read_internal_temp_sensor_util()
 #ifdef RTOS_SOLAR48
   vTaskDelay(pdMS_TO_TICKS(1));
 #else
-  delay_5us();
+  delay(1);
 #endif
   ADC1_CR2 |= ADON;      // Starts convertion
 

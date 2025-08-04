@@ -56,7 +56,7 @@ void setup()
   init_gpios();
   init_sensors();
 
-  init_idw();
+  //init_idw();
 
   END_SETUP // Enable all interrupts
 }
@@ -84,6 +84,8 @@ void run(void)
   init_rtos_milli();
   init_led_blink();
   init_process_task();
+  init_process_int_ext_task();
+  init_process_int_int_task();
 
   vTaskStartScheduler();
 }
@@ -99,6 +101,8 @@ void run(void)
   blink_n(3);
   usb_printf("\nReady ...\n\n");
   while (1) {
+    run_process_int_int();
+    run_process_int_ext();
     run_process();
     delay(1);
   }
@@ -114,11 +118,11 @@ int print_text(void *ctx)
   get_solar48_date(&sd, NULL);
 
   ssd1306_SetCursor(0, 18);
-  oled_printf(
+  usb_printf("\noledprintf %d\n", oled_printf(
     "%s-%u/%u/%u\n%02d:%02d:%02d",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second
-  );
+  ));
 
   return 0;
 }
@@ -126,7 +130,7 @@ int print_text(void *ctx)
 void realtime(uint32_t time)
 {
   if (!err) {
-    if (!add_process(print_text, NULL))
+    if (!add_process_int_int(print_text, NULL))
       usb_printf("\nProcess busy\n");
   } else
     usb_printf("Error %d\n", err);

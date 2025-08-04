@@ -8,7 +8,7 @@ extern void halt();
 static StaticTask_t processTaskTCB;
 static StackType_t processTaskStack[ 2*configMINIMAL_STACK_SIZE ];
 
-void run_proc_task(void *params)
+static void run_proc_task(void *params)
 {
   (void)params;
 
