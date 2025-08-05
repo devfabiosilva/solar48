@@ -1,8 +1,15 @@
 #include <stdint.h>
-#include <usb_io.h>
+
+#ifdef USE_USB_PRINTF
+ #include <usb_io.h>
+#else
+ #include <peripheral/ssd1306/oled_utils.h>
+#endif
+
 #include <system.h>
 #include <time.h>
 #include <watchdog.h>
+
 
 #ifdef RTOS_SOLAR48
 
@@ -20,7 +27,7 @@ void halt_ir();
 */
 void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
 {
-
+#ifdef USE_USB_PRINTF
   do {
     usb_printf(
       "\nr0=%08X\nr1=%08X\nr2=%08X\n",
@@ -45,7 +52,19 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
       pulFaultStackAddress[ 7 ]
     );
   } while (0);
-
+#else
+  oled_printf(
+    "r0=%08x\nr1=%08x\nr2=%08x\nr3=%08x\nr12=%08x\nlr=%08x\npc=%08x\npsr=%08x\n",
+      pulFaultStackAddress[ 0 ],
+      pulFaultStackAddress[ 1 ],
+      pulFaultStackAddress[ 2 ],
+      pulFaultStackAddress[ 3 ],
+      pulFaultStackAddress[ 4 ],
+      pulFaultStackAddress[ 5 ],
+      pulFaultStackAddress[ 6 ],
+      pulFaultStackAddress[ 7 ]
+  );
+#endif
 }
 
 void load_panic_stack()
@@ -142,7 +161,15 @@ PANIC_IRQ(USBWakeUp_IRQHandler)
 void halt()
 {
   // It could not happen. If happens report bug and disable all interrupts
+#ifdef USE_USB_PRINTF
   usb_printf("\nHALT\n\n");
+#else
+  ssd1306_Fill(Black);
+  ssd1306_SetCursor(0, 0);
+  oled_printf("HALT");
+  ssd1306_SetCursor(0, 12);
+#endif
+
   load_panic_stack();
   DISABLE_SETUP
   SOLAR48_PANIC
@@ -151,25 +178,54 @@ void halt()
 void halt_ir()
 {
   // It could not happen. If happens report bug and disable all interrupts
+
+#ifdef USE_USB_PRINTF
   usb_printf("\nHALT IRQ = %s\n\n", panic_irq);
+#else
+  ssd1306_Fill(Black);
+  ssd1306_SetCursor(0, 0);
+  oled_printf("HALT IRQ = %s", panic_irq);
+  ssd1306_SetCursor(0, 12);
+#endif
+
   load_panic_stack();
   DISABLE_SETUP
   SOLAR48_PANIC
 }
 
 #ifdef RTOS_SOLAR48
+static void halt_rtos()
+{
+  load_panic_stack();
+  DISABLE_SETUP
+  SOLAR48_PANIC
+}
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     // Trap here for debug
-    usb_printf("\nTask = %p and task name %s\n\n", xTask, pcTaskName);
-    halt();
+#ifdef USE_USB_PRINTF
+  usb_printf("\nTask = %p halted: %s\n\n", xTask, pcTaskName);
+#else
+  ssd1306_Fill(Black);
+  ssd1306_SetCursor(0, 0);
+  oled_printf("Task = %p halted: %s", xTask, pcTaskName);
+  ssd1306_SetCursor(0, 12);
+#endif
+  halt_rtos();
 }
 
 void vApplicationMallocFailedHook(void)
 {
     // Malloc failed trap
-    usb_printf("\nFailed malloc\n");
-    halt();
+#ifdef USE_USB_PRINTF
+  usb_printf("\nFailed malloc\n");
+#else
+  ssd1306_Fill(Black);
+  ssd1306_SetCursor(0, 0);
+  oled_printf("Failed malloc");
+  ssd1306_SetCursor(0, 12);
+#endif
+  halt_rtos();
 }
 #endif
 

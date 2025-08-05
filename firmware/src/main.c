@@ -36,7 +36,7 @@
 extern void usb_receive(uint8_t *, uint32_t);
 extern void usb_receive_complete();
 extern void usb_error(int);
-extern void halt();
+//extern void halt_ir();
 
 //static int oled_fail = 0;
 
@@ -50,9 +50,9 @@ void setup()
   init_usb_device(usb_receive, usb_receive_complete, usb_error);
   hal_i2c1_init();
   init_rtc(realtime);
-//#ifndef RTOS_SOLAR48 
+
   init_systick(); // If RTOS_SOLAR48 so this is used temporary for update peripherals timing systems
-//#endif
+
   init_gpios();
   init_sensors();
 
