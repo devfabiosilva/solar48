@@ -2,8 +2,7 @@
 #include <gpios.h>
 #include <watchdog.h>
 #include <usb_io.h>
-#include <FreeRTOS/FreeRTOS.h>
-#include <FreeRTOS/task.h>
+#include <instance_prio.h>
 //#include <hal_i2c.h>
 
 extern void halt();
@@ -36,7 +35,7 @@ void init_led_blink()
                                 "led",
                                 1*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                1,
+                                PRIO_0,
                                 exampleTaskStack,
                                 &( exampleTaskTCB ) )) return;
 

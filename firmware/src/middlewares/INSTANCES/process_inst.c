@@ -1,8 +1,7 @@
 #include <stdint.h>
 #include <usb_io.h>
 #include <process.h>
-#include <FreeRTOS/FreeRTOS.h>
-#include <FreeRTOS/task.h>
+#include <instance_prio.h>
 
 extern void halt();
 static StaticTask_t processTaskTCB;
@@ -25,7 +24,7 @@ void init_process_task()
                                 "process",
                                 2*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                2,
+                                PRIO_1,
                                 processTaskStack,
                                 &( processTaskTCB ) )) return;
 

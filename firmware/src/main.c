@@ -56,7 +56,7 @@ void setup()
   init_gpios();
   init_sensors();
 
-  //init_idw();
+  init_idw();
 
   END_SETUP // Enable all interrupts
 }

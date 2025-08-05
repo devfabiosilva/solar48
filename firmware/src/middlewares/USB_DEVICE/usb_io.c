@@ -89,7 +89,6 @@ void usb_receive(uint8_t *buf, uint32_t buf_sz)
   }
 
   usb_io_locked = true;
-  HAL_USB_disable_irq();
 
   if ((size_t)buf_sz > sizeof(text)-1)
     text_sz = sizeof(text)-1;
@@ -143,7 +142,6 @@ usb_receive_complete_process_finish:
   last_usb_error = 0;
   while (!is_timeout_ms(&timeout_ms));
 
-  HAL_USB_enable_irq();
   usb_io_locked = false;
 
   return err;
@@ -151,19 +149,6 @@ usb_receive_complete_process_finish:
 
 void usb_receive_complete()
 {
-  int err = last_usb_error;
-
-  if (err == E_USB_LOCK_ERROR || err == E_USB_RECEIVE_ERROR) {
-
-    if (!is_process_int_ext_running(usb_receive_complete_process)) {
-      usb_io_locked = false;
-      HAL_USB_enable_irq();    
-    }
-
-    last_usb_error = 0;
-
-    return;
-  }
 
   if (add_process_int_ext(usb_receive_complete_process, NULL))
     return;
@@ -173,7 +158,6 @@ void usb_receive_complete()
   } else {
     usb_error(PROCESS_BUSY);
     usb_io_locked = false;
-    HAL_USB_enable_irq();
   }
 }
 

@@ -1,8 +1,7 @@
 #include <stdint.h>
 #include <usb_io.h>
 #include <process.h>
-#include <FreeRTOS/FreeRTOS.h>
-#include <FreeRTOS/task.h>
+#include <instance_prio.h>
 
 extern void halt();
 static StaticTask_t processIntExtTaskTCB;
@@ -25,7 +24,7 @@ void init_process_int_ext_task()
                                 "processIntExt",
                                 2*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                (configMAX_PRIORITIES - 1) - 1, // 3 (Internal has 4 (max priority))
+                                PRIO_2, // (Internal has 2 (max priority))
                                 processIntExtTaskStack,
                                 &( processIntExtTaskTCB ) )) return;
 

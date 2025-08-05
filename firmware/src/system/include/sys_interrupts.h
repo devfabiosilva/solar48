@@ -12,11 +12,11 @@
 
 #else
 
+ #define SYSTICK_PRIO  1
  #define RTC_PRIO      2
  #define USB_PRIO      3
  #define I2C1_EV_PRIO  4
  #define I2C1_ER_PRIO  5
- #define SYSTICK_PRIO  6
 
 #endif
 

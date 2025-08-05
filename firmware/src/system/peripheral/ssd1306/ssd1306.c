@@ -1,5 +1,6 @@
 #include <peripheral/ssd1306/ssd1306.h>
 #include <system.h>
+#include <watchdog.h>
 
 // Screenbuffer
 static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
@@ -114,6 +115,7 @@ int ssd1306_UpdateScreen_ret()
 
    int status  = 0; // Added. status avoids long delay and does not starts watchdog.
     for (i = 0; i < 8; i++) {
+        iwd_refresh();
         status = ssd1306_WriteCommand(0xB0 + i);
         status += ssd1306_WriteCommand(0x00);
         status += ssd1306_WriteCommand(0x10);

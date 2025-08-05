@@ -190,7 +190,7 @@ CMD_BEGIN_NOARG(help)
 
   init_timeout_ms(&timeout_ms);
 
-  HAL_USB_enable_irq();
+  //HAL_USB_enable_irq();
 _Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error parameters");
   for (size_t i = 0; i < sizeof(help_usage)/sizeof(const char *);) {
     while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
@@ -198,14 +198,11 @@ _Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error p
     iwd_refresh();
 
     if (is_timeout_ms(&timeout_ms))
-      goto help_exit;
+      return;
 
     if (usb_printf(help_usage[i++]))
-      goto help_exit;
+      return;
   }
-
-help_exit:
-  HAL_USB_disable_irq();
 
 CMD_END
 
