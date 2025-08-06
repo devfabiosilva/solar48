@@ -1,6 +1,4 @@
-// TODO implement i2c bare metal ports peripheral
 //Inter-integrated circuit (I2C) interface page 752
-
 #include <stdint.h>
 #include <stddef.h>
 #include <registers.h>
@@ -13,62 +11,6 @@
 extern volatile uint64_t milliseconds();
 volatile bool i2c1_lock;
 
-void hal_i2c1_init2()
-{
-
-  i2c1_lock = false;
-
-  RCC_APB2ENR |= IOPBEN; // IO port B clock enable page 114
-
-  //I2C1 (PB6=SCL, PB7=SDA)
-  GPIOB_CRL &= ~(GPIOB_MODE6_VAL(0b11) | GPIOB_MODE7_VAL(0b11) | GPIOB_CNF6_VAL(0b11) | GPIOB_CNF7_VAL(0b11)); // Clear PB6 and PB7 before configure these 2 pins. Page 171
-
-  //11: Output mode, max speed 50 MHz. and 11: Alternate function output Open-drain: Page 171
-  GPIOB_CRL |=  (GPIOB_MODE6_VAL(0b11) | GPIOB_MODE7_VAL(0b11) | GPIOB_CNF6_VAL(0b11) | GPIOB_CNF7_VAL(0b11));
-
-  // fPCLK1 = 36MHz or TPCLK1 = 27.78ns
-  RCC_APB1ENR |= I2C1EN; // I2C1 clock enable, page 116
-
-  // According to page 778 I2C_CCR = 180, thus 180 x 27,78ns ~ 5000ns to allow 100KHz SCL (Slow mode)
-  I2C1_CCR = 180;
-
-  // According to page 782 I2C1_TRISE = 37 (36 + 1), for maximum allowed at fPCLK1 = 36MHz
-  // Note: TRISE[5:0] = 2 in reset value
-  I2C1_TRISE = PCLK1_FREQ_IN_MHZ + 1;
-
-  //26.6.2 I2C Control register 2 (I2C_CR2) page 774
-  I2C1_CR2 = PCLK1_FREQ_IN_MHZ;
-  //I2C1_CR2 = ITBUFEN|ITEVTEN|ITERREN|PCLK1_FREQ_IN_MHZ; // TODO improve event handlers
-/*
-  //TODO Enable interrupts when implement event handlers
-  __nvic_set_priority(I2C1_EV_IRQn, I2C1_EV_PRIO);
-  __nvic_enable_irq(I2C1_EV_IRQn);
-  __nvic_set_priority(I2C1_ER_IRQn, I2C1_ER_PRIO);
-  __nvic_enable_irq(I2C1_ER_IRQn);
-*/
-  I2C1_CR1 |= PE;
-}
-
-// Important in 2 https://electronics.stackexchange.com/questions/272427/stm32-busy-flag-is-set-after-i2c-initialization
-/*
-Page 162
-It is also possible to emulate the AFI input pin by software by programming the GPIO
-controller. In this case, the port should be configured in Alternate Function Output mode.
-And obviously, the corresponding port should not be driven externally as it will be driven by
-the software using the GPIO controller.
-
-For alternate function outputs, the port must be configured in Alternate Function Output
-mode (Push-Pull or Open-Drain).
-For bidirectional Alternate Functions, the port bit must be configured in Alternate
-Function Output mode (Push-Pull or Open-Drain). In this case the input driver is
-configured in input floating mode
-If a port bit is configured as Alternate Function Output, this disconnects the output register
-and connects the pin to the output signal of an on-chip peripheral.
-If software configures a GPIO pin as Alternate Function Output, but peripheral is not
-activated, its output is not specified.
-*/
-//https://electronics.stackexchange.com/questions/482111/stm32-i2c-master-does-not-generate-start-bit
-//libopencm3
 void hal_i2c1_init()
 {
 
@@ -94,7 +36,8 @@ void hal_i2c1_init()
   I2C1_CR1 &= ~SWRST;
 
   // According to page 778 I2C_CCR = 180, thus 180 x 27,78ns ~ 5000ns to allow 100KHz SCL (Slow mode)
-  I2C1_CCR = 180;
+  //I2C1_CCR = 180; //100kHz
+  I2C1_CCR = FS|30; //400kHz
 
   // According to page 782 I2C1_TRISE = 37 (36 + 1), for maximum allowed at fPCLK1 = 36MHz
   // Note: TRISE[5:0] = 2 in reset value
@@ -126,12 +69,7 @@ void hal_i2c1_init()
     goto fn##_finish;\
   }
 
-//https://electronics.stackexchange.com/questions/272427/stm32-busy-flag-is-set-after-i2c-initialization
-//https://www.st.com/content/ccc/resource/technical/document/errata_sheet/7d/02/75/64/17/fc/4d/fd/CD00190234.pdf/files/CD00190234.pdf/jcr:content/translations/en.CD00190234.pdf#page26
-//https://electronics.stackexchange.com/questions/267972/i2c-busy-flag-strange-behaviour
 //760 Page master transmitting
-//https://github.com/afiskon/stm32-ssd1306
-
 enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t *data, uint16_t data_size, uint64_t timeout)
 {
 

@@ -230,6 +230,7 @@ void __nvic_disable_irq(IRQn_Type);
  #define NOSTRETCH (1<<7)
  #define PE (1<<0)
 #define I2C1_CCR (*(volatile uint16_t *)(I2C1_BASE + 0x1C)) // Page 768: 26.6.8
+ #define FS (1<<15)
 #define I2C1_TRISE (*(volatile uint16_t *)(I2C1_BASE + 0x20)) // Page 782: 26.6.9
 #define I2C1_CR2 (*(volatile uint16_t *)(I2C1_BASE + 0x04)) // Page 774: 26.6.2
  #define ITBUFEN (1<<10)

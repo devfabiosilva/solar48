@@ -124,6 +124,7 @@ int print_text(void *ctx)
     (int)sd.hour, (int)sd.minute, (int)sd.second
   ));
 
+  oled_printf("\nTemp: %0.2f oC\nVolt.: %0.2f V", read_internal_temp_sensor(), read_vref());
   return 0;
 }
 
@@ -157,6 +158,8 @@ void realtime(uint32_t time)
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second
   );
+
+  oled_printf("\nTemp: %0.2f oC\nVolt.: %0.2f V", read_internal_temp_sensor(), read_vref());
 
   if (blink) {
     ledon();
