@@ -15,16 +15,7 @@
 #ifndef _SSD1306_H
 #define _SSD1306_H
 
-//#include "stm32f4xx_hal.h"
-//#include "fonts.h"
-#include <hal_i2c.h>
 #include <peripheral/ssd1306/fonts.h>
-
-// I2c address
-#ifndef SSD1306_I2C_ADDR
-//#define SSD1306_I2C_ADDR        0x78
-#define SSD1306_I2C_ADDR        0x3C
-#endif // SSD1306_I2C_ADDR
 
 // SSD1306 width in pixels
 #ifndef SSD1306_WIDTH

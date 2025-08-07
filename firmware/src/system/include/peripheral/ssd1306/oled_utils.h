@@ -5,5 +5,14 @@
 
 int oled_printf(const char *, ...);
 
+typedef enum font_size_e {
+  FONT__DEFAULT = 1, //FONT__7x10
+  FONT_11x18,
+  FONT_16x26
+} FONT_SIZE;
+
+void set_font_size(FONT_SIZE);
+void set_color(SSD1306_COLOR);
+
 #endif
 

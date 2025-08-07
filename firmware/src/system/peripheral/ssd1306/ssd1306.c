@@ -1,6 +1,8 @@
+#include <peripheral/peripherals.h>
 #include <peripheral/ssd1306/ssd1306.h>
 #include <system.h>
 #include <watchdog.h>
+#include <hal_i2c.h>
 
 // Screenbuffer
 static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];

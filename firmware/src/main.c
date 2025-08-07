@@ -6,7 +6,6 @@
 #include <time.h>
 #include <watchdog.h>
 #include <sensors.h>
-#include <registers.h>
 #include <hal_i2c.h>
 #include <registers.h>
 #include <process.h>
@@ -17,10 +16,6 @@
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
 #include <instances.h>
-
-#else
-
-#include <usb_io.h>
 
 #endif
 
@@ -36,10 +31,6 @@
 extern void usb_receive(uint8_t *, uint32_t);
 extern void usb_receive_complete();
 extern void usb_error(int);
-//extern void halt_ir();
-extern void halt_ir();
-
-//static int oled_fail = 0;
 
 void realtime(uint32_t);
 SOLAR48_DATE sd;
@@ -68,9 +59,11 @@ void init_oled(char *msg)
   if ((err = ssd1306_Init()))
     return;
 
-  ssd1306_WriteString(msg, Font_11x18, White);
-  ssd1306_UpdateScreen();
-
+  //ssd1306_Fill(White);
+  //set_color(Black);
+  set_font_size(FONT_11x18);
+  oled_printf(msg);
+  set_font_size(FONT__DEFAULT);
 }
 
 #ifdef RTOS_SOLAR48
