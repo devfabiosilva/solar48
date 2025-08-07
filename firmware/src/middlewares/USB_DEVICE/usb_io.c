@@ -59,7 +59,7 @@ int usb_printf(const char *fmt, ...)
   len = vsnprintf(printf_buffer, PRINTF_BUF_MAX_LEN, fmt, arg);
   va_end(arg);
 
-  if (len > PRINTF_BUF_MAX_LEN) {
+  if (len >= PRINTF_BUF_MAX_LEN) {
     len = PRINTF_BUF_MAX_LEN - 1;
     printf_buffer[len] = 0;
   }

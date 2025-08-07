@@ -19,6 +19,9 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 #define APP_TX_DATA_SIZE  256
 // *****************************************
 
+// ****        PANIC HANDLER            ****
+//#define USE_USB_PRINTF_ON_PANIC // Uncomment to enable usb panic log. Default: oled screen
+// *****************************************
 
 #endif
 

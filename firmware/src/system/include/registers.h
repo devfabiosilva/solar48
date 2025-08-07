@@ -272,5 +272,9 @@ void __nvic_disable_irq(IRQn_Type);
                                         tmpreg = READ_BIT(RCC->APB2ENR, RCC_APB2ENR_AFIOEN);\
                                         UNUSED(tmpreg); \
                                       } while(0U)
+
+
+#define CURRENT_TIMESTAMP ((RTC_CNTH<<16)|(RTC_CNTL))
+
 #endif
 

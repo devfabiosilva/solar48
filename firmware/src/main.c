@@ -37,6 +37,7 @@ extern void usb_receive(uint8_t *, uint32_t);
 extern void usb_receive_complete();
 extern void usb_error(int);
 //extern void halt_ir();
+extern void halt_ir();
 
 //static int oled_fail = 0;
 
@@ -143,13 +144,7 @@ void realtime(uint32_t time)
 volatile int blink = 0;
 void realtime(uint32_t time)
 {
-/*
-  uint32_t tm = time;
-  get_solar48_date(&sd, &tm);
 
-  usb_printf("\n\nTIME: %u:%u:%u\n\n", sd.hour, (uint32_t)sd.minute, (uint32_t)sd.second);
-  usb_printf("\n\nDay (yyyy/mm/dd): %s - %u/%u/%u\n\n", get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day);
-*/
   get_solar48_date(&sd, NULL);
 
   ssd1306_SetCursor(0, 18);

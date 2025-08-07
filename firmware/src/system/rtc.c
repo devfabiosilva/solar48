@@ -59,7 +59,6 @@ void init_rtc(rtc_cb rtc_callback)
   __nvic_enable_irq(RTC_IRQn);
 }
 
-#define CURRENT_TIMESTAMP ((RTC_CNTH<<16)|(RTC_CNTL))
 void RTC_IRQHandler(void)
 {
   //SECF: Seconds ticks flag set by hardware if prescale overflows. Set by hardware and . Page 

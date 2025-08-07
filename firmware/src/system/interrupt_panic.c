@@ -1,15 +1,29 @@
 #include <stdint.h>
-
-#ifdef USE_USB_PRINTF
- #include <usb_io.h>
-#else
- #include <peripheral/ssd1306/oled_utils.h>
-#endif
-
 #include <system.h>
 #include <time.h>
 #include <watchdog.h>
+#include <solar48_config.h> 
 
+#ifdef USE_USB_PRINTF_ON_PANIC
+ #include <usb_io.h>
+ #include <registers.h>
+
+extern int cdc_transmit_is_busy();
+
+static void panic_wait()
+{
+  uint32_t current_time = CURRENT_TIMESTAMP;
+
+  while (cdc_transmit_is_busy()) {
+    iwd_refresh();
+    if (current_time != CURRENT_TIMESTAMP)
+      break;
+  }
+}
+
+#else
+ #include <peripheral/ssd1306/oled_utils.h>
+#endif
 
 #ifdef RTOS_SOLAR48
 
@@ -27,31 +41,22 @@ void halt_ir();
 */
 void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
 {
-#ifdef USE_USB_PRINTF
-  do {
-    usb_printf(
-      "\nr0=%08X\nr1=%08X\nr2=%08X\n",
-      pulFaultStackAddress[ 0 ],
-      pulFaultStackAddress[ 1 ],
-      pulFaultStackAddress[ 2 ]
-    );
-  } while (0);
+#ifdef USE_USB_PRINTF_ON_PANIC
+  panic_wait();
 
+  usb_printf(
+    "\nr0=%08X\nr1=%08X\nr2=%08X\nr3=%08X\nr12=%08X\nlr=%08X\npc=%08X\npsr=%08X\n",
+    pulFaultStackAddress[ 0 ],
+    pulFaultStackAddress[ 1 ],
+    pulFaultStackAddress[ 2 ],
+    pulFaultStackAddress[ 3 ],
+    pulFaultStackAddress[ 4 ],
+    pulFaultStackAddress[ 5 ],
+    pulFaultStackAddress[ 6 ],
+    pulFaultStackAddress[ 7 ]
+  );
 
-  do {
-    usb_printf("r3=%08X\nr12=%08X\nlr=%08X\n",
-      pulFaultStackAddress[ 3 ],
-      pulFaultStackAddress[ 4 ],
-      pulFaultStackAddress[ 5 ]
-    );
-  } while (0);
-
-  do {
-    usb_printf("pc=%08X\npsr=%08X\n",
-      pulFaultStackAddress[ 6 ],
-      pulFaultStackAddress[ 7 ]
-    );
-  } while (0);
+  panic_wait();
 #else
   oled_printf(
     "r0=%08x\nr1=%08x\nr2=%08x\nr3=%08x\nr12=%08x\nlr=%08x\npc=%08x\npsr=%08x\n",
@@ -161,7 +166,8 @@ PANIC_IRQ(USBWakeUp_IRQHandler)
 void halt()
 {
   // It could not happen. If happens report bug and disable all interrupts
-#ifdef USE_USB_PRINTF
+#ifdef USE_USB_PRINTF_ON_PANIC
+  panic_wait();
   usb_printf("\nHALT\n\n");
 #else
   ssd1306_Fill(Black);
@@ -179,7 +185,8 @@ void halt_ir()
 {
   // It could not happen. If happens report bug and disable all interrupts
 
-#ifdef USE_USB_PRINTF
+#ifdef USE_USB_PRINTF_ON_PANIC
+  panic_wait();
   usb_printf("\nHALT IRQ = %s\n\n", panic_irq);
 #else
   ssd1306_Fill(Black);
@@ -203,7 +210,8 @@ static void halt_rtos()
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     // Trap here for debug
-#ifdef USE_USB_PRINTF
+#ifdef USE_USB_PRINTF_ON_PANIC
+  panic_wait();
   usb_printf("\nTask = %p halted: %s\n\n", xTask, pcTaskName);
 #else
   ssd1306_Fill(Black);
@@ -217,7 +225,8 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 void vApplicationMallocFailedHook(void)
 {
     // Malloc failed trap
-#ifdef USE_USB_PRINTF
+#ifdef USE_USB_PRINTF_ON_PANIC
+  panic_wait();
   usb_printf("\nFailed malloc\n");
 #else
   ssd1306_Fill(Black);
