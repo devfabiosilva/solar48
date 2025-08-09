@@ -31,6 +31,12 @@ void error_handler(int error);
 
 // USB HAL RECEIVE PROCESS BUSY
 #define E_USB_RECEIVE_PROC_BUSY 160
+
+// USB BYTE CHUNK SENDING
+#define E_USB_SEND_CHUNK_INIT_BUSY 170
+#define E_USB_SEND_CHUNK_SEND_FAIL 171
+#define E_USB_SEND_CHUNK_BUSY 172
+
 ///////////////////////////////////
 
 // ERROR IN PROCESS

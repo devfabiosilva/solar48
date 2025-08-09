@@ -185,24 +185,12 @@ _Static_assert(sizeof(HELP_USAGE03) < APP_TX_DATA_SIZE, "HELP_USAGE03 Help too l
 _Static_assert(sizeof(HELP_USAGE04) < APP_TX_DATA_SIZE, "HELP_USAGE04 Help too long");
 
 CMD_BEGIN_NOARG(help)
-  const char *help_usage[] = {HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04};
-  uint64_t timeout_ms = 10;
 
-  init_timeout_ms(&timeout_ms);
+  const char *help_usage[] = {HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04, NULL};
+  size_t help_usage_len[] = {sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1};
 
-  //HAL_USB_enable_irq();
-_Static_assert(sizeof(help_usage)/sizeof(const char *) == 4, "print_help error parameters");
-  for (size_t i = 0; i < sizeof(help_usage)/sizeof(const char *);) {
-    while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
-
-    iwd_refresh();
-
-    if (is_timeout_ms(&timeout_ms))
-      return;
-
-    if (usb_printf(help_usage[i++]))
-      return;
-  }
+_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == 4, "print_help error parameters");
+  usb_send_chunk((uint8_t **)help_usage, help_usage_len);
 
 CMD_END
 

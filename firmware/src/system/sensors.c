@@ -28,7 +28,7 @@ static float read_vref_util()
   ADC1_SQR3 = 17;// Channel 17 = Vrefint
 
   ADC1_CR2 |= ADON;
-  //delay(1);
+
 #ifdef RTOS_SOLAR48
   vTaskDelay(pdMS_TO_TICKS(1));
 #else
@@ -56,16 +56,13 @@ float read_vref()
 static float read_internal_temp_sensor_util()
 {
   ADC1_CR2 |= TSVREFE; // TSVREFE: Enables sensor and Vrefint
-  //delay(1);            // Waits for stabilization
 #ifdef RTOS_SOLAR48
   vTaskDelay(pdMS_TO_TICKS(1));
 #else
   delay(1);
 #endif
   ADC1_SQR3 = 16;      // Channel 16 = Internal temperature sensor
-
   ADC1_CR2 |= ADON;      // Turns on ADC
-  //delay(1);
 #ifdef RTOS_SOLAR48
   vTaskDelay(pdMS_TO_TICKS(1));
 #else

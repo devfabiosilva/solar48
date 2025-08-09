@@ -9,6 +9,7 @@
 #include <errors.h>
 #include <time.h>
 #include <watchdog.h>
+#include <solar48_config.h>
 
 /*
 sudo usermod -aG dialout $USER
@@ -55,6 +56,15 @@ int usb_printf(const char *fmt, ...)
   _ssize_t len;
   va_list arg;
 
+  uint64_t timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
+
+  init_timeout_ms(&timeout_ms);
+
+  while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
+
+  if (cdc_transmit_is_busy())
+    return USBD_FAIL;
+
   va_start(arg, fmt);
   len = vsnprintf(printf_buffer, PRINTF_BUF_MAX_LEN, fmt, arg);
   va_end(arg);
@@ -71,6 +81,42 @@ int usb_printf(const char *fmt, ...)
     return USBD_OK;
 
   return USBD_FAIL;
+}
+
+int usb_send_chunk(uint8_t **msg, size_t *msg_len)
+{
+  uint64_t timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
+
+  init_timeout_ms(&timeout_ms);
+
+  iwd_refresh();
+
+  while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
+
+  if (cdc_transmit_is_busy())
+    return E_USB_SEND_CHUNK_INIT_BUSY;
+
+  while (*msg) {
+    if (*msg_len > 0) {
+     if (CDC_Transmit_FS(*msg, *msg_len) != USBD_OK)
+       return E_USB_SEND_CHUNK_SEND_FAIL;
+
+     timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
+
+     init_timeout_ms(&timeout_ms);
+
+     iwd_refresh();
+
+     while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
+
+     if (cdc_transmit_is_busy() && msg[1] != NULL)
+       return E_USB_SEND_CHUNK_BUSY;
+    }
+    ++msg;
+    ++msg_len;
+  }
+
+  return USBD_OK;
 }
 
 void usb_receive(uint8_t *buf, uint32_t buf_sz)
