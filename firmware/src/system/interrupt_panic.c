@@ -60,14 +60,14 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
 #else
   oled_printf(
     "r0=%08x\nr1=%08x\nr2=%08x\nr3=%08x\nr12=%08x\nlr=%08x\npc=%08x\npsr=%08x\n",
-      pulFaultStackAddress[ 0 ],
-      pulFaultStackAddress[ 1 ],
-      pulFaultStackAddress[ 2 ],
-      pulFaultStackAddress[ 3 ],
-      pulFaultStackAddress[ 4 ],
-      pulFaultStackAddress[ 5 ],
-      pulFaultStackAddress[ 6 ],
-      pulFaultStackAddress[ 7 ]
+    pulFaultStackAddress[ 0 ],
+    pulFaultStackAddress[ 1 ],
+    pulFaultStackAddress[ 2 ],
+    pulFaultStackAddress[ 3 ],
+    pulFaultStackAddress[ 4 ],
+    pulFaultStackAddress[ 5 ],
+    pulFaultStackAddress[ 6 ],
+    pulFaultStackAddress[ 7 ]
   );
 #endif
 }
@@ -83,7 +83,7 @@ void load_panic_stack()
     "ldr r2, handler2_address_const\n"
     "bx r2\n"
     "handler2_address_const: .word prvGetRegistersFromStack\n"
-  );\
+  );
 }
 
 #define PANIC_IRQ(irq_fn) \
