@@ -5,8 +5,7 @@
 #include <sys_interrupts.h>
 #include <hal_i2c.h>
 #include <stdbool.h>
-
-#define PCLK1_FREQ_IN_MHZ 36
+#include <solar48_config.h>
 
 extern volatile uint64_t milliseconds();
 volatile bool i2c1_lock;
