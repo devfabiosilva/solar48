@@ -7,6 +7,7 @@
 #include <watchdog.h>
 #include <sensors.h>
 #include <hal_i2c.h>
+#include <hal_uart.h>
 #include <registers.h>
 #include <process.h>
 #include <peripheral/ssd1306/oled_utils.h>
@@ -28,18 +29,15 @@
 //monitor reset halt
 //p panic_irq
 
-extern void usb_receive(uint8_t *, uint32_t);
-extern void usb_receive_complete();
-extern void usb_error(int);
-
 void realtime(uint32_t);
 SOLAR48_DATE sd;
-//https://community.st.com/t5/stm32-mcus-products/stm32f107-i2c-scl-stays-low/m-p/301186#M70029
+
 void setup()
 {
   __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
 
-  init_usb_device(usb_receive, usb_receive_complete, usb_error);
+  init_usb();
+  init_uart1();
   hal_i2c1_init();
   init_rtc(realtime);
 
@@ -92,7 +90,7 @@ void run(void)
 
   init_oled("Solar48bm");
 
-  blink_n(3);
+  blink_n(2);
   usb_printf("\nReady ...\n\n");
   while (1) {
     run_process_int_int();

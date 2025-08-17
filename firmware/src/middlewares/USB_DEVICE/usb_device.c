@@ -7,6 +7,9 @@
 #include <usbd_cdc.h>
 #include <usbd_cdc_if.h>
 
+typedef void (*usb_receive_cb_t)(uint8_t *, uint32_t);
+typedef void (*usb_receive_complete_cb_t)(void);
+
 error_callback_t usb_err_fn = NULL;
 usb_receive_cb_t recv_cb = NULL;
 usb_receive_complete_cb_t recv_complete = NULL;
@@ -542,7 +545,7 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev,
   return USBD_LL_Init(pdev);
 }
 
-void init_usb_device(usb_receive_cb_t receive_cb, usb_receive_complete_cb_t receive_complete, error_callback_t err_cb)
+static void init_usb_device(usb_receive_cb_t receive_cb, usb_receive_complete_cb_t receive_complete, error_callback_t err_cb)
 {
 
   recv_cb = receive_cb;
@@ -605,6 +608,15 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 inline int cdc_transmit_is_busy()
 {
   return ((USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData)->TxState;
+}
+
+extern void usb_receive(uint8_t *, uint32_t);
+extern void usb_receive_complete();
+extern void usb_error(int);
+
+inline void init_usb()
+{
+  init_usb_device(usb_receive, usb_receive_complete, usb_error);
 }
 
 #undef USB_ERROR

@@ -19,6 +19,15 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 #define APP_TX_DATA_SIZE  256
 
 #define USB_TRANSMIT_TIMEOUT_MS 10
+
+#define USBD_MAX_STR_DESC_SIZ    128 //512
+#define USB_SIZ_STRING_SERIAL    0x1A
+
+#define 	UID_BASE            0x1FFFF7E8UL    //!< Unique device ID register base address
+#define         DEVICE_ID1          (UID_BASE)
+#define         DEVICE_ID2          (UID_BASE + 0x4)
+#define         DEVICE_ID3          (UID_BASE + 0x8)
+
 // *****************************************
 
 // ****        PANIC HANDLER            ****

@@ -40,8 +40,9 @@ static char text[APP_TX_DATA_SIZE];
 size_t text_sz = 0;
 
 #include <peripheral/ssd1306/oled_utils.h>
-int n = 0;
+
 volatile static int last_usb_error;
+
 void usb_error(int value)
 {
   last_usb_error = value;
