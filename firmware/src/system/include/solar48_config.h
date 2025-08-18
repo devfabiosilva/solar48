@@ -11,6 +11,9 @@
 
 _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LOAD register");
 
+#define PCLK2 = CPU_FREQ_HZ
+#define PCLK1 = CPU_FREQ_HZ / 2
+
 // *****************************************
 
 // ****      USB CDC configuration      ****

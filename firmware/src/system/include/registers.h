@@ -276,5 +276,14 @@ void __nvic_disable_irq(IRQn_Type);
 
 #define CURRENT_TIMESTAMP ((RTC_CNTH<<16)|(RTC_CNTL))
 
+//USART1_BASE
+#define USART1_SR (*(volatile uint32_t *)(USART1_BASE + 0x00)) // Page 818: 27.6.1
+
+#define USART1_DR (*(volatile uint32_t *)(USART1_BASE + 0x04)) // Page 820: 27.6.2
+
+// See page 798: 27.3.4 Fractional baud rate generation
+#define USART1_BRR (*(volatile uint32_t *)(USART1_BASE + 0x08)) // 27.6.3 Baud rate register (USART_BRR) page 820
+
+
 #endif
 
