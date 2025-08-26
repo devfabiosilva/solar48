@@ -137,6 +137,13 @@
 #define RTC_CNTH (*(volatile uint16_t *)(RTC_BASE + 0x18)) //Page 491
 #define RTC_CNTL (*(volatile uint16_t *)(RTC_BASE + 0x1C)) //Page 491
 
+//9.2.2 Port configuration register high (GPIOx_CRH) (x=A..G) Page 172
+#define GPIOA_CRH (*(volatile uint32_t *)(GPIOA_BASE + 0x04))
+ #define GPIOA_MODE9_VAL(val) (val<<4)
+ #define GPIOA_CNF9_VAL(val) (val<<6)
+ #define GPIOA_MODE10_VAL(val) (val<<8)
+ #define GPIOA_CNF10_VAL(val) (val<<10)
+
 //GPIO
 //#define GPIOC_BASE   0x40011000
 #define GPIOC_CRH    (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
@@ -284,6 +291,12 @@ void __nvic_disable_irq(IRQn_Type);
 // See page 798: 27.3.4 Fractional baud rate generation
 #define USART1_BRR (*(volatile uint32_t *)(USART1_BASE + 0x08)) // 27.6.3 Baud rate register (USART_BRR) page 820
 
+#define USART1_CR1 (*(volatile uint32_t *)(USART1_BASE + 0x0C)) //27.6.4 Control register 1 (USART_CR1) page 821
+  #define RE (1<<2)
+  #define TE (1<<3)
+  #define RXNEIE (1<<5)
+  #define TXEIE (1<<7)
+  #define UE (1<<13)
 
 #endif
 

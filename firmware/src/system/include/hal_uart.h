@@ -20,7 +20,7 @@
 #define UART1_923_076_KBPS  UART_SPEED(4, 14)    // 923.076 kbps
 #define UART1_2250_KBPS     UART_SPEED(2, 0)     // 2250 kbps
 #define UART1_4500_KBPS     UART_SPEED(1, 0)     // 4500 kbps
-#define UART1_DEFAULT_SPEED UART1_19_2_KBPS
+#define UART1_DEFAULT_SPEED UART1_115_2_KBPS
 
 //UART2 @ PCLK1 = 36 MHz
 #define UART2_2_4_KBPS      UART_SPEED(937, 8)   // 2.4 kbps
@@ -32,7 +32,7 @@
 #define UART2_461_538_KBPS  UART_SPEED(4, 14)    // 461.538 kbps
 #define UART2_923_076_KBPS  UART_SPEED(2, 7)     // 923.076 kbps
 #define UART2_2250_KBPS     UART_SPEED(1, 0)    // 2250 kbps
-#define UART2_DEFAULT_SPEED UART2_19_2_KBPS
+#define UART2_DEFAULT_SPEED UART2_115_2_KBPS
 //#define UART2_4500_KBPS     N/A
 
 void init_uart1();
