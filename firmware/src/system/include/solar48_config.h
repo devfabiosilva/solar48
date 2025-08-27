@@ -37,8 +37,13 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 //#define USE_USB_PRINTF_ON_PANIC // Uncomment to enable usb panic log. Default: oled screen
 // *****************************************
 
-// ****          PCLK1 FREQ             ****
+// ****      PCLK1 FREQ IN MHZ          ****
 #define PCLK1_FREQ_IN_MHZ 36
+// *****************************************
+
+// ****     UART configuration         ****
+#define UART1_TX_RX_BUF 32
+
 // *****************************************
 
 #endif

@@ -213,10 +213,6 @@ void __nvic_enable_irq(IRQn_Type IRQn);
                                                       0 bits for subpriority */
 
 void __nvic_setprioritygrouping(uint32_t);
-
-// HAL Parameters
-#define NVIC_PRIORITYGROUP_4         0x00000003U /*!< 4 bits for pre-emption priority */
-void __hal_nvic_setpriority(IRQn_Type, uint32_t, uint32_t);
 void __nvic_set_priority(IRQn_Type, uint32_t);
 /**
   \brief   Get Priority Grouping
@@ -224,9 +220,6 @@ void __nvic_set_priority(IRQn_Type, uint32_t);
   \return                Priority grouping field (SCB->AIRCR [10:8] PRIGROUP field).
  */
 uint32_t get_priority_grouping();
-
-void safe_nvic_prioritygroup_init(uint32_t);
-
 void __nvic_disable_irq(IRQn_Type);
 
 #define I2C1_CR1 (*(volatile uint16_t *)(I2C1_BASE + 0x00)) // Page 772: 26.6.1

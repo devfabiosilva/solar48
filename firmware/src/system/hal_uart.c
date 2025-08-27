@@ -1,8 +1,12 @@
 #include <registers.h>
 #include <hal_uart.h>
 #include <sys_interrupts.h>
+#include <dma.h>
+#include <solar48_config.h>
 
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
+static volatile uint8_t uart1_tx_rx[UART1_TX_RX_BUF];
+
 void init_uart1()
 {
 
@@ -30,6 +34,9 @@ void init_uart1()
   USART1_CR1 = RE|TE;    // Enable receive/transmit
   USART1_CR1 |= RXNEIE;  // Enable receive
   USART1_CR1 |= UE;      // Enable UART1
+
+  dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), NULL); // TODO remove NULL and add UART1 Periph address
+  dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), NULL); // TODO remove NULL and add UART1 Periph address
 
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
   __nvic_enable_irq(USART1_IRQn);
