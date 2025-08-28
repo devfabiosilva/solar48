@@ -16,6 +16,15 @@
 #include <watchdog.h>
 #include <hal_usb.h>
 
+//dmesg -w
+//sudo modprobe usbmon
+//sudo cat /sys/kernel/debug/usb/usbmon/1u
+// lsusb -d 0483:5740 -v | grep -iE 'manufacturer|product|serial'
+// GDB target remote :3333
+//info registers
+//monitor reset halt
+//p panic_irq
+
 extern int cdc_transmit_is_busy();
 
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list

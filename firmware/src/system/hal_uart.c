@@ -4,6 +4,11 @@
 #include <dma.h>
 #include <solar48_config.h>
 
+void USART1_IRQHandler()
+{
+  // TODO implement uart1 error handler
+}
+
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
 static volatile uint8_t uart1_tx_rx[UART1_TX_RX_BUF];
 
@@ -30,21 +35,22 @@ void init_uart1()
   //See page 798: 27.3.4 Fractional baud rate generation
   USART1_BRR = UART1_DEFAULT_SPEED;
 
+  USART1_CR3 = (
+                  DMAT | // DMA enable transmitter
+                  DMAR | // DMA enable receiver
+                  EIE    // Error interrupt enable
+               );
+
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART1_CR1 = RE|TE;    // Enable receive/transmit
-  USART1_CR1 |= RXNEIE;  // Enable receive
+  USART1_CR1 |= IDLEIE;  // Enable idle interrupt
   USART1_CR1 |= UE;      // Enable UART1
 
-  dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), NULL); // TODO remove NULL and add UART1 Periph address
-  dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), NULL); // TODO remove NULL and add UART1 Periph address
+  dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
+  dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
 
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
   __nvic_enable_irq(USART1_IRQn);
 
-}
-
-void USART1_IRQHandler()
-{
-  // TODO implement uart1 handler
 }
 

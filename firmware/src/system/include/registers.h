@@ -287,9 +287,58 @@ void __nvic_disable_irq(IRQn_Type);
 #define USART1_CR1 (*(volatile uint32_t *)(USART1_BASE + 0x0C)) //27.6.4 Control register 1 (USART_CR1) page 821
   #define RE (1<<2)
   #define TE (1<<3)
+  #define IDLEIE (1<<4)
   #define RXNEIE (1<<5)
   #define TXEIE (1<<7)
   #define UE (1<<13)
+
+// 27.6.5 Control register 2 (USART_CR2) page 823
+#define USART1_CR2 (*(volatile uint32_t *)(USART1_BASE + 0x10))
+
+//27.6.6 Control register 3 (USART_CR3) page 824
+#define USART1_CR3 (*(volatile uint32_t *)(USART1_BASE + 0x14))
+  #define EIE (1<<0)
+  #define NACK (1<<4)
+  #define DMAT (1<<7)
+  #define DMAR (1<<8)
+
+//13.4.3 DMA channel x configuration register (DMA_CCRx) (x = 1..7, where x = channel number) Page 286
+#define DMA1_CCRx(x) (*(volatile uint32_t *)(DMA1_BASE + 0x08 + 20*(x - 1)))
+
+//13.4.5 DMA channel x peripheral address register (DMA_CPARx) (x = 1..7, where x = channel number) Page 288
+#define DMA1_CPARx(x) (*(volatile uint32_t *)(DMA1_BASE + 0x10 + 20*(x - 1)))
+
+//13.4.6 DMA channel x memory address register (DMA_CMARx) (x = 1..7, where x = channel number) Page 288
+#define DMA1_CMARx(x) (*(volatile uint32_t *)(DMA1_BASE + 0x14 + 20*(x - 1)))
+
+//13.4.4 DMA channel x number of data register (DMA_CNDTRx) (x = 1..7, where x = channel number) Page 287
+#define DMA1_CNDTRx(x) (*(volatile uint32_t *)(DMA1_BASE + 0x0C + 20*(x - 1)))
+
+// DMA1 CHANNEL 4
+#define DMA1_CCR4 DMA1_CCRx(4)
+  #define DMA1_CCR4_EN (1<<0)
+  #define DMA1_TCIE4 (1<<1)
+  #define DMA1_TEIE4 (1<<3)
+  #define DMA1_DIR4 (1<<4)
+  #define DMA1_MINC4 (1<<7)
+  #define DMA1_PL4_SEL(val) (val<<12)
+
+#define DMA1_CPAR4 DMA1_CPARx(4)
+#define DMA1_CMAR4 DMA1_CMARx(4)
+#define DMA1_CNDTR4 DMA1_CNDTRx(4)
+
+// DMA1 CHANNEL 5
+#define DMA1_CCR5 DMA1_CCRx(5)
+  #define DMA1_CCR5_EN (1<<0)
+  #define DMA1_TCIE5 (1<<1)
+  #define DMA1_TEIE5 (1<<3)
+  #define DMA1_DIR5 (1<<4)
+  #define DMA1_MINC5 (1<<7)
+  #define DMA1_PL5_SEL(val) (val<<12)
+
+#define DMA1_CPAR5 DMA1_CPARx(5)
+#define DMA1_CMAR5 DMA1_CMARx(5)
+#define DMA1_CNDTR5 DMA1_CNDTRx(5)
 
 #endif
 

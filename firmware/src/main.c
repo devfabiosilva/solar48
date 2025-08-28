@@ -20,15 +20,6 @@
 
 #endif
 
-//dmesg -w
-//sudo modprobe usbmon
-//sudo cat /sys/kernel/debug/usb/usbmon/1u
-// lsusb -d 0483:5740 -v | grep -iE 'manufacturer|product|serial'
-// GDB target remote :3333
-//info registers
-//monitor reset halt
-//p panic_irq
-
 void realtime(uint32_t);
 SOLAR48_DATE sd;
 
@@ -57,8 +48,6 @@ void init_oled(char *msg)
   if ((err = ssd1306_Init()))
     return;
 
-  //ssd1306_Fill(White);
-  //set_color(Black);
   set_font_size(FONT_11x18);
   oled_printf(msg);
   set_font_size(FONT__DEFAULT);
