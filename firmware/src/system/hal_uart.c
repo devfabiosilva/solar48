@@ -3,6 +3,22 @@
 #include <sys_interrupts.h>
 #include <dma.h>
 #include <solar48_config.h>
+#include <time.h>
+
+struct uart_control_t {
+  volatile bool locked;                     // UART locked
+  volatile uint8_t *data_ptr;               // Data pointer
+  volatile uint64_t timeout;                // UART timeout
+  volatile uint32_t status_register;        // UART status register
+  volatile int32_t block;                   // Data is divided by n x UART1_TX_RX_BUF
+  volatile int32_t left;                    // Data remaining left = data size % UART1_TX_RX_BUF
+  void *uart_on_error_ctx;                  // Uart callback context
+  uart_callback_func uart_on_error;         // Uart callback
+  void *uart_receive_complete_ctx;          // Uart callback success
+  uart_callback_func uart_receive_complete; // Uart callback success
+};
+
+volatile struct uart_control_t uart1_control = {0};
 
 void USART1_IRQHandler()
 {
@@ -42,15 +58,68 @@ void init_uart1()
                );
 
   //27.6.4 Control register 1 (USART_CR1) Page: 821
-  USART1_CR1 = RE|TE;    // Enable receive/transmit
+  USART1_CR1 = /*RE|*/TE;    // Enable receive/transmit
   USART1_CR1 |= IDLEIE;  // Enable idle interrupt
-  USART1_CR1 |= UE;      // Enable UART1
+//  USART1_CR1 |= UE;      // Enable UART1
 
-  dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
-  dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
+  //dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
+  dma1_channel4_init((void *)&USART1_DR);
+  //dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
 
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
   __nvic_enable_irq(USART1_IRQn);
 
+}
+
+inline bool uart1_is_busy()
+{
+  return (((USART1_CR1 & UE) != 0) && (((DMA1_CCR4 & DMA1_CCR4_EN) != 0) || ((DMA1_CCR5 & DMA1_CCR5_EN) != 0)));
+}
+
+enum uart_status_t uart1_transmit(
+  uint8_t *data, size_t data_size,
+  uart_callback_func uart_receive_complete,
+  void *uart_receive_complete_ctx,
+  uart_callback_func uart_on_error,
+  void *uart_on_error_ctx
+)
+{
+  if (uart1_is_busy())
+    return UART_BUSY;
+
+  if (uart1_control.locked)
+    return UART_LOCKED;
+
+  uart1_control.locked = true;
+
+  DMA1_CCR4 &= ~(DMA1_CCR4_EN);
+  USART1_CR1 &= ~(UE);
+
+  DMA1_CMAR4 = (uint32_t)data; // Memory address Page 288
+
+  uart1_control.data_ptr = data;
+  init_timeout_ms((uint64_t *)&uart1_control.timeout);
+  uart1_control.status_register = 0;
+  uart1_control.uart_on_error_ctx = NULL;
+  uart1_control.uart_on_error = uart_on_error;
+  uart1_control.uart_receive_complete = uart_receive_complete;
+  uart1_control.uart_receive_complete_ctx = uart_receive_complete_ctx;
+
+  int32_t block = (int32_t)data_size / UART1_TX_RX_BUF;
+  int32_t left = (int32_t)data_size % UART1_TX_RX_BUF;
+
+  if (block) {
+    DMA1_CNDTR4 = (uint16_t)UART1_TX_RX_BUF; // Memory size Page 287 (64 KB max)
+    --block;
+  } else
+    DMA1_CNDTR4 = (uint16_t)left; // Memory size Page 287 (64 KB max)
+
+  uart1_control.block = block;
+  uart1_control.left = left;
+
+  USART1_CR1 |= UE;
+  DMA1_CCR4 |= DMA1_CCR4_EN;
+
+  return UART_OK;
 }
 
