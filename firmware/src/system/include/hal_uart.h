@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <errors.h>
 
 //27.5 USART mode configuration page 817
 //2.2 List of abbreviations for registers page 45
@@ -42,8 +43,8 @@ typedef int (*uart_callback_func)(void *);
 
 enum uart_status_t {
   UART_OK = 0,
-  UART_BUSY,
-  UART_LOCKED
+  UART_BUSY = E_UART1_BUSY,
+  UART_LOCKED = E_UART1_LOCKED
 };
 
 void init_uart1();

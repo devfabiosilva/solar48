@@ -60,7 +60,7 @@ void init_uart1()
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART1_CR1 = /*RE|*/TE;    // Enable receive/transmit
   USART1_CR1 |= IDLEIE;  // Enable idle interrupt
-//  USART1_CR1 |= UE;      // Enable UART1
+  USART1_CR1 |= UE;      // Enable UART1
 
   //dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
   dma1_channel4_init((void *)&USART1_DR);
@@ -73,7 +73,7 @@ void init_uart1()
 
 inline bool uart1_is_busy()
 {
-  return (((USART1_CR1 & UE) != 0) && (((DMA1_CCR4 & DMA1_CCR4_EN) != 0) || ((DMA1_CCR5 & DMA1_CCR5_EN) != 0)));
+  return (((DMA1_CCR4 & DMA1_CCR4_EN) != 0) || ((USART1_CR1 & RE) != 0));
 }
 
 enum uart_status_t uart1_transmit(
@@ -93,14 +93,13 @@ enum uart_status_t uart1_transmit(
   uart1_control.locked = true;
 
   DMA1_CCR4 &= ~(DMA1_CCR4_EN);
-  USART1_CR1 &= ~(UE);
 
   DMA1_CMAR4 = (uint32_t)data; // Memory address Page 288
 
   uart1_control.data_ptr = data;
   init_timeout_ms((uint64_t *)&uart1_control.timeout);
   uart1_control.status_register = 0;
-  uart1_control.uart_on_error_ctx = NULL;
+  uart1_control.uart_on_error_ctx = uart_on_error_ctx;
   uart1_control.uart_on_error = uart_on_error;
   uart1_control.uart_receive_complete = uart_receive_complete;
   uart1_control.uart_receive_complete_ctx = uart_receive_complete_ctx;
@@ -108,7 +107,7 @@ enum uart_status_t uart1_transmit(
   int32_t block = (int32_t)data_size / UART1_TX_RX_BUF;
   int32_t left = (int32_t)data_size % UART1_TX_RX_BUF;
 
-  if (block) {
+  if (block > 0) {
     DMA1_CNDTR4 = (uint16_t)UART1_TX_RX_BUF; // Memory size Page 287 (64 KB max)
     --block;
   } else
@@ -117,7 +116,6 @@ enum uart_status_t uart1_transmit(
   uart1_control.block = block;
   uart1_control.left = left;
 
-  USART1_CR1 |= UE;
   DMA1_CCR4 |= DMA1_CCR4_EN;
 
   return UART_OK;

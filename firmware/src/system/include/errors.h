@@ -37,6 +37,11 @@ void error_handler(int error);
 #define E_USB_SEND_CHUNK_SEND_FAIL 171
 #define E_USB_SEND_CHUNK_BUSY 172
 
+
+// UART1 ERROR SENDING
+#define E_UART1_BUSY 180
+#define E_UART1_LOCKED 181
+
 ///////////////////////////////////
 
 // ERROR IN PROCESS
