@@ -6,5 +6,6 @@ void init_led_blink();
 void init_process_task();
 void init_process_int_ext_task();
 void init_process_int_int_task();
+void init_process_periph_evt_task();
 #endif
 

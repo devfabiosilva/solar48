@@ -41,6 +41,8 @@ void error_handler(int error);
 // UART1 ERROR SENDING
 #define E_UART1_BUSY 180
 #define E_UART1_LOCKED 181
+#define E_UART1_TIMEOUT 182
+#define E_UART1_DMA1_CH4_TRANSMIT_ERROR 183
 
 ///////////////////////////////////
 

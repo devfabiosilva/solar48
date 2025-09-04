@@ -3,20 +3,6 @@
 #include <registers.h>
 #include <sys_interrupts.h>
 
-// 13 Direct memory access controller (DMA) Page 274
-
-// --- Table 78. Summary of DMA1 requests for each channel Pag 282 ---
-// DMA1 for UART1 Tx events IRQ
-void DMA1_Channel4_IRQHandler()
-{
-
-}
-
-// DMA1 for UART1 Rx events IRQ
-void DMA1_Channel5_IRQHandler()
-{
-
-}
 // ---------------------------------------------------------------------
 /*
 // Note: Used for USART1_TX only

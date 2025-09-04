@@ -67,6 +67,7 @@ void run(void)
   init_process_task();
   init_process_int_ext_task();
   init_process_int_int_task();
+  init_process_periph_evt_task();
 
   vTaskStartScheduler();
 }
@@ -83,6 +84,7 @@ void run(void)
   usb_printf("\nReady ...\n\n");
   while (1) {
     run_process_int_int();
+    process_uart_time_event();
     run_process_int_ext();
     run_process();
     delay(1);

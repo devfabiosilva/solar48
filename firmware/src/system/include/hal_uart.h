@@ -39,7 +39,7 @@
 #define UART2_DEFAULT_SPEED UART2_115_2_KBPS
 //#define UART2_4500_KBPS     N/A
 
-typedef int (*uart_callback_func)(void *);
+typedef int (*uart_callback_func)(int);
 
 enum uart_status_t {
   UART_OK = 0,
@@ -51,10 +51,7 @@ void init_uart1();
 
 enum uart_status_t uart1_transmit(
   uint8_t *, size_t,
-  uart_callback_func,
-  void *,
-  uart_callback_func,
-  void *
+  uart_callback_func
 );
 
 bool uart1_is_busy();

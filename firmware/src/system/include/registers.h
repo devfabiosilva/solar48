@@ -340,5 +340,19 @@ void __nvic_disable_irq(IRQn_Type);
 #define DMA1_CMAR5 DMA1_CMARx(5)
 #define DMA1_CNDTR5 DMA1_CNDTRx(5)
 
+//13.4.1 DMA interrupt status register (DMA_ISR) Page 284
+#define DMA1_ISR (*(volatile uint32_t *)(DMA1_BASE + 0x00))
+  #define GIF4 (1<<12)
+  #define TCIF4 (1<<13)
+  #define HTIF4 (1<<14)
+  #define TEIF4 (1<<15)
+
+//13.4.2 DMA interrupt flag clear register (DMA_IFCR) Page 285
+#define DMA1_IFCR (*(volatile uint32_t *)(DMA1_BASE + 0x04))
+  #define CGIF4 (1<<12)
+  #define CTCIF4 (1<<13)
+  #define CHTIF4 (1<<14)
+  #define CTEIF4 (1<<15)
+
 #endif
 
