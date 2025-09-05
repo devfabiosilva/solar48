@@ -278,6 +278,7 @@ void __nvic_disable_irq(IRQn_Type);
 
 //USART1_BASE
 #define USART1_SR (*(volatile uint32_t *)(USART1_BASE + 0x00)) // Page 818: 27.6.1
+  #define TC (1<<6)
 
 #define USART1_DR (*(volatile uint32_t *)(USART1_BASE + 0x04)) // Page 820: 27.6.2
 
@@ -289,6 +290,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define TE (1<<3)
   #define IDLEIE (1<<4)
   #define RXNEIE (1<<5)
+  #define TCIE (1<<6)
   #define TXEIE (1<<7)
   #define UE (1<<13)
 

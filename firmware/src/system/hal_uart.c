@@ -6,6 +6,7 @@
 #include <time.h>
 
 struct uart_control_t {
+  volatile bool start;                      // UART start
   volatile bool locked;                     // UART locked
   volatile uint8_t *next_data_ptr;          // Data pointer
   volatile uint64_t timeout;                // UART timeout
@@ -30,7 +31,7 @@ void DMA1_Channel4_IRQHandler()
   uint32_t dma1_ch4_sr = DMA1_ISR;
 
   // Clear Channel 4 global interrupts status registers
-  DMA1_IFCR |= (CTEIF4|CHTIF4|CTCIF4|CGIF4);
+  DMA1_IFCR = (CTEIF4|CHTIF4|CTCIF4|CGIF4);
 
   DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
 
@@ -69,6 +70,7 @@ void DMA1_Channel5_IRQHandler()
 
 }
 
+//Table 196. USART interrupt requests page 816
 void USART1_IRQHandler()
 {
   // TODO implement uart1 error handler
@@ -108,7 +110,7 @@ void init_uart1()
 
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART1_CR1 = /*RE|*/TE;    // Enable receive/transmit
-  USART1_CR1 |= IDLEIE;  // Enable idle interrupt
+//  USART1_CR1 |= (IDLEIE|TCIE);  // Enable idle interrupt
   USART1_CR1 |= UE;      // Enable UART1
 
   //dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
@@ -140,13 +142,19 @@ enum uart_status_t uart1_transmit(
 
   DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
 
+  USART1_CR1 &= ~(IDLEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
+  // Clear any status register
+  (void)USART1_SR;
+  (void)USART1_DR;
+
+  USART1_CR1 |= (IDLEIE|TCIE); // Enable UART1 interrupt enable after cleaning status register and data
+
   // Clear Channel 4 global interrupts status registers
   DMA1_IFCR |= (CTEIF4|CHTIF4|CTCIF4|CGIF4);
 
   DMA1_CMAR4 = (uint32_t)data; // Memory address Page 288
 
   uart1_control.next_data_ptr = data;
-  init_timeout_ms((uint64_t *)&uart1_control.timeout);
   uart1_control.status_register = 0;
   uart1_control.uart_callback = uart_callback;
 
@@ -163,6 +171,10 @@ enum uart_status_t uart1_transmit(
   uart1_control.block = block;
   uart1_control.left = left;
 
+  uart1_control.timeout = 50; // 50 ms timeout for test
+  init_timeout_ms((uint64_t *)&uart1_control.timeout);
+  uart1_control.start = true;
+
   DMA1_CCR4 |= DMA1_CCR4_EN;
 
   return UART_OK;
@@ -170,37 +182,43 @@ enum uart_status_t uart1_transmit(
 
 void process_uart1_time_event()
 {
-  if (uart1_control.locked) {
+  if (uart1_control.start) {
 
     uint32_t status_register = (uint32_t)uart1_control.status_register;
 
     switch (status_register) {
       case UART1_TRANSFER_COMPLETE:
-          uart1_control.status_register = 0;
-          uart1_control.uart_callback(UART1_TRANSFER_COMPLETE);
-          uart1_control.locked = false;
+          if (USART1_SR & TC)
+            goto process_uart1_time_event_finish;
+          else if (is_timeout_ms((uint64_t *)&uart1_control.timeout))
+            goto process_uart1_time_event_timeout_error;
         break;
-      case E_UART1_DMA1_CH4_TRANSMIT_ERROR:
-          uart1_control.status_register = 0;
-          uart1_control.uart_callback(E_UART1_DMA1_CH4_TRANSMIT_ERROR);
-          uart1_control.locked = false;
-        break;
+      //case E_UART1_DMA1_CH4_TRANSMIT_ERROR:
       default:
 
-        if (status_register)
-          goto process_uart1_time_event_unknown_error;
+        if (status_register) // Unknown error | E_UART1_DMA1_CH4_TRANSMIT_ERROR
+          goto process_uart1_time_event_finish;
 
         if (is_timeout_ms((uint64_t *)&uart1_control.timeout)) {
+
+process_uart1_time_event_timeout_error:
           status_register = E_UART1_TIMEOUT;
 
-process_uart1_time_event_unknown_error:
+process_uart1_time_event_finish:
           DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable transmit
           USART1_CR1 &= ~(RE); // Disable receive
-          uart1_control.status_register = status_register;
-          uart1_control.uart_callback(status_register);
-          uart1_control.locked = false;        
-        }
 
+          USART1_CR1 &= ~(IDLEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
+
+          // Clear interrupts and status registers
+          (void)USART1_SR;
+          (void)USART1_DR;
+
+          uart1_control.status_register = 0;
+          uart1_control.start = false;
+          uart1_control.locked = false;
+          uart1_control.uart_callback(status_register);      
+        }
     }
   }
 }
