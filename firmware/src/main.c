@@ -101,13 +101,15 @@ int print_text(void *ctx)
   get_solar48_date(&sd, NULL);
 
   ssd1306_SetCursor(0, 18);
-  usb_printf("\noledprintf %d\n", oled_printf(
-    "%s-%u/%u/%u\n%02d:%02d:%02d",
+  int oled_error = oled_printf(
+    "%s-%u/%u/%u\n%02d:%02d:%02d\nTemp: %0.2f oC\nVolt.: %0.2f V",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
-    (int)sd.hour, (int)sd.minute, (int)sd.second
-  ));
+    (int)sd.hour, (int)sd.minute, (int)sd.second, read_internal_temp_sensor(), read_vref()
+  );
 
-  oled_printf("\nTemp: %0.2f oC\nVolt.: %0.2f V", read_internal_temp_sensor(), read_vref());
+  if (oled_error)
+    usb_printf("Oled Error %d\n", oled_error);
+
   return 0;
 }
 
