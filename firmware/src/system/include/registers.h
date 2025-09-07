@@ -278,7 +278,12 @@ void __nvic_disable_irq(IRQn_Type);
 
 //USART1_BASE
 #define USART1_SR (*(volatile uint32_t *)(USART1_BASE + 0x00)) // Page 818: 27.6.1
+  #define RXNE (1<<5)
   #define TC (1<<6)
+  #define ORE (1<<3)
+  #define NE (1<<2)
+  #define FE (1<<1)
+  #define PE (1<<0)
 
 #define USART1_DR (*(volatile uint32_t *)(USART1_BASE + 0x04)) // Page 820: 27.6.2
 
@@ -292,6 +297,8 @@ void __nvic_disable_irq(IRQn_Type);
   #define RXNEIE (1<<5)
   #define TCIE (1<<6)
   #define TXEIE (1<<7)
+  #define PEIE (1<<8)
+  #define PCE (1<<10)
   #define UE (1<<13)
 
 // 27.6.5 Control register 2 (USART_CR2) page 823
@@ -349,12 +356,22 @@ void __nvic_disable_irq(IRQn_Type);
   #define HTIF4 (1<<14)
   #define TEIF4 (1<<15)
 
+  #define GIF5 (1<<16)
+  #define TCIF5 (1<<17)
+  #define HTIF5 (1<<18)
+  #define TEIF5 (1<<19)
+
 //13.4.2 DMA interrupt flag clear register (DMA_IFCR) Page 285
 #define DMA1_IFCR (*(volatile uint32_t *)(DMA1_BASE + 0x04))
   #define CGIF4 (1<<12)
   #define CTCIF4 (1<<13)
   #define CHTIF4 (1<<14)
   #define CTEIF4 (1<<15)
+
+  #define CGIF5 (1<<16)
+  #define CTCIF5 (1<<17)
+  #define CHTIF5 (1<<18)
+  #define CTEIF5 (1<<16)
 
 #endif
 

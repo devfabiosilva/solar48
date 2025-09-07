@@ -1,6 +1,8 @@
 #ifndef ERRORS_H
   #define ERRORS_h
 
+#include <registers.h>
+
 typedef void (*error_callback_t)(int);
 void error_handler(int error);
 
@@ -39,11 +41,17 @@ void error_handler(int error);
 
 
 // UART1 ERROR SENDING
-#define E_UART1_BUSY 180
-#define E_UART1_LOCKED 181
-#define E_UART1_TIMEOUT 182
-#define E_UART1_DMA1_CH4_TRANSMIT_ERROR 183
+#define E_UART1_BUSY 200
+#define E_UART1_LOCKED 201
+#define E_UART1_TIMEOUT 202
+#define E_UART1_DMA1_CH4_TRANSMIT_ERROR 210
+#define E_UART1_RECEIVE_ERROR_BASE 224 // Last 4 bits handles  ORE | NE | FE | PE in USART1_SR Page 818
+  #define E_UART1_RECEIVE_ERROR_PARITY (E_UART1_RECEIVE_ERROR_BASE | PE)
+  #define E_UART1_RECEIVE_ERROR_FRAME (E_UART1_RECEIVE_ERROR_BASE | FE)
+  #define E_UART1_RECEIVE_ERROR_NOISE (E_UART1_RECEIVE_ERROR_BASE | NE)
+  #define E_UART1_RECEIVE_ERROR_OVERUN (E_UART1_RECEIVE_ERROR_BASE | ORE)
 
+#define E_UART1_DMA1_CH5_RECEIVE_ERROR 230
 ///////////////////////////////////
 
 // ERROR IN PROCESS

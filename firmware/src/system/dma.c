@@ -49,6 +49,7 @@ void dma1_channel4_init(void *peripheral_address)
 
 }
 
+/*
 // Note: Used for USART1_RX only
 void dma1_channel5_init(void *memory_address, size_t memory_size, void *peripheral_address)
 {
@@ -69,4 +70,23 @@ void dma1_channel5_init(void *memory_address, size_t memory_size, void *peripher
   __nvic_set_priority(DMA1_Channel5_IRQn, DMA1_CH5_PRIO); // Set DMA1 Channel 5 interrupt Priority
   __nvic_enable_irq(DMA1_Channel5_IRQn); // Enable DMA1 Channel 5 interrupt
 }
+*/
 
+// Note: Used for USART1_RX only
+void dma1_channel5_init(void *peripheral_address)
+{
+  DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Before configure. Disable DMA1 Page 286
+  DMA1_CPAR5 = (uint32_t)peripheral_address; // Peripheral address Page 288
+
+  DMA1_CCR5 |= (
+                 DMA1_PL5_SEL(0b10) | // Priority HIGH
+                 DMA1_MINC5 |         // Memory increment mode
+                 DMA1_TCIE5 |         // Transfer complete interrupt enable
+                 DMA1_TEIE5           // DMA error interrupt enable
+               );
+
+//  DMA1_CCR5 |= DMA1_CCR5_EN; // Enable DMA1 Channel 4 for process UART1 TX
+
+  __nvic_set_priority(DMA1_Channel5_IRQn, DMA1_CH5_PRIO); // Set DMA1 Channel 5 interrupt Priority
+  __nvic_enable_irq(DMA1_Channel5_IRQn); // Enable DMA1 Channel 5 interrupt
+}

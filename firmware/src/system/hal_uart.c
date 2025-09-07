@@ -5,20 +5,25 @@
 #include <solar48_config.h>
 #include <time.h>
 
+// #define UART1_TRANSMIT_USE_BLOCK
+
 struct uart_control_t {
-  volatile bool start;                      // UART start
-  volatile bool locked;                     // UART locked
-  volatile uint8_t *next_data_ptr;          // Data pointer
-  volatile uint64_t timeout;                // UART timeout
-  volatile uint32_t status_register;        // UART status register
-  volatile int32_t block;                   // Data is divided by n x UART1_TX_RX_BUF
-  volatile int32_t left;                    // Data remaining left = data size % UART1_TX_RX_BUF
-  uart_callback_func uart_callback;         // Uart callback event
+  volatile bool start_monitore;               // UART start timeout monitore event
+  volatile bool locked;                       // UART locked
+  volatile uint64_t timeout;                  // UART timeout
+  volatile uint32_t status_register;          // UART status register
+#ifdef UART1_TRANSMIT_USE_BLOCK
+  volatile uint8_t *next_data_ptr;            // Data pointer
+  volatile int32_t block;                     // Data is divided by n x UART1_TX_RX_BUF
+  volatile int32_t left;                      // Data remaining left = data size % UART1_TX_RX_BUF
+#endif
+  uart_callback_func uart_callback;           // Uart transmit/receive callback event
 };
 
-volatile struct uart_control_t uart1_control = {0};
-
 #define UART1_TRANSFER_COMPLETE 1
+#define UART1_RECEIVE_COMPLETE 2
+
+volatile struct uart_control_t uart1_control = {0};
 
 // Solar48 uses DMA1 Channel4 for TX and DMA1 Channel5 to Receive UART1 data.
 // This layer is used in RS485 (1) in master mode
@@ -37,6 +42,7 @@ void DMA1_Channel4_IRQHandler()
 
   // Transfer complete
   if (dma1_ch4_sr & TCIF4) {
+#ifdef UART1_TRANSMIT_USE_BLOCK
 
     if (uart1_control.block > 0) {
 
@@ -54,6 +60,7 @@ void DMA1_Channel4_IRQHandler()
       DMA1_CCR4 |= (DMA1_CCR4_EN); // Enable DMA1_Channel4
 
     } else
+#endif
       uart1_control.status_register = UART1_TRANSFER_COMPLETE;
 
     return;
@@ -67,13 +74,34 @@ void DMA1_Channel4_IRQHandler()
 // DMA1 for UART1 Rx events IRQ
 void DMA1_Channel5_IRQHandler()
 {
+  uint32_t dma1_ch5_sr = DMA1_ISR;
 
+  // Clear Channel 4 global interrupts status registers
+  DMA1_IFCR = (CTEIF5|CHTIF5|CTCIF5|CGIF5);
+
+  DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+
+  // Receive complete
+  if (dma1_ch5_sr & TCIF5) {
+      uart1_control.status_register = UART1_RECEIVE_COMPLETE;
+    return;
+  }
+
+  // DMA1 error on receive
+  if (dma1_ch5_sr & TEIF5)
+    uart1_control.status_register = E_UART1_DMA1_CH5_RECEIVE_ERROR;
 }
 
 //Table 196. USART interrupt requests page 816
 void USART1_IRQHandler()
 {
-  // TODO implement uart1 error handler
+  uint32_t uart1_has_error = (USART1_SR & (ORE|NE|FE|PE));
+
+  if (uart1_has_error) {
+    USART1_CR1 &= ~(RE);  // Ensure Receive is disable
+    DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+    uart1_control.status_register = E_UART1_RECEIVE_ERROR_BASE | uart1_has_error;
+  }
 }
 
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
@@ -109,13 +137,19 @@ void init_uart1()
                );
 
   //27.6.4 Control register 1 (USART_CR1) Page: 821
-  USART1_CR1 = /*RE|*/TE;    // Enable receive/transmit
+  USART1_CR1 = (
+                 PCE| //Parit control enable
+                 /*RE|*/
+                 PEIE| // Parity error interrupt enabled
+                 TE // Transmit enable
+               );
 //  USART1_CR1 |= (IDLEIE|TCIE);  // Enable idle interrupt
   USART1_CR1 |= UE;      // Enable UART1
 
   //dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
   dma1_channel4_init((void *)&USART1_DR);
   //dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
+  dma1_channel5_init((void *)&USART1_DR);
 
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
   __nvic_enable_irq(USART1_IRQn);
@@ -127,11 +161,64 @@ inline bool uart1_is_busy()
   return (((DMA1_CCR4 & DMA1_CCR4_EN) != 0) || ((USART1_CR1 & RE) != 0));
 }
 
-enum uart_status_t uart1_transmit(
+enum uart_status_t uart1_receive(
   uint8_t *data, size_t data_size,
-  uart_callback_func uart_callback
+  uart_callback_func receive_uart_callback,
+  uint64_t timeout
 )
 {
+  if ((data != NULL) && (data_size > 0)) {
+
+    if (uart1_is_busy())
+      return UART_BUSY;
+
+    if (uart1_control.locked)
+      return UART_LOCKED;
+
+    uart1_control.locked = true;
+    uart1_control.start_monitore = false;
+
+    USART1_CR1 &= ~(RE);  // Ensure Receive is disable
+    DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+    DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
+
+    USART1_CR1 &= ~(RXNEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
+    // Clear any status register
+    (void)USART1_SR;
+    (void)USART1_DR;
+
+    USART1_CR1 |= (RXNEIE); // Enable UART1 RX not empty (data to be read) interrupt enable after cleaning status register and data
+
+    // Clear Channel 5 global interrupts status registers
+    DMA1_IFCR = (CTEIF5|CHTIF5|CTCIF5|CGIF5);
+
+    DMA1_CMAR5 = (uint32_t)data; // Memory address Page 288
+    DMA1_CNDTR5 = (uint16_t)data_size; // Memory size
+
+    uart1_control.status_register = 0;
+    uart1_control.uart_callback = receive_uart_callback;
+
+    uart1_control.timeout = timeout;
+    init_timeout_ms((uint64_t *)&uart1_control.timeout);
+    uart1_control.start_monitore = true;
+
+    DMA1_CCR5 |= DMA1_CCR5_EN; // Enable DMA1 Channel 5 receive
+    USART1_CR1 |= RE;  // Ensure Receive is enable
+  }
+ 
+  return UART_OK;
+}
+
+enum uart_status_t uart1_transmit(
+  uint8_t *data, size_t data_size,
+  uart_callback_func transmit_uart_callback,
+  uint64_t timeout
+)
+{
+
+  if ((data == NULL) || (data_size == 0))
+    return UART_OK;
+
   if (uart1_is_busy())
     return UART_BUSY;
 
@@ -139,25 +226,29 @@ enum uart_status_t uart1_transmit(
     return UART_LOCKED;
 
   uart1_control.locked = true;
+  uart1_control.start_monitore = false;
 
-  DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
+  DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4 (transmit)
+  DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5 (receive)
+  USART1_CR1 &= ~(RE);  // Ensure Receive is disable (receive)
 
-  USART1_CR1 &= ~(IDLEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
+  USART1_CR1 &= ~(RXNEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
   // Clear any status register
   (void)USART1_SR;
   (void)USART1_DR;
 
-  USART1_CR1 |= (IDLEIE|TCIE); // Enable UART1 interrupt enable after cleaning status register and data
+  USART1_CR1 |= (TCIE); // Enable UART1 interrupt enable after cleaning status register and data
 
   // Clear Channel 4 global interrupts status registers
-  DMA1_IFCR |= (CTEIF4|CHTIF4|CTCIF4|CGIF4);
+  DMA1_IFCR = (CTEIF4|CHTIF4|CTCIF4|CGIF4);
+
+  uart1_control.status_register = 0;
+  uart1_control.uart_callback = transmit_uart_callback;
 
   DMA1_CMAR4 = (uint32_t)data; // Memory address Page 288
 
+#ifdef UART1_TRANSMIT_USE_BLOCK
   uart1_control.next_data_ptr = data;
-  uart1_control.status_register = 0;
-  uart1_control.uart_callback = uart_callback;
-
   int32_t block = (int32_t)data_size / UART1_TX_RX_BUF;
   int32_t left = (int32_t)data_size % UART1_TX_RX_BUF;
 
@@ -170,19 +261,22 @@ enum uart_status_t uart1_transmit(
 
   uart1_control.block = block;
   uart1_control.left = left;
+#else
+  DMA1_CNDTR4 = (uint16_t)data_size;
+#endif
 
-  uart1_control.timeout = 50; // 50 ms timeout for test
+  uart1_control.timeout = timeout;
   init_timeout_ms((uint64_t *)&uart1_control.timeout);
-  uart1_control.start = true;
+  uart1_control.start_monitore = true;
 
-  DMA1_CCR4 |= DMA1_CCR4_EN;
+  DMA1_CCR4 |= DMA1_CCR4_EN; // Enable DMA1 Channel 4 transmit
 
   return UART_OK;
 }
 
 void process_uart1_time_event()
 {
-  if (uart1_control.start) {
+  if (uart1_control.start_monitore) {
 
     uint32_t status_register = (uint32_t)uart1_control.status_register;
 
@@ -193,10 +287,15 @@ void process_uart1_time_event()
           else if (is_timeout_ms((uint64_t *)&uart1_control.timeout))
             goto process_uart1_time_event_timeout_error;
         break;
-      //case E_UART1_DMA1_CH4_TRANSMIT_ERROR:
+      case UART1_RECEIVE_COMPLETE:
+          if (USART1_SR & RXNE)
+            goto process_uart1_time_event_finish;
+          else if (is_timeout_ms((uint64_t *)&uart1_control.timeout))
+            goto process_uart1_time_event_timeout_error;
+        break;
       default:
 
-        if (status_register) // Unknown error | E_UART1_DMA1_CH4_TRANSMIT_ERROR
+        if (status_register) // Unknown error
           goto process_uart1_time_event_finish;
 
         if (is_timeout_ms((uint64_t *)&uart1_control.timeout)) {
@@ -205,19 +304,20 @@ process_uart1_time_event_timeout_error:
           status_register = E_UART1_TIMEOUT;
 
 process_uart1_time_event_finish:
-          DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable transmit
-          USART1_CR1 &= ~(RE); // Disable receive
+          DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Ensure Disable DMA1_Channel4
+          DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Ensure Disable DMA1_Channel5
+          USART1_CR1 &= ~(RE);  // Ensure Receive is disable
 
-          USART1_CR1 &= ~(IDLEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
+          USART1_CR1 &= ~(RXNEIE|TCIE); // Ensure Disable UART1 interrupt enable before cleaning status register and data
 
           // Clear interrupts and status registers
           (void)USART1_SR;
           (void)USART1_DR;
 
           uart1_control.status_register = 0;
-          uart1_control.start = false;
+          uart1_control.start_monitore = false;
           uart1_control.locked = false;
-          uart1_control.uart_callback(status_register);      
+          uart1_control.uart_callback(status_register);
         }
     }
   }
