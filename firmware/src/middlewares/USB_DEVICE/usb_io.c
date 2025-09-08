@@ -97,6 +97,9 @@ int usb_send_chunk(uint8_t **msg, size_t *msg_len)
   if (cdc_transmit_is_busy())
     return E_USB_SEND_CHUNK_INIT_BUSY;
 
+  if (is_timeout_ms(&timeout_ms))
+    return E_USB_SEND_CHUNK_INIT_TIMEOUT;
+
   while (*msg) {
     if (*msg_len > 0) {
      if (CDC_Transmit_FS(*msg, *msg_len) != USBD_OK)
@@ -110,8 +113,11 @@ int usb_send_chunk(uint8_t **msg, size_t *msg_len)
 
      while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
 
-     if (cdc_transmit_is_busy() && msg[1] != NULL)
+     if (cdc_transmit_is_busy())
        return E_USB_SEND_CHUNK_BUSY;
+
+     if (is_timeout_ms(&timeout_ms))
+       return E_USB_SEND_CHUNK_TIMEOUT;
     }
     ++msg;
     ++msg_len;
