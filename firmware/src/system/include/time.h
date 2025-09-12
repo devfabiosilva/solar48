@@ -5,9 +5,18 @@
 
 uint64_t milliseconds();
 
-void init_timeout_ms(uint64_t *timeout_ms);
+//void init_timeout_ms(uint64_t *);
 
-bool is_timeout_ms(uint64_t *timeout_ms);
+//bool is_timeout_ms(uint64_t *);
+
+typedef struct timeout_t {
+  uint32_t val_cnt_current;
+  uint32_t timeout_ms;
+} TIMEOUT_MS;
+
+void init_timeout_ms(TIMEOUT_MS *, uint32_t);
+
+bool is_timeout_ms(TIMEOUT_MS *);
 
 #ifdef RTOS_SOLAR48
 

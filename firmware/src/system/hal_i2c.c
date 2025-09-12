@@ -7,7 +7,12 @@
 #include <stdbool.h>
 #include <solar48_config.h>
 
+
+#ifdef USE_OLD
 extern volatile uint64_t milliseconds();
+#else
+  #include <time.h>
+#endif
 volatile bool i2c1_lock;
 
 void hal_i2c1_init()
@@ -56,6 +61,8 @@ void hal_i2c1_init()
   I2C1_CR1 |= PE;
 
 }
+
+#ifdef USE_OLD
 
 #define CHECK_I2C_NACK_OR_TIMEOUT(fn, errorCode) \
   if (I2C1_SR1 & AF) {\
@@ -154,6 +161,111 @@ hal_i2c1_write_finish:
 
   return I2C1_SUCCESS;
 }
+
+#else
+
+#define CHECK_I2C_NACK_OR_TIMEOUT(fn, errorCode) \
+  if (I2C1_SR1 & AF) {\
+    err = errorCode##_NACK;\
+    goto fn##_finish;\
+  }\
+\
+  if (is_timeout_ms(&timing)) {\
+    err = errorCode##_TIMEOUT;\
+    goto fn##_finish;\
+  }
+
+//760 Page master transmitting
+enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t *data, uint16_t data_size, uint32_t timeout)
+{
+
+  if (data_size == 0 || data == NULL)
+    return I2C1_SUCCESS;
+
+  if (i2c1_lock)
+    return I2C1_PORT_BUSY;
+
+  i2c1_lock = true;
+
+  enum i2c1_err_e err = I2C1_SUCCESS;
+  //uint64_t timing = milliseconds() + timeout;
+  TIMEOUT_MS timing;
+
+  init_timeout_ms(&timing, timeout);
+
+  // Check if bus is busy
+  while ((I2C1_SR2 & BUSY) && (!is_timeout_ms(&timing)));
+
+  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_BUSY_BUS)
+
+  I2C1_SR1 &= ~AF; // Clear ACK Failure bit
+  I2C1_SR1 &= ~(POS); // Clear POS
+
+  // Generating start
+  I2C1_CR1 |= START;
+  while ((!(I2C1_SR1 & SB)) && (!is_timeout_ms(&timing)));
+
+  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_START_BUS)
+
+  // Begin address send
+  (void)I2C1_SR1;  // Clear bit SB
+  I2C1_DR = (dev_address << 1);  // Write bit (R/W = 0)
+
+  while ((!(I2C1_SR1 & ADDR)) && (!is_timeout_ms(&timing)));
+  //This bit is cleared by software reading SR1 register followed reading SR2, or by hardware when PE=0. page: 780
+  (void)I2C1_SR1;
+  (void)I2C1_SR2;
+
+  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_ADDRESS_BUS)
+
+  I2C1_DR = (uint8_t)mem_address; // Add memory address
+  //while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
+
+  //CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
+
+  while (data_size > 0) {
+    while ((!(I2C1_SR1 & TxE)) && (!is_timeout_ms(&timing))); // Waiting for ACK or timeout
+
+    CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
+
+    I2C1_DR = (uint8_t)*data;
+
+    --data_size;
+    ++data;
+
+    if ((I2C1_SR1 & BTF) && (data_size > 0)) {
+      I2C1_DR = (uint8_t)*data;
+
+      --data_size;
+      ++data;
+    }
+
+    while ((!(I2C1_SR1 & BTF)) && (!is_timeout_ms(&timing)));
+
+    CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_STOP_BUS);
+  }
+
+hal_i2c1_write_finish:
+
+  if (err != I2C1_SUCCESS) {
+    if (I2C1_SR1 & AF) {
+      I2C1_SR1 &= ~AF;
+      I2C1_CR1 |= STOP;
+    }
+
+    i2c1_lock = false;
+
+    return err;
+  }
+
+  I2C1_CR1 |= STOP; //// Generating stop
+
+  i2c1_lock = false;
+
+  return I2C1_SUCCESS;
+}
+
+#endif
 
 //https://freertos.org/Documentation/02-Kernel/04-API-references/05-Direct-to-task-notifications/08-xTaskNotifyWait
 /*

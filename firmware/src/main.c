@@ -37,7 +37,7 @@ void setup()
   init_gpios();
   init_sensors();
 
-  init_idw();
+  //init_idw();
 
   END_SETUP // Enable all interrupts
 }
@@ -96,16 +96,28 @@ void run(void)
 #ifdef RTOS_SOLAR48
 //TODO refactor. Will be removed to rtc.c
 
+//#define SHOW_ALL
+
 int print_text(void *ctx)
 {
   get_solar48_date(&sd, NULL);
 
   ssd1306_SetCursor(0, 18);
-  int oled_error = oled_printf(
+
+  int oled_error =
+#ifdef SHOW_ALL
+  oled_printf(
     "%s-%u/%u/%u\n%02d:%02d:%02d\nTemp: %0.2f oC\nVolt.: %0.2f V",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second, read_internal_temp_sensor(), read_vref()
   );
+#else
+  oled_printf(
+    "%s-%u/%u/%u\n%02d:%02d:%02d",
+    get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
+    (int)sd.hour, (int)sd.minute, (int)sd.second
+  );
+#endif
 
   if (oled_error)
     usb_printf("Oled Error %d\n", oled_error);
@@ -117,9 +129,9 @@ void realtime(uint32_t time)
 {
   if (!err) {
     if (!add_process_int_int(print_text, NULL))
-      usb_printf("\nProcess busy\n");
+      usb_printf("\nRealtime: Process busy\n");
   } else
-    usb_printf("Error %d\n", err);
+    usb_printf("Oled Error %d\n", err);
 }
 
 #else

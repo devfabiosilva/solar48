@@ -52,16 +52,19 @@ void init_uart1();
 enum uart_status_t uart1_transmit(
   uint8_t *, size_t,
   uart_callback_func,
-  uint64_t;
+  uint32_t;
 );
 
 enum uart_status_t uart1_receive(
   uint8_t *, size_t,
   uart_callback_func,
-  uint64_t
+  uint32_t
 );
 
 bool uart1_is_busy();
+
+#define UART1_TRANSFER_COMPLETE 1
+#define UART1_RECEIVE_COMPLETE 2
 
 #endif
 

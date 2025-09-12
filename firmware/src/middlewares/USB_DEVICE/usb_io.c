@@ -57,9 +57,9 @@ int usb_printf(const char *fmt, ...)
   _ssize_t len;
   va_list arg;
 
-  uint64_t timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
+  TIMEOUT_MS timeout_ms;
 
-  init_timeout_ms(&timeout_ms);
+  init_timeout_ms(&timeout_ms, USB_TRANSMIT_TIMEOUT_MS);
 
   while ( (cdc_transmit_is_busy()) && (!is_timeout_ms(&timeout_ms)) );
 
@@ -86,9 +86,11 @@ int usb_printf(const char *fmt, ...)
 
 int usb_send_chunk(uint8_t **msg, size_t *msg_len)
 {
-  uint64_t timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
+//  uint64_t timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
 
-  init_timeout_ms(&timeout_ms);
+  TIMEOUT_MS timeout_ms;
+
+  init_timeout_ms(&timeout_ms, USB_TRANSMIT_TIMEOUT_MS);
 
   iwd_refresh();
 
@@ -105,9 +107,9 @@ int usb_send_chunk(uint8_t **msg, size_t *msg_len)
      if (CDC_Transmit_FS(*msg, *msg_len) != USBD_OK)
        return E_USB_SEND_CHUNK_SEND_FAIL;
 
-     timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
+//     timeout_ms = USB_TRANSMIT_TIMEOUT_MS;
 
-     init_timeout_ms(&timeout_ms);
+     init_timeout_ms(&timeout_ms, USB_TRANSMIT_TIMEOUT_MS);
 
      iwd_refresh();
 
@@ -170,9 +172,9 @@ int usb_receive_complete_process(void *ctx)
 {
 
   int err = 0;
-  uint64_t timeout_ms = 16;
+  TIMEOUT_MS timeout_ms;
 
-  init_timeout_ms(&timeout_ms);
+  init_timeout_ms(&timeout_ms, USB_RECEIVE_TIMEOUT_MS);
 
   if (text_sz <= 2) {
     err = -2;
@@ -193,7 +195,7 @@ int usb_receive_complete_process(void *ctx)
 
 usb_receive_complete_process_finish:
   last_usb_error = 0;
-  while (!is_timeout_ms(&timeout_ms));
+  while (!is_timeout_ms(&timeout_ms)); // Reduce transfer speed due to avoid attacks and exploits
 
   usb_io_locked = false;
 

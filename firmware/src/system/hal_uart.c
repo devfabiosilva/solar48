@@ -10,7 +10,7 @@
 struct uart_control_t {
   volatile bool start_monitore;               // UART start timeout monitore event
   volatile bool locked;                       // UART locked
-  volatile uint64_t timeout;                  // UART timeout
+  volatile TIMEOUT_MS timeout;                // UART timeout
   volatile uint32_t status_register;          // UART status register
 #ifdef UART1_TRANSMIT_USE_BLOCK
   volatile uint8_t *next_data_ptr;            // Data pointer
@@ -19,9 +19,6 @@ struct uart_control_t {
 #endif
   uart_callback_func uart_callback;           // Uart transmit/receive callback event
 };
-
-#define UART1_TRANSFER_COMPLETE 1
-#define UART1_RECEIVE_COMPLETE 2
 
 volatile struct uart_control_t uart1_control = {0};
 
@@ -164,7 +161,7 @@ inline bool uart1_is_busy()
 enum uart_status_t uart1_receive(
   uint8_t *data, size_t data_size,
   uart_callback_func receive_uart_callback,
-  uint64_t timeout
+  uint32_t timeout
 )
 {
   if ((data != NULL) && (data_size > 0)) {
@@ -198,8 +195,8 @@ enum uart_status_t uart1_receive(
     uart1_control.status_register = 0;
     uart1_control.uart_callback = receive_uart_callback;
 
-    uart1_control.timeout = timeout;
-    init_timeout_ms((uint64_t *)&uart1_control.timeout);
+    //uart1_control.timeout = timeout;
+    init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);
     uart1_control.start_monitore = true;
 
     DMA1_CCR5 |= DMA1_CCR5_EN; // Enable DMA1 Channel 5 receive
@@ -212,7 +209,7 @@ enum uart_status_t uart1_receive(
 enum uart_status_t uart1_transmit(
   uint8_t *data, size_t data_size,
   uart_callback_func transmit_uart_callback,
-  uint64_t timeout
+  uint32_t timeout
 )
 {
 
@@ -265,8 +262,8 @@ enum uart_status_t uart1_transmit(
   DMA1_CNDTR4 = (uint16_t)data_size;
 #endif
 
-  uart1_control.timeout = timeout;
-  init_timeout_ms((uint64_t *)&uart1_control.timeout);
+  //uart1_control.timeout = timeout;
+  init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);
   uart1_control.start_monitore = true;
 
   DMA1_CCR4 |= DMA1_CCR4_EN; // Enable DMA1 Channel 4 transmit
@@ -284,13 +281,13 @@ void process_uart1_time_event()
       case UART1_TRANSFER_COMPLETE:
           if (USART1_SR & TC)
             goto process_uart1_time_event_finish;
-          else if (is_timeout_ms((uint64_t *)&uart1_control.timeout))
+          else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
             goto process_uart1_time_event_timeout_error;
         break;
       case UART1_RECEIVE_COMPLETE:
           if (USART1_SR & RXNE)
             goto process_uart1_time_event_finish;
-          else if (is_timeout_ms((uint64_t *)&uart1_control.timeout))
+          else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
             goto process_uart1_time_event_timeout_error;
         break;
       default:
@@ -298,7 +295,7 @@ void process_uart1_time_event()
         if (status_register) // Unknown error
           goto process_uart1_time_event_finish;
 
-        if (is_timeout_ms((uint64_t *)&uart1_control.timeout)) {
+        if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout)) {
 
 process_uart1_time_event_timeout_error:
           status_register = E_UART1_TIMEOUT;
