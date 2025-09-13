@@ -64,6 +64,7 @@
 
 //BEGIN Clock->RCC_APB1RSTR (Page 111)
 #define RCC_AHBENR (*(volatile uint32_t *)(RCC_BASE + 0x14))
+  #define DMA1EN (1<<0)
 //TODO implement read/sets for RCC_APB1RSTR if needed
 //END Clock->RCC_APB1RSTR
 
@@ -278,6 +279,7 @@ void __nvic_disable_irq(IRQn_Type);
 
 //USART1_BASE
 #define USART1_SR (*(volatile uint32_t *)(USART1_BASE + 0x00)) // Page 818: 27.6.1
+  #define CTS (1<<9)
   #define RXNE (1<<5)
   #define TC (1<<6)
   #define ORE (1<<3)
@@ -299,6 +301,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define TXEIE (1<<7)
   #define PEIE (1<<8)
   #define PCE (1<<10)
+  #define M (1<<12)
   #define UE (1<<13)
 
 // 27.6.5 Control register 2 (USART_CR2) page 823
@@ -371,7 +374,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define CGIF5 (1<<16)
   #define CTCIF5 (1<<17)
   #define CHTIF5 (1<<18)
-  #define CTEIF5 (1<<16)
+  #define CTEIF5 (1<<19)
 
 #endif
 

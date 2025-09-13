@@ -1,6 +1,7 @@
 #include <registers.h>
 #include <core_cm3.h>
 #include <watchdog.h>
+#include <time.h>
 
 //#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
 
@@ -10,7 +11,6 @@ static volatile uint64_t tick = 0;
 // RTOS in Solar48
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
-#include <time.h>
 
 /* FreeRTOS tick timer interrupt handler prototype */
 extern void xPortSysTickHandler (void);
@@ -90,6 +90,9 @@ bool is_timeout_ms(TIMEOUT_MS *type_timeout_ms)
   if (current_val > type_timeout_ms->val_cnt_current)
     if (type_timeout_ms->timeout_ms)
       type_timeout_ms->timeout_ms--;
+
+  // TODO replace
+  iwd_refresh();
 
   type_timeout_ms->val_cnt_current = current_val;
 

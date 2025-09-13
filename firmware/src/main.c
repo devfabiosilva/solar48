@@ -37,7 +37,7 @@ void setup()
   init_gpios();
   init_sensors();
 
-  //init_idw();
+  init_idw();
 
   END_SETUP // Enable all interrupts
 }
@@ -74,6 +74,35 @@ void run(void)
 
 #else
 
+void uart_rcv(int status)
+{
+   ssd1306_SetCursor(0, 50);
+
+   switch (status) {
+     case UART1_TRANSFER_COMPLETE:
+       oled_printf("Success");
+       break;
+     default:
+       oled_printf("Fail %d", status);
+   }
+}
+
+uint32_t cnt = 0;
+void test_uart1_transmit()
+{
+
+  enum uart_status_t uart_status;
+
+  ssd1306_SetCursor(0, 40);
+  uart_status = uart1_transmit(&cnt, sizeof(cnt), uart_rcv, 10);
+  if (uart_status == UART_OK)
+    oled_printf("UART send byte %d", (int)cnt);
+  else
+    oled_printf("UART error %d", (int)uart_status);
+
+  ++cnt;
+}
+
 void run(void)
 {
 //  usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
@@ -84,9 +113,10 @@ void run(void)
   usb_printf("\nReady ...\n\n");
   while (1) {
     run_process_int_int();
-    process_uart_time_event();
+    process_uart1_time_event();
     run_process_int_ext();
     run_process();
+    test_uart1_transmit();
     delay(1);
   }
 }
@@ -150,7 +180,7 @@ void realtime(uint32_t time)
     (int)sd.hour, (int)sd.minute, (int)sd.second
   );
 
-  oled_printf("\nTemp: %0.2f oC\nVolt.: %0.2f V", read_internal_temp_sensor(), read_vref());
+  //oled_printf("\nTemp: %0.2f oC\nVolt.: %0.2f V", read_internal_temp_sensor(), read_vref());
 
   if (blink) {
     ledon();
