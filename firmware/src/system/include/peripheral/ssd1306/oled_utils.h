@@ -4,6 +4,7 @@
 #include <peripheral/ssd1306/ssd1306.h>
 
 int oled_printf(const char *, ...);
+int _oled_printf_panic(const char *, ...);
 
 typedef enum font_size_e {
   FONT__DEFAULT = 1, //FONT__7x10

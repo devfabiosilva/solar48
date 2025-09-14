@@ -16,6 +16,7 @@
 #define _SSD1306_H
 
 #include <peripheral/ssd1306/fonts.h>
+#include <stdbool.h>
 
 // SSD1306 width in pixels
 #ifndef SSD1306_WIDTH
@@ -61,16 +62,18 @@ typedef struct {
 int ssd1306_Init();
 //void ssd1306_UpdateScreen();
 int ssd1306_UpdateScreen_ret();
+int ssd1306_UpdateScreen_ret_hold();
 void ssd1306_Fill(SSD1306_COLOR color);
-void ssd1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color);
+//void ssd1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color);
 char ssd1306_WriteChar(char ch, FontDef Font, SSD1306_COLOR color);
-char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color);
-void ssd1306_SetCursor(uint8_t x, uint8_t y);
+//char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color);
+void ssd1306_SetCursor(uint8_t, uint8_t);
+bool ssd1306_SetCursor_ret(uint8_t, uint8_t);
+int ssd1306_SetCursor_ret_hold(uint8_t, uint8_t);
 void ssd1306_InvertColors(void);
 
 uint16_t ssd1306_GetCursorX();
 uint16_t ssd1306_GetCursorY();
-
-#define ssd1306_UpdateScreen ssd1306_UpdateScreen_ret
+int ssd1306_UpdateScreen();
 
 #endif  // _SSD1306_H

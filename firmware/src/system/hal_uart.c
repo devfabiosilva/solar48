@@ -136,20 +136,19 @@ void init_uart1()
                   DMAR | // DMA enable receiver
                   EIE    // Error interrupt enable
                );
-//USART1_CR3 &= ~(CTSE | RTSE);
+
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART1_CR1 = (
-                 //PCE|M|  //Parit control enable and stop bit + 9 bit
+                 PCE|M|  //Parit control enable and stop bit + 9 bit
                  /*RE|*/
                  PEIE| // Parity error interrupt enabled
                  TE // Transmit enable
                );
-//  USART1_CR1 |= (IDLEIE|TCIE);  // Enable idle interrupt
+
   USART1_CR1 |= UE;      // Enable UART1
 
-  //dma1_channel4_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
+
   dma1_channel4_init((void *)&USART1_DR);
-  //dma1_channel5_init((void *)&uart1_tx_rx[0], sizeof(uart1_tx_rx), (void *)&USART1_DR);
   dma1_channel5_init((void *)&USART1_DR);
 
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
@@ -183,7 +182,7 @@ enum uart_status_t uart1_receive(
     DMA1_CCR5 &= ~(DMA1_CCR5_EN);  // Disable DMA1_Channel5
     DMA1_CCR4 &= ~(DMA1_CCR4_EN);  // Disable DMA1_Channel4
 
-    USART1_CR1 &= ~(RXNEIE|TCIE); // Disable UART1 interrupt enable before cleaning status register and data
+    USART1_CR1 &= ~(RXNEIE); // Disable UART1 interrupt enable before cleaning status register and data
     // Clear any status register
     (void)USART1_SR;
     (void)USART1_DR;
@@ -199,7 +198,6 @@ enum uart_status_t uart1_receive(
     uart1_control.status_register = 0;
     uart1_control.uart_callback = receive_uart_callback;
 
-    //uart1_control.timeout = timeout;
     init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);
     uart1_control.start_monitore = true;
 
@@ -237,8 +235,6 @@ enum uart_status_t uart1_transmit(
   // Clear any status register
   (void)USART1_SR;
   (void)USART1_DR;
-
-//  USART1_CR1 |= (TCIE); // Enable UART1 interrupt enable after cleaning status register and data TODO. Revmove
 
   // Clear Channel 4 global interrupts status registers
   DMA1_IFCR = (CTEIF4|CHTIF4|CTCIF4|CGIF4);
@@ -309,7 +305,7 @@ process_uart1_time_event_finish:
           DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Ensure Disable DMA1_Channel5
           USART1_CR1 &= ~(RE);  // Ensure Receive is disable
 
-          USART1_CR1 &= ~(RXNEIE|TCIE); // Ensure Disable UART1 interrupt enable before cleaning status register and data
+          USART1_CR1 &= ~(RXNEIE); // Ensure Disable UART1 interrupt enable before cleaning status register and data
 
           // Clear interrupts and status registers
           (void)USART1_SR;
@@ -323,18 +319,4 @@ process_uart1_time_event_finish:
     }
   }
 }
-//USART1_CR3 &= ~(CTSE | RTSE);
 
-/*
-inline bool uart1_is_busy()
-{
-    bool tx_active = (DMA1_CCR4 & DMA1_CCR4_EN) != 0;        // DMA ainda transferindo
-    bool tx_not_complete = ((USART1_SR & TC) == 0);          // último byte ainda não saiu
-
-    bool rx_active = (DMA1_CCR5 & DMA1_CCR5_EN) != 0;        // DMA RX habilitado
-    bool rx_in_progress = (USART1_SR & RXNE) != 0;           // byte ainda não lido
-
-    return tx_active || tx_not_complete || rx_active || rx_in_progress;
-}
-
-*/

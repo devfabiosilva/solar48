@@ -87,14 +87,14 @@ void uart_rcv(int status)
    }
 }
 
-uint32_t cnt = 0;
+uint64_t cnt = 0;
 void test_uart1_transmit()
 {
 
   enum uart_status_t uart_status;
 
   ssd1306_SetCursor(0, 40);
-  uart_status = uart1_transmit(&cnt, sizeof(cnt), uart_rcv, 10);
+  uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
   if (uart_status == UART_OK)
     oled_printf("UART send byte %d", (int)cnt);
   else

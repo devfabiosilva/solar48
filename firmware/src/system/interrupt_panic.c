@@ -23,6 +23,17 @@ static void panic_wait()
 
 #else
  #include <peripheral/ssd1306/oled_utils.h>
+ extern volatile bool oled_util_lock;
+ extern volatile bool update_screen_idle;
+ extern volatile bool oled_buffer_idle;
+
+ #define OLED_PANIC_PREPARE \
+   oled_util_lock = true; \
+   update_screen_idle = false; \
+   oled_buffer_idle = false; \
+   ssd1306_Fill(Black); \
+   ssd1306_SetCursor(0, 0);
+
 #endif
 
 #ifdef RTOS_SOLAR48
@@ -58,7 +69,7 @@ void prvGetRegistersFromStack( uint32_t *pulFaultStackAddress )
 
   panic_wait();
 #else
-  oled_printf(
+  _oled_printf_panic(
     "r0=%08x\nr1=%08x\nr2=%08x\nr3=%08x\nr12=%08x\nlr=%08x\npc=%08x\npsr=%08x\n",
     pulFaultStackAddress[ 0 ],
     pulFaultStackAddress[ 1 ],
@@ -170,9 +181,8 @@ void halt()
   panic_wait();
   usb_printf("\nHALT\n\n");
 #else
-  ssd1306_Fill(Black);
-  ssd1306_SetCursor(0, 0);
-  oled_printf("HALT");
+  OLED_PANIC_PREPARE
+  _oled_printf_panic("HALT");
   ssd1306_SetCursor(0, 12);
 #endif
 
@@ -189,9 +199,8 @@ void halt_ir()
   panic_wait();
   usb_printf("\nHALT IRQ = %s\n\n", panic_irq);
 #else
-  ssd1306_Fill(Black);
-  ssd1306_SetCursor(0, 0);
-  oled_printf("HALT IRQ = %s", panic_irq);
+  OLED_PANIC_PREPARE
+  _oled_printf_panic("HALT IRQ = %s", panic_irq);
   ssd1306_SetCursor(0, 12);
 #endif
 
@@ -214,9 +223,8 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
   panic_wait();
   usb_printf("\nTask = %p halted: %s\n\n", xTask, pcTaskName);
 #else
-  ssd1306_Fill(Black);
-  ssd1306_SetCursor(0, 0);
-  oled_printf("Task = %p halted: %s", xTask, pcTaskName);
+  OLED_PANIC_PREPARE
+  _oled_printf_panic("Task = %p halted: %s", xTask, pcTaskName);
   ssd1306_SetCursor(0, 12);
 #endif
   halt_rtos();
@@ -229,9 +237,8 @@ void vApplicationMallocFailedHook(void)
   panic_wait();
   usb_printf("\nFailed malloc\n");
 #else
-  ssd1306_Fill(Black);
-  ssd1306_SetCursor(0, 0);
-  oled_printf("Failed malloc");
+  OLED_PANIC_PREPARE
+  _oled_printf_panic("Failed malloc");
   ssd1306_SetCursor(0, 12);
 #endif
   halt_rtos();

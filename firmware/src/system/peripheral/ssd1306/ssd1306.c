@@ -3,14 +3,22 @@
 #include <system.h>
 #include <watchdog.h>
 #include <hal_i2c.h>
+#include <errors.h>
+#include <solar48_config.h>
+#include <time.h>
+#include <stdbool.h>
+
+// Added to avoid async access. TRUE if no process using transfer buffer memory to OLED driver
+volatile bool update_screen_idle = true;
+
+// Added to avoid async access. TRUE if no process is updating oled buffer
+volatile bool oled_buffer_idle = true;
 
 // Screenbuffer
 static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
 
 // Screen object
 static SSD1306_t SSD1306;
-
-extern uint64_t milliseconds();
 
 //
 //  Send a byte to the command register
@@ -33,9 +41,10 @@ int ssd1306_Init()
 
     SSD1306.Initialized = 1;
 
-    uint64_t delay_ms = milliseconds() + 100; // 100ms
+    TIMEOUT_MS timeout;
+    init_timeout_ms(&timeout, OLED_INITIALIZE_TIME_MS);
 
-    while (delay_ms > milliseconds());
+    while (!is_timeout_ms(&timeout));
 
     int status = 0;
 
@@ -89,8 +98,6 @@ int ssd1306_Init()
     SSD1306.CurrentX = 0;
     SSD1306.CurrentY = 0;
 
-//    SSD1306.Initialized = 1;
-
     return 0;
 }
 
@@ -111,24 +118,64 @@ void ssd1306_Fill(SSD1306_COLOR color)
 //
 //  Write the screenbuffer with changed to the screen
 //
+
+int ssd1306_UpdateScreen()
+{
+  uint8_t i;
+
+  int status  = 0; // Added. status avoids long delay and does not starts watchdog.
+
+  for (i = 0; i < 8; i++) {
+    iwd_refresh();
+    status = ssd1306_WriteCommand(0xB0 + i);
+    status += ssd1306_WriteCommand(0x00);
+    status += ssd1306_WriteCommand(0x10);
+
+    status += hal_i2c1_write(SSD1306_I2C_ADDR, 0x40, &SSD1306_Buffer[SSD1306_WIDTH * i], SSD1306_WIDTH, 100);
+
+    if (status)
+      break;
+  }
+
+  return status;
+}
+
 int ssd1306_UpdateScreen_ret()
 {
-    uint8_t i;
+  if (update_screen_idle) {
+    update_screen_idle = false;
 
-   int status  = 0; // Added. status avoids long delay and does not starts watchdog.
-    for (i = 0; i < 8; i++) {
-        iwd_refresh();
-        status = ssd1306_WriteCommand(0xB0 + i);
-        status += ssd1306_WriteCommand(0x00);
-        status += ssd1306_WriteCommand(0x10);
+    int status = ssd1306_UpdateScreen();
 
-        status += hal_i2c1_write(SSD1306_I2C_ADDR, 0x40, &SSD1306_Buffer[SSD1306_WIDTH * i], SSD1306_WIDTH, 100);
+    update_screen_idle = true;
 
-        if (status)
-          break;
+    return status;
+  }
+
+  return E_OLED_BUFFER_TRANSFER_BUSY;
+}
+
+// Added to avoid async access. Check if BUSY. If so, try with timeout
+int ssd1306_UpdateScreen_ret_hold()
+{
+  int status = ssd1306_UpdateScreen_ret();
+
+  // try again with timeout
+  if (status == E_OLED_BUFFER_TRANSFER_BUSY) {
+    TIMEOUT_MS timeout;
+    init_timeout_ms(&timeout, OLED_BUFFER_TRANSFER_TIMEOUT_MS);
+
+    while ((status = ssd1306_UpdateScreen_ret()) == E_OLED_BUFFER_TRANSFER_BUSY) {
+      if (!is_timeout_ms(&timeout)) {
+        iwd_refresh(); // Reset watchdog
+        continue;
+      }
+
+      return E_OLED_BUFFER_TRANSFER_BUSY_TIMEOUT;
     }
+  }
 
-   return status;
+  return status;
 }
 
 //
@@ -137,7 +184,7 @@ int ssd1306_UpdateScreen_ret()
 //  Y => Y Coordinate
 //  color => Pixel color
 //
-void ssd1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color)
+static void ssd1306_DrawPixel(uint8_t x, uint8_t y, SSD1306_COLOR color)
 {
     if (x >= SSD1306_WIDTH || y >= SSD1306_HEIGHT)
     {
@@ -208,7 +255,9 @@ char ssd1306_WriteChar(char ch, FontDef Font, SSD1306_COLOR color)
 //
 //  Write full string to screenbuffer
 //
-char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color)
+/*
+//TODO Remove it. use oled_printf instead
+static char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color)
 {
     // Write until null-byte
     while (*str)
@@ -226,7 +275,7 @@ char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color)
     // Everything ok
     return *str;
 }
-
+*/
 //
 //  Invert background/foreground colors
 //
@@ -235,15 +284,50 @@ void ssd1306_InvertColors(void)
     SSD1306.Inverted = !SSD1306.Inverted;
 }
 
-//
-//  Set cursor position
-//
-void ssd1306_SetCursor(uint8_t x, uint8_t y)
+inline void ssd1306_SetCursor(uint8_t x, uint8_t y)
 {
-    SSD1306.CurrentX = x;
-    SSD1306.CurrentY = y;
+   SSD1306.CurrentX = x;
+   SSD1306.CurrentY = y;
 }
 
+#define SSD1306_SET_CURSOR_BUILD \
+  oled_buffer_idle = false; \
+  SSD1306.CurrentX = x; \
+  SSD1306.CurrentY = y; \
+  oled_buffer_idle = true;
+
+bool ssd1306_SetCursor_ret(uint8_t x, uint8_t y)
+{
+  if (oled_buffer_idle) {
+    SSD1306_SET_CURSOR_BUILD
+  }
+
+  return oled_buffer_idle;
+}
+
+int ssd1306_SetCursor_ret_hold(uint8_t x, uint8_t y)
+{
+  if (oled_buffer_idle) {
+
+    SSD1306_SET_CURSOR_BUILD
+
+    return 0;
+  }
+
+  TIMEOUT_MS timeout;
+  init_timeout_ms(&timeout, OLED_BUFFER_TIMEOUT_MS);
+
+  while (!oled_buffer_idle) {
+    if (!is_timeout_ms(&timeout))
+      continue;
+
+    return E_OLED_BUFFER_BUSY_TIMEOUT;
+  }
+
+  SSD1306_SET_CURSOR_BUILD
+
+  return 0;
+}
 
 inline uint16_t ssd1306_GetCursorX()
 {
@@ -254,3 +338,4 @@ inline uint16_t ssd1306_GetCursorY()
 {
   return SSD1306.CurrentY;
 }
+

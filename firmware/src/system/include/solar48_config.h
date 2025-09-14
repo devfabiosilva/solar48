@@ -47,5 +47,20 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 
 // *****************************************
 
+// ****   OLED BUFFER configuration     ****
+#define OLED_BUFFER_TIMEOUT_MS 10
+#define OLED_BUFFER_TRANSFER_TIMEOUT_MS 4*OLED_BUFFER_TIMEOUT_MS
+#define OLED_INITIALIZE_TIME_MS 100
+#define OLED_OLED_LOCK_TIMEOUT_MS 120
+
+#define OLED_BUF_MAX_SIZE 64
+
+// *****************************************
+
+// ****     STDOUT configuration        ****
+#define STDOUT_TIMEOUT_MS 50
+
+// *****************************************
+
 #endif
 

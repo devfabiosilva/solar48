@@ -55,6 +55,21 @@ void error_handler(int error);
 #define E_UART1_DMA1_CH5_RECEIVE_ERROR 230
 ///////////////////////////////////
 
+// OLED BUFFER ERRORS
+
+#define E_OLED_BUFFER_TRANSFER_BUSY -50
+#define E_OLED_BUFFER_TRANSFER_BUSY_TIMEOUT -51
+#define E_OLED_BUFFER_BUSY_TIMEOUT -52
+
+///////////////////////////////////
+
+// STD OUT ERRORS
+
+#define E_INVALID_OLED_PRINTF_BUF_SIZE -100
+#define E_OLED_PRINTF_BUFFER_ACCESS_TIMEOUT -101
+
+///////////////////////////////////
+
 // ERROR IN PROCESS
 #define PROCESS_BUSY 90
 
