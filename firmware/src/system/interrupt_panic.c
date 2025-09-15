@@ -45,6 +45,13 @@ static void panic_wait()
 
 volatile static const char *panic_irq = "Unknown IRQ call";
 void halt_ir();
+
+void app_panic(const char *app_name)
+{
+  panic_irq = app_name;
+  halt_ir();
+}
+
 /*
 //https://developer.arm.com/documentation/dui0552/a/cortex-m3-peripherals/system-control-block
 //arm-none-eabi-addr2line -e solar48_release.elf 0x08013528 -f -C

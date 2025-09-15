@@ -2,6 +2,11 @@
 #include <registers.h>
 #include <memory.h>
 #include <core_cm3.h>
+#include <watchdog.h>
+#include <time.h>
+#include <stdbool.h>
+
+extern void app_panic(const char *);
 
 void system_init(void)
 {
@@ -16,5 +21,32 @@ void system_init(void)
 
   SCB->VTOR = 0x08000000;
   fill_stack_with_pattern();
+}
+
+bool sys_try_lock(volatile bool *lock, TIMEOUT_MS *timeout_ms, uint32_t wait, const char *message_on_panic)
+{
+  init_timeout_ms(timeout_ms, wait);
+
+  do {
+    bool expected = false;
+
+    // See https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
+    if (__atomic_compare_exchange_n(lock, &expected, true, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+      return true;
+
+    if (is_timeout_ms(timeout_ms)) {
+      if (message_on_panic)
+        app_panic(message_on_panic);
+
+      return false;
+    }
+
+    __asm volatile ("nop");
+    iwd_refresh();
+  } while (1);
+}
+
+void sys_unlock(volatile bool *lock) {
+  __atomic_store_n(lock, false, __ATOMIC_RELEASE);
 }
 

@@ -62,5 +62,15 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 
 // *****************************************
 
+// ****         SYS QUEUE SIZE          ****
+#define DEFAULT_SYS_QUEUE_SIZE 4
+#define SYS_QUEUE_TIMEOUT_MS 5
+#define SYS_QUEUE_TRY_RUN_TIMEOUT_MS 10*SYS_QUEUE_TIMEOUT_MS
+#define SYS_QUEUE_DEINIT_TIMEOUT_MS 3000
+#define SYS_QUEUE_DESTROY_TIMEOUT_MS 2000
+_Static_assert(SYS_QUEUE_DEINIT_TIMEOUT_MS > SYS_QUEUE_DESTROY_TIMEOUT_MS, "SYS_QUEUE_DEINIT_TIMEOUT_MS should be >  SYS_QUEUE_DESTROY_TIMEOUT_MS");
+
+// *****************************************
+
 #endif
 
