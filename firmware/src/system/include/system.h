@@ -6,6 +6,7 @@
 #include <time.h>
 
 bool sys_try_lock(volatile bool *, TIMEOUT_MS *, uint32_t, const char *);
+bool sys_try_lock_if_gbl_is_false(volatile bool *, volatile bool *, TIMEOUT_MS *, uint32_t, const char *);
 void sys_unlock(volatile bool *);
 
 #define END_SETUP __enable_irq();

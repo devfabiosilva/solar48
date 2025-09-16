@@ -12,14 +12,18 @@ typedef struct sys_queue_vec_t {
 } SYS_QUEUE_VEC;
 
 typedef enum queue_flag_e {
-  QUEUE_RUNNING = 0,
+  QUEUE_OFF = 0,
+  QUEUE_RUNNING,
   QUEUE_SEND_DEINIT_SIGNAL,
-  QUEUE_READY_DEINIT
+  QUEUE_READY_DEINIT,
 } QUEUE_FLAG;
+
+_Static_assert(QUEUE_OFF == 0, "QUEUE_OFF must be 0");
 
 typedef struct sys_queue_t {
   volatile QUEUE_FLAG flag;
   volatile bool lock;
+  volatile bool global_lock;
   volatile bool enable_global_error;
   volatile int queue_size;
   volatile int head;
@@ -28,8 +32,8 @@ typedef struct sys_queue_t {
   volatile SYS_QUEUE_VEC *vector;
 } SYS_QUEUE;
 
-void sys_queue_init(SYS_QUEUE **, int, bool);
-void sys_queue_deinit(SYS_QUEUE **);
+void sys_queue_init(SYS_QUEUE *, int, bool);
+void sys_queue_deinit(SYS_QUEUE *);
 void run_queue_run(SYS_QUEUE *);
 bool sys_queue(SYS_QUEUE *, sys_queue_cb, void *, sys_queue_cb);
 

@@ -8,8 +8,12 @@ bool iwd_fault()
 
 void iwd_refresh()
 {
+  __asm volatile ("nop");
+  __asm volatile ("nop");
   //These bits must be written by software at regular intervals with the key value AAAAh. Page 496
   IWDG_KR = 0xAAAA;
+  __asm volatile ("nop");
+  __asm volatile ("nop");
 }
 
 void reset_wdg_fault()

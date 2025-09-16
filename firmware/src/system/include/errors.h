@@ -76,9 +76,10 @@ void error_handler(int error);
 
 // SYS QUEUE ERRORS
 #define E_SYS_QUEUE_FULL 80
-#define E_SYS_ADD_QUEUE_TIMEOUT 81
+#define E_SYS_ADD_QUEUE_TIMEOUT_OR_GLOBAL_LOCK 81
 #define E_SYS_RUN_QUEUE_TIMEOUT 84
 #define E_SYS_ADD_QUEUE_NOT_RUNNING 85
+#define E_SYS_QUEUE_QUEUE_OFF 86
 ///////////////////////////////////
 
 #define E_NOT_IMPLEMENTED -1

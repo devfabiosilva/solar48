@@ -173,13 +173,7 @@ PANIC_IRQ(EXTI15_10_IRQHandler)
 PANIC_IRQ(RTC_Alarm_IRQHandler)
 PANIC_IRQ(USBWakeUp_IRQHandler)
 
-#define SOLAR48_PANIC for (;;) {\
-    __asm("nop");\
-    __asm("nop");\
-    iwd_refresh();\
-    __asm("nop");\
-    __asm("nop");\
-  }
+#define SOLAR48_PANIC for (;;) iwd_refresh();
 
 void halt()
 {
