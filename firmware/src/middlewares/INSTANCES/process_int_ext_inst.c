@@ -24,7 +24,7 @@ void init_process_int_ext_task()
                                 "processIntExt",
                                 2*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                PRIO_2, // (Internal has 2 (max priority))
+                                PRIO_4, // (Internal has 4 (max priority)) //PRIO_2
                                 processIntExtTaskStack,
                                 &( processIntExtTaskTCB ) )) return;
 

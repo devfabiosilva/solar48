@@ -57,6 +57,11 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 
 // *****************************************
 
+// ****   OLED PRINTF configuration     ****
+#define OLED_PRINTIF_TIMEOUT_MS 5
+
+// *****************************************
+
 // ****     STDOUT configuration        ****
 #define STDOUT_TIMEOUT_MS 50
 

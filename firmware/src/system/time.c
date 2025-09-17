@@ -87,11 +87,15 @@ bool is_timeout_ms(TIMEOUT_MS *type_timeout_ms)
 {
   uint32_t current_val = SysTick->VAL;
 
+  __asm volatile("nop");
+
   if (current_val > type_timeout_ms->val_cnt_current)
     if (type_timeout_ms->timeout_ms)
       type_timeout_ms->timeout_ms--;
 
   type_timeout_ms->val_cnt_current = current_val;
+
+  __asm volatile("nop");
 
   return type_timeout_ms->timeout_ms == 0;
 }

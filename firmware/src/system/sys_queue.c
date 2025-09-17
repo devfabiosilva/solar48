@@ -105,31 +105,31 @@ void sys_queue_deinit(SYS_QUEUE *queue)
 }
 
 // *queue is NON NULL
-bool sys_queue(SYS_QUEUE *queue, sys_queue_cb function, void *ctx, sys_queue_cb destroyer)
+int sys_queue(SYS_QUEUE *queue, sys_queue_cb function, void *ctx, sys_queue_cb destroyer)
 {
 
   if (__atomic_load_n(&queue->flag, __ATOMIC_SEQ_CST) == QUEUE_OFF) {
     QUEUE_ERROR(E_SYS_QUEUE_QUEUE_OFF)
-    return false;
+    return E_SYS_QUEUE_QUEUE_OFF;
   }
 
   TIMEOUT_MS timeout;
   if (!sys_try_lock_if_gbl_is_false(&queue->global_lock, &queue->lock, &timeout, SYS_QUEUE_TIMEOUT_MS, NULL)) {
     QUEUE_ERROR(E_SYS_ADD_QUEUE_TIMEOUT_OR_GLOBAL_LOCK)
-    return false;
+    return E_SYS_ADD_QUEUE_TIMEOUT_OR_GLOBAL_LOCK;
   }
 
   // We don't need atomic here. Lock guarantees that only this procedure is accessing this flag
   if (queue->flag != QUEUE_RUNNING) {
     sys_unlock(&queue->lock);
     QUEUE_ERROR(E_SYS_ADD_QUEUE_NOT_RUNNING)
-    return false;
+    return E_SYS_ADD_QUEUE_NOT_RUNNING;
   }
 
   if (queue->count >= queue->queue_size) {
     sys_unlock(&queue->lock);
     QUEUE_ERROR(E_SYS_QUEUE_FULL);
-    return false;
+    return E_SYS_QUEUE_FULL;
   }
 
   int head = queue->head;
@@ -144,7 +144,7 @@ bool sys_queue(SYS_QUEUE *queue, sys_queue_cb function, void *ctx, sys_queue_cb 
 
   sys_unlock(&queue->lock);
 
-  return true;
+  return 0;
 }
 
 #define EXECUTE_QUEUE_ITEM(x) \

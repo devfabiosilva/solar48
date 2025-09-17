@@ -18,7 +18,7 @@ volatile bool oled_buffer_idle = true;
 static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
 
 // Screen object
-static SSD1306_t SSD1306;
+SSD1306_t SSD1306;
 
 //
 //  Send a byte to the command register
@@ -339,3 +339,14 @@ inline uint16_t ssd1306_GetCursorY()
   return SSD1306.CurrentY;
 }
 
+inline bool flush_busy_ret()
+{
+  TIMEOUT_MS timeout;
+  init_timeout_ms(&timeout, OLED_BUFFER_TRANSFER_TIMEOUT_MS);
+
+  while (!update_screen_idle) // TODO : refactor to use atomic
+    if (is_timeout_ms(&timeout))
+      return true;
+
+  return false;
+}

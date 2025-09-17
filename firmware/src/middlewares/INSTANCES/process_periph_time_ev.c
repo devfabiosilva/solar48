@@ -24,7 +24,7 @@ void init_process_periph_evt_task()
                                 "periphExtEvent",
                                 2*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                PRIO_2, // (Internal has 2 (max priority))
+                                PRIO_4, // (Internal has 2 (max priority)) // PRIO_2
                                 processPeriphEvtTaskStack,
                                 &( processPeriphEvtTaskTCB ) )) return;
 

@@ -42,17 +42,6 @@ void setup()
   END_SETUP // Enable all interrupts
 }
 
-volatile static int err = 0;
-void init_oled(char *msg)
-{
-  if ((err = ssd1306_Init()))
-    return;
-
-  set_font_size(FONT_11x18);
-  oled_printf(msg);
-  set_font_size(FONT__DEFAULT);
-}
-
 #ifdef RTOS_SOLAR48
 
 void run(void)
@@ -68,6 +57,7 @@ void run(void)
   init_process_int_ext_task();
   init_process_int_int_task();
   init_process_periph_evt_task();
+  init_sys_queue_task();
 
   vTaskStartScheduler();
 }
@@ -88,19 +78,23 @@ void uart_rcv(int status)
 }
 
 uint64_t cnt = 0;
+uint64_t uart_timeout;
 void test_uart1_transmit()
 {
+  if (milliseconds() > uart_timeout) {
+    uart_timeout = milliseconds() + 500;
 
-  enum uart_status_t uart_status;
+    enum uart_status_t uart_status;
 
-  ssd1306_SetCursor(0, 40);
-  uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
-  if (uart_status == UART_OK)
-    oled_printf("UART send byte %d", (int)cnt);
-  else
-    oled_printf("UART error %d", (int)uart_status);
+    ssd1306_SetCursor(0, 40);
+    uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
+    if (uart_status == UART_OK)
+      oled_printf("UART send byte %d", (int)cnt);
+    else
+      oled_printf("UART error %d", (int)uart_status);
 
-  ++cnt;
+    ++cnt;
+  }
 }
 
 void run(void)
@@ -111,6 +105,7 @@ void run(void)
 
   blink_n(2);
   usb_printf("\nReady ...\n\n");
+  uart_timeout = milliseconds() + 200;
   while (1) {
     run_process_int_int();
     process_uart1_time_event();
@@ -157,11 +152,11 @@ int print_text(void *ctx)
 
 void realtime(uint32_t time)
 {
-  if (!err) {
+  if (oled_is_initialized()) {
     if (!add_process_int_int(print_text, NULL))
       usb_printf("\nRealtime: Process busy\n");
   } else
-    usb_printf("Oled Error %d\n", err);
+    usb_printf("Oled not initialized");
 }
 
 #else

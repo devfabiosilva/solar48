@@ -55,11 +55,14 @@ void error_handler(int error);
 #define E_UART1_DMA1_CH5_RECEIVE_ERROR 230
 ///////////////////////////////////
 
-// OLED BUFFER ERRORS
+// OLED ERRORS
 
 #define E_OLED_BUFFER_TRANSFER_BUSY -50
 #define E_OLED_BUFFER_TRANSFER_BUSY_TIMEOUT -51
 #define E_OLED_BUFFER_BUSY_TIMEOUT -52
+#define E_OLED_INIT_FAILED -53
+#define E_OLED_NOT_INITIALIZED -54
+#define E_OLED_CURSOR_PRINTF_LOCK_TIMEOUT -55
 
 ///////////////////////////////////
 
@@ -67,6 +70,8 @@ void error_handler(int error);
 
 #define E_INVALID_OLED_PRINTF_BUF_SIZE -100
 #define E_OLED_PRINTF_BUFFER_ACCESS_TIMEOUT -101
+#define E_INVALID_OLED_CURSOR_PRINTF_BUF_SIZE -102
+#define E_OLED_PRINTF_SET_CURSOR_FLUSH_BUSY -103 
 
 ///////////////////////////////////
 

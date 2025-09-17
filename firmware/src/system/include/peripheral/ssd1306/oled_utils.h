@@ -14,6 +14,8 @@ typedef enum font_size_e {
 
 void set_font_size(FONT_SIZE);
 void set_color(SSD1306_COLOR);
-
+int oled_is_initialized();
+int init_oled(char *);
+int oled_cursor_printf(uint8_t, uint8_t, const char *, ...);
 #endif
 

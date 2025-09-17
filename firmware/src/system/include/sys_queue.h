@@ -35,6 +35,6 @@ typedef struct sys_queue_t {
 void sys_queue_init(SYS_QUEUE *, int, bool);
 void sys_queue_deinit(SYS_QUEUE *);
 void run_queue_run(SYS_QUEUE *);
-bool sys_queue(SYS_QUEUE *, sys_queue_cb, void *, sys_queue_cb);
+int sys_queue(SYS_QUEUE *, sys_queue_cb, void *, sys_queue_cb);
 
 #endif

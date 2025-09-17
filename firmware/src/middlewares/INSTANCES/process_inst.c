@@ -24,7 +24,7 @@ void init_process_task()
                                 "process",
                                 2*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                PRIO_1,
+                                PRIO_3, // PRIO_1
                                 processTaskStack,
                                 &( processTaskTCB ) )) return;
 

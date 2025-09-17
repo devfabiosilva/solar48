@@ -13,7 +13,7 @@ void init_rtos_milli()
                                 "rtos_milli",
                                 1*configMINIMAL_STACK_SIZE,
                                 NULL,
-                                PRIO_4,
+                                PRIO_6, // PRIO_4
                                 rtosMilliTaskStack,
                                 &( rtosMilliTaskTCB ) )) return;
 

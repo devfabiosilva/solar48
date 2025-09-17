@@ -18,13 +18,13 @@ static StackType_t exampleTaskStack[ 1*configMINIMAL_STACK_SIZE ];
 
 void uart_rcv(int status)
 {
-  ssd1306_SetCursor(0, 50);
+//  ssd1306_SetCursor(0, 50);
   switch (status) {
     case UART1_TRANSFER_COMPLETE:
-      oled_printf("Success");
+      oled_cursor_printf(0, 50, "Success");
       break;
     default:
-      oled_printf("Fail %d", status);
+      oled_cursor_printf(0, 50, "Fail");
   }
 }
 
@@ -46,15 +46,11 @@ static void led_blink_task(void *params)
     ledon();
     vTaskDelay(pdMS_TO_TICKS(500));
 #ifdef UART_TEST
-
-    if (ssd1306_SetCursor_ret_hold(0, 40))
-      return;
-
     uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
     if (uart_status == UART_OK)
-      oled_printf("UART send byte %d", (int)cnt);
+      oled_cursor_printf(0, 40, "UART send byte %d", (int)cnt);
     else
-      oled_printf("UART error %d", (int)uart_status);
+      oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 
     ++cnt;
 #endif
