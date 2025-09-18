@@ -21,7 +21,8 @@ static char oled_buffer[OLED_BUF_MAX_SIZE];
 static FontDef *current_font = &Font_7x10;
 static SSD1306_COLOR current_color = White;
 
-volatile bool oled_util_lock = false; // TODO REMOVE
+volatile bool oled_util_lock = false;
+extern volatile bool oled_buffer_lock;
 
 static SYS_QUEUE oled_print_queue = {0};
 
@@ -125,15 +126,26 @@ static int _oled_cursor_printf(void *ctx)
       return -2; // Never reaaches here
     }
 
-    if (flush_busy_ret()) {
+    if (oled_buffer_flush_busy_ret_hold()) {
       free((void *)print->text);
       free((void *)print);
       return E_OLED_PRINTF_SET_CURSOR_FLUSH_BUSY;
     }
 
+    // NOTE: sys queue guarantees that if flush is not busy then only this event is executed with exclusion. So only this event is accessing screen buffer
+
+    TIMEOUT_MS timeout_ms;
+    if (!sys_try_lock(&oled_buffer_lock, &timeout_ms, OLED_BUFFER_TIMEOUT_MS, NULL)) {
+      free((void *)print->text);
+      free((void *)print);
+      return E_OLED_CURSOR_FLUSH_UPDATE_TIMEOUT;
+    }
+
+    // NOTE: sys queue guarantees that if buffer is not busy then only this event is executed with exclusion to update the buffer
+
     char *p = print->text;
     _ssize_t n = print->size;
-    // NOTE: sys queue guarantees that if flush is not busy then only this event is executed with exclusion. So only this event is accessing screen buffer
+
     ssd1306_SetCursor(print->x, print->y);
 
     uint8_t y = print->y;
@@ -151,6 +163,8 @@ static int _oled_cursor_printf(void *ctx)
 
     free((void *)print->text);
     free((void *)print);
+
+    sys_unlock(&oled_buffer_lock);
 
     return ssd1306_UpdateScreen_ret_hold();
   }

@@ -18,7 +18,6 @@ static StackType_t exampleTaskStack[ 1*configMINIMAL_STACK_SIZE ];
 
 void uart_rcv(int status)
 {
-//  ssd1306_SetCursor(0, 50);
   switch (status) {
     case UART1_TRANSFER_COMPLETE:
       oled_cursor_printf(0, 50, "Success");
@@ -35,7 +34,7 @@ static void led_blink_task(void *params)
   (void)params;
 
 #ifdef UART_TEST
-  static uint64_t cnt = 0;
+  static uint8_t cnt = 0;
   enum uart_status_t uart_status;
 #endif
   while (1) {
@@ -48,7 +47,7 @@ static void led_blink_task(void *params)
 #ifdef UART_TEST
     uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
     if (uart_status == UART_OK)
-      oled_cursor_printf(0, 40, "UART send byte %d", (int)cnt);
+      oled_cursor_printf(0, 40, "UART send %d", (int)cnt);
     else
       oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 

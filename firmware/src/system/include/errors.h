@@ -63,6 +63,7 @@ void error_handler(int error);
 #define E_OLED_INIT_FAILED -53
 #define E_OLED_NOT_INITIALIZED -54
 #define E_OLED_CURSOR_PRINTF_LOCK_TIMEOUT -55
+#define E_OLED_CURSOR_FLUSH_UPDATE_TIMEOUT -56
 
 ///////////////////////////////////
 

@@ -214,7 +214,7 @@ void run_queue_run(SYS_QUEUE *queue)
       }
 
       tail = (int)queue->tail;
-      item = (SYS_QUEUE_VEC *)&queue->vector[tail];
+      item = (SYS_QUEUE_VEC *)&queue->vector[(size_t)tail];
       ctx = (void *)item->ctx;
 
       if (item->destroyer)

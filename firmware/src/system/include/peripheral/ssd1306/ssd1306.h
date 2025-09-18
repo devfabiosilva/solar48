@@ -71,7 +71,7 @@ void ssd1306_SetCursor(uint8_t, uint8_t);
 bool ssd1306_SetCursor_ret(uint8_t, uint8_t);
 int ssd1306_SetCursor_ret_hold(uint8_t, uint8_t);
 void ssd1306_InvertColors(void);
-bool flush_busy_ret();
+bool oled_buffer_flush_busy_ret_hold();
 
 uint16_t ssd1306_GetCursorX();
 uint16_t ssd1306_GetCursorY();

@@ -24,13 +24,13 @@ static void panic_wait()
 #else
  #include <peripheral/ssd1306/oled_utils.h>
  extern volatile bool oled_util_lock;
- extern volatile bool update_screen_idle;
- extern volatile bool oled_buffer_idle;
+ extern volatile bool update_screen_lock;
+ extern volatile bool oled_buffer_lock;
 
  #define OLED_PANIC_PREPARE \
-   oled_util_lock = true; \
-   update_screen_idle = false; \
-   oled_buffer_idle = false; \
+   __atomic_store_n(&oled_util_lock, true, __ATOMIC_RELEASE); \
+   __atomic_store_n(&update_screen_lock, true, __ATOMIC_RELEASE); \
+   __atomic_store_n(&oled_buffer_lock, true, __ATOMIC_RELEASE); \
    ssd1306_Fill(Black); \
    ssd1306_SetCursor(0, 0);
 
@@ -45,12 +45,6 @@ static void panic_wait()
 
 volatile static const char *panic_irq = "Unknown IRQ call";
 void halt_ir();
-
-void app_panic(const char *app_name)
-{
-  panic_irq = app_name;
-  halt_ir();
-}
 
 /*
 //https://developer.arm.com/documentation/dui0552/a/cortex-m3-peripherals/system-control-block
@@ -202,6 +196,24 @@ void halt_ir()
 #else
   OLED_PANIC_PREPARE
   _oled_printf_panic("HALT IRQ = %s", panic_irq);
+  ssd1306_SetCursor(0, 12);
+#endif
+
+  load_panic_stack();
+  DISABLE_SETUP
+  SOLAR48_PANIC
+}
+
+void app_panic(const char *app_name)
+{
+  // It could not happen. If happens report bug and disable all interrupts
+
+#ifdef USE_USB_PRINTF_ON_PANIC
+  panic_wait();
+  usb_printf("\nHALT APP = %s\n\n", app_name);
+#else
+  OLED_PANIC_PREPARE
+  _oled_printf_panic("HALT APP = %s", app_name);
   ssd1306_SetCursor(0, 12);
 #endif
 

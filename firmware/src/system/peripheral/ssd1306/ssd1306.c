@@ -8,11 +8,11 @@
 #include <time.h>
 #include <stdbool.h>
 
-// Added to avoid async access. TRUE if no process using transfer buffer memory to OLED driver
-volatile bool update_screen_idle = true;
+// Added to avoid async access. FALSE if no process using transfer buffer memory to OLED driver
+volatile bool update_screen_lock = false;
 
-// Added to avoid async access. TRUE if no process is updating oled buffer
-volatile bool oled_buffer_idle = true;
+// Added to avoid async access. FALSE if no process is updating oled buffer
+volatile bool oled_buffer_lock = false;
 
 // Screenbuffer
 static uint8_t SSD1306_Buffer[SSD1306_WIDTH * SSD1306_HEIGHT / 8];
@@ -139,7 +139,8 @@ int ssd1306_UpdateScreen()
 
   return status;
 }
-
+/*
+TODO REMOVE
 int ssd1306_UpdateScreen_ret()
 {
   if (update_screen_idle) {
@@ -154,26 +155,18 @@ int ssd1306_UpdateScreen_ret()
 
   return E_OLED_BUFFER_TRANSFER_BUSY;
 }
-
+*/
 // Added to avoid async access. Check if BUSY. If so, try with timeout
 int ssd1306_UpdateScreen_ret_hold()
 {
-  int status = ssd1306_UpdateScreen_ret();
 
-  // try again with timeout
-  if (status == E_OLED_BUFFER_TRANSFER_BUSY) {
-    TIMEOUT_MS timeout;
-    init_timeout_ms(&timeout, OLED_BUFFER_TRANSFER_TIMEOUT_MS);
+  TIMEOUT_MS timeout;
+  if (!sys_try_lock(&update_screen_lock, &timeout, OLED_BUFFER_TRANSFER_TIMEOUT_MS, NULL))
+    return E_OLED_BUFFER_TRANSFER_BUSY_TIMEOUT;
 
-    while ((status = ssd1306_UpdateScreen_ret()) == E_OLED_BUFFER_TRANSFER_BUSY) {
-      if (!is_timeout_ms(&timeout)) {
-        iwd_refresh(); // Reset watchdog
-        continue;
-      }
+  int status = ssd1306_UpdateScreen();
 
-      return E_OLED_BUFFER_TRANSFER_BUSY_TIMEOUT;
-    }
-  }
+  sys_unlock(&update_screen_lock);
 
   return status;
 }
@@ -289,7 +282,7 @@ inline void ssd1306_SetCursor(uint8_t x, uint8_t y)
    SSD1306.CurrentX = x;
    SSD1306.CurrentY = y;
 }
-
+/*
 #define SSD1306_SET_CURSOR_BUILD \
   oled_buffer_idle = false; \
   SSD1306.CurrentX = x; \
@@ -328,7 +321,7 @@ int ssd1306_SetCursor_ret_hold(uint8_t x, uint8_t y)
 
   return 0;
 }
-
+*/
 inline uint16_t ssd1306_GetCursorX()
 {
   return SSD1306.CurrentX;
@@ -339,14 +332,29 @@ inline uint16_t ssd1306_GetCursorY()
   return SSD1306.CurrentY;
 }
 
-inline bool flush_busy_ret()
+/*
+inline bool oled_buffer_busy_ret_hold()
 {
   TIMEOUT_MS timeout;
-  init_timeout_ms(&timeout, OLED_BUFFER_TRANSFER_TIMEOUT_MS);
+  init_timeout_ms(&timeout, OLED_BUFFER_TIMEOUT_MS);
 
-  while (!update_screen_idle) // TODO : refactor to use atomic
+  while (__atomic_load_n(&oled_buffer_lock, __ATOMIC_SEQ_CST))
     if (is_timeout_ms(&timeout))
       return true;
 
   return false;
 }
+*/
+
+inline bool oled_buffer_flush_busy_ret_hold()
+{
+  TIMEOUT_MS timeout;
+  init_timeout_ms(&timeout, OLED_BUFFER_TRANSFER_TIMEOUT_MS);
+
+  while (__atomic_load_n(&update_screen_lock, __ATOMIC_SEQ_CST))
+    if (is_timeout_ms(&timeout))
+      return true;
+
+  return false;
+}
+
