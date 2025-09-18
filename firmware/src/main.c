@@ -66,14 +66,12 @@ void run(void)
 
 void uart_rcv(int status)
 {
-   ssd1306_SetCursor(0, 50);
-
    switch (status) {
      case UART1_TRANSFER_COMPLETE:
-       oled_printf("Success");
+       oled_cursor_printf(0, 50, "Success");
        break;
      default:
-       oled_printf("Fail %d", status);
+       oled_cursor_printf(0, 50, "Fail %d", status);
    }
 }
 
@@ -86,24 +84,25 @@ void test_uart1_transmit()
 
     enum uart_status_t uart_status;
 
-    ssd1306_SetCursor(0, 40);
     uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
     if (uart_status == UART_OK)
-      oled_printf("UART send byte %d", (int)cnt);
+      oled_cursor_printf(0, 40, "UART send byte %d", (int)cnt);
     else
-      oled_printf("UART error %d", (int)uart_status);
+      oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 
     ++cnt;
   }
 }
 
+extern void _run_oled_process();
 void run(void)
 {
 //  usb_printf("\nInitializing ...\n\nPriority group: %u\n", get_priority_grouping());
 
   init_oled("Solar48bm");
+  _run_oled_process();
 
-  blink_n(2);
+  blink_n(1);
   usb_printf("\nReady ...\n\n");
   uart_timeout = milliseconds() + 200;
   while (1) {
@@ -112,6 +111,7 @@ void run(void)
     run_process_int_ext();
     run_process();
     test_uart1_transmit();
+    _run_oled_process();
     delay(1);
   }
 }
@@ -131,13 +131,13 @@ int print_text(void *ctx)
 
   int oled_error =
 #ifdef SHOW_ALL
-  oled_printf(
+  oled_cursor_printf(0, 18,
     "%s-%u/%u/%u\n%02d:%02d:%02d\nTemp: %0.2f oC\nVolt.: %0.2f V",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second, read_internal_temp_sensor(), read_vref()
   );
 #else
-  oled_printf(
+  oled_cursor_printf(0, 18,
     "%s-%u/%u/%u\n%02d:%02d:%02d",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second
@@ -168,8 +168,7 @@ void realtime(uint32_t time)
 
   get_solar48_date(&sd, NULL);
 
-  ssd1306_SetCursor(0, 18);
-  oled_printf(
+  oled_cursor_printf(0, 18,
     "%s-%u/%u/%u\n%02d:%02d:%02d",
     get_day_str((int)sd.year, (int)sd.month, (int)sd.day), sd.year, (int)sd.month, (int)sd.day,
     (int)sd.hour, (int)sd.minute, (int)sd.second

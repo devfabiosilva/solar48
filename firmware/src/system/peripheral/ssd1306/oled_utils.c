@@ -26,16 +26,22 @@ extern volatile bool oled_buffer_lock;
 
 static SYS_QUEUE oled_print_queue = {0};
 
+void _run_oled_process()
+{
+  run_queue_run(&oled_print_queue);
+}
+
 int init_oled(char *msg)
 {
   if (ssd1306_Init())
     return E_OLED_INIT_FAILED;
 
+  sys_queue_init(&oled_print_queue, -1, true); // If any sys_queue_init fails it runs PANIC
+
   set_font_size(FONT_11x18);
-  oled_printf(msg);
+  oled_cursor_printf(0, 0, msg);
   set_font_size(FONT__DEFAULT);
 
-  sys_queue_init(&oled_print_queue, -1, true);
   return 0;
 }
 
@@ -76,43 +82,12 @@ int _oled_printf_panic(const char *fmt, ...)
   return ssd1306_UpdateScreen();
 }
 
-int oled_printf(const char *fmt, ...)
-{
-
-  if (oled_util_lock)
-    return -200; // TODO remove and refactor
-
-  oled_util_lock = true;
-
-  OLED_PRINTF_INIT
-
-  if (len >= OLED_BUF_MAX_SIZE) {
-    len = OLED_BUF_MAX_SIZE - 1;
-    oled_buffer[len] = 0;
-  } else if (len == 0) return 0;
-  else if (len < 0) return E_INVALID_OLED_PRINTF_BUF_SIZE;
-
-  uint16_t y = ssd1306_GetCursorY();
-
-  for (char *p = oled_buffer; *p; ++p) {
-    if (*p != '\n')
-      ssd1306_WriteChar(*p, *current_font, current_color);
-    else {
-      y += current_font->FontHeight + 1;
-      ssd1306_SetCursor(0, y);
-    }
-  }
-
-  //return ssd1306_UpdateScreen_ret();
-  int status = ssd1306_UpdateScreen_ret_hold();
-  oled_util_lock = false; // TODO refactor this
-  return status;
-}
-
 typedef struct oled_cursor_printf_t {
   uint8_t x, y;
   _ssize_t size;
   char *text;
+  FontDef *font;
+  SSD1306_COLOR color;
 } OLED_CURSOR_PRINTF_TYP;
 
 static int _oled_cursor_printf(void *ctx)
@@ -151,10 +126,11 @@ static int _oled_cursor_printf(void *ctx)
     uint8_t y = print->y;
 
     while (n > 0) {
+      FontDef *font = print->font;
       if (*p != '\n')
-        ssd1306_WriteChar(*p, *current_font, current_color);
+        ssd1306_WriteChar(*p, *font, print->color);
       else {
-        y += current_font->FontHeight + 1;
+        y += font->FontHeight + 1;
         ssd1306_SetCursor(0, y);
       }
       ++p;
@@ -203,6 +179,8 @@ int oled_cursor_printf(uint8_t x, uint8_t y, const char *fmt, ...)
   oled_cursor_typ->x = x;
   oled_cursor_typ->y = y;
   oled_cursor_typ->size = len; // Is size because it has no zero char at the end
+  oled_cursor_typ->font = current_font;
+  oled_cursor_typ->color = current_color;
 
   if (!(oled_cursor_typ->text = (char *)malloc((size_t)len))) {
     free((void *)oled_cursor_typ);
@@ -247,10 +225,5 @@ inline void set_color(SSD1306_COLOR color)
 inline int oled_is_initialized()
 {
   return SSD1306.Initialized;
-}
-
-void _run_oled_process()
-{
-  run_queue_run(&oled_print_queue);
 }
 

@@ -246,30 +246,6 @@ char ssd1306_WriteChar(char ch, FontDef Font, SSD1306_COLOR color)
 }
 
 //
-//  Write full string to screenbuffer
-//
-/*
-//TODO Remove it. use oled_printf instead
-static char ssd1306_WriteString(const char* str, FontDef Font, SSD1306_COLOR color)
-{
-    // Write until null-byte
-    while (*str)
-    {
-        if (ssd1306_WriteChar(*str, Font, color) != *str)
-        {
-            // Char could not be written
-            return *str;
-        }
-
-        // Next char
-        str++;
-    }
-
-    // Everything ok
-    return *str;
-}
-*/
-//
 //  Invert background/foreground colors
 //
 void ssd1306_InvertColors(void)
@@ -282,46 +258,7 @@ inline void ssd1306_SetCursor(uint8_t x, uint8_t y)
    SSD1306.CurrentX = x;
    SSD1306.CurrentY = y;
 }
-/*
-#define SSD1306_SET_CURSOR_BUILD \
-  oled_buffer_idle = false; \
-  SSD1306.CurrentX = x; \
-  SSD1306.CurrentY = y; \
-  oled_buffer_idle = true;
 
-bool ssd1306_SetCursor_ret(uint8_t x, uint8_t y)
-{
-  if (oled_buffer_idle) {
-    SSD1306_SET_CURSOR_BUILD
-  }
-
-  return oled_buffer_idle;
-}
-
-int ssd1306_SetCursor_ret_hold(uint8_t x, uint8_t y)
-{
-  if (oled_buffer_idle) {
-
-    SSD1306_SET_CURSOR_BUILD
-
-    return 0;
-  }
-
-  TIMEOUT_MS timeout;
-  init_timeout_ms(&timeout, OLED_BUFFER_TIMEOUT_MS);
-
-  while (!oled_buffer_idle) {
-    if (!is_timeout_ms(&timeout))
-      continue;
-
-    return E_OLED_BUFFER_BUSY_TIMEOUT;
-  }
-
-  SSD1306_SET_CURSOR_BUILD
-
-  return 0;
-}
-*/
 inline uint16_t ssd1306_GetCursorX()
 {
   return SSD1306.CurrentX;
@@ -331,20 +268,6 @@ inline uint16_t ssd1306_GetCursorY()
 {
   return SSD1306.CurrentY;
 }
-
-/*
-inline bool oled_buffer_busy_ret_hold()
-{
-  TIMEOUT_MS timeout;
-  init_timeout_ms(&timeout, OLED_BUFFER_TIMEOUT_MS);
-
-  while (__atomic_load_n(&oled_buffer_lock, __ATOMIC_SEQ_CST))
-    if (is_timeout_ms(&timeout))
-      return true;
-
-  return false;
-}
-*/
 
 inline bool oled_buffer_flush_busy_ret_hold()
 {
