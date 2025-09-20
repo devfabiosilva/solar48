@@ -174,10 +174,10 @@ void halt()
   // It could not happen. If happens report bug and disable all interrupts
 #ifdef USE_USB_PRINTF_ON_PANIC
   panic_wait();
-  usb_printf("\nHALT\n\n");
+  usb_printf("\nHLT\n\n");
 #else
   OLED_PANIC_PREPARE
-  _oled_printf_panic("HALT");
+  _oled_printf_panic("HLT");
   ssd1306_SetCursor(0, 12);
 #endif
 
@@ -192,10 +192,10 @@ void halt_ir()
 
 #ifdef USE_USB_PRINTF_ON_PANIC
   panic_wait();
-  usb_printf("\nHALT IRQ = %s\n\n", panic_irq);
+  usb_printf("\nHLTIRQ=%s\n\n", panic_irq);
 #else
   OLED_PANIC_PREPARE
-  _oled_printf_panic("HALT IRQ = %s", panic_irq);
+  _oled_printf_panic("HLTIRQ=%s", panic_irq);
   ssd1306_SetCursor(0, 12);
 #endif
 
@@ -210,10 +210,10 @@ void app_panic(const char *app_name)
 
 #ifdef USE_USB_PRINTF_ON_PANIC
   panic_wait();
-  usb_printf("\nHALT APP = %s\n\n", app_name);
+  usb_printf("\nHLTAPP=%s\n\n", app_name);
 #else
   OLED_PANIC_PREPARE
-  _oled_printf_panic("HALT APP = %s", app_name);
+  _oled_printf_panic("HLTAPP=%s", app_name);
   ssd1306_SetCursor(0, 12);
 #endif
 
@@ -234,10 +234,10 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
     // Trap here for debug
 #ifdef USE_USB_PRINTF_ON_PANIC
   panic_wait();
-  usb_printf("\nTask = %p halted: %s\n\n", xTask, pcTaskName);
+  usb_printf("\nTsk=%p hlt:%s\n\n", xTask, pcTaskName);
 #else
   OLED_PANIC_PREPARE
-  _oled_printf_panic("Task = %p halted: %s", xTask, pcTaskName);
+  _oled_printf_panic("Tsk=%p hld:%s", xTask, pcTaskName);
   ssd1306_SetCursor(0, 12);
 #endif
   halt_rtos();
@@ -248,10 +248,10 @@ void vApplicationMallocFailedHook(void)
     // Malloc failed trap
 #ifdef USE_USB_PRINTF_ON_PANIC
   panic_wait();
-  usb_printf("\nFailed malloc\n");
+  usb_printf("\nmllchook\n");
 #else
   OLED_PANIC_PREPARE
-  _oled_printf_panic("Failed malloc");
+  _oled_printf_panic("mllchook");
   ssd1306_SetCursor(0, 12);
 #endif
   halt_rtos();

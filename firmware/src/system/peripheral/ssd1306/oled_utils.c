@@ -119,22 +119,36 @@ static int _oled_cursor_printf(void *ctx)
     // NOTE: sys queue guarantees that if buffer is not busy then only this event is executed with exclusion to update the buffer
 
     char *p = print->text;
+    int16_t fill_with_spaces = (int16_t)(print->x < SSD1306_WIDTH)?print->font->char_per_line:0,
+            space_count = fill_with_spaces;
+
     _ssize_t n = print->size;
 
     ssd1306_SetCursor(print->x, print->y);
 
     uint8_t y = print->y;
+    FontDef *font = print->font;
 
     while (n > 0) {
-      FontDef *font = print->font;
-      if (*p != '\n')
+      if (*p != '\n') {
         ssd1306_WriteChar(*p, *font, print->color);
-      else {
+        --space_count;
+      } else {
+        while (space_count > 0) {
+          ssd1306_WriteChar(' ', *font, print->color);
+          --space_count;
+        }
+        space_count = fill_with_spaces;
         y += font->FontHeight + 1;
         ssd1306_SetCursor(0, y);
       }
       ++p;
       --n;
+    }
+
+    while (space_count > 0) {
+      ssd1306_WriteChar(' ', *font, print->color);
+      --space_count;
     }
 
     free((void *)print->text);
