@@ -4,6 +4,7 @@
 #include <dma.h>
 #include <solar48_config.h>
 #include <time.h>
+#include <system.h>
 
 // #define UART1_TRANSMIT_USE_BLOCK
 
@@ -41,8 +42,10 @@ void DMA1_Channel4_IRQHandler()
   if (dma1_ch4_sr & TCIF4) {
 #ifdef UART1_TRANSMIT_USE_BLOCK
 
+    //we don't need __atomic here because it is used only here 
     if (uart1_control.block > 0) {
 
+      //we don't need __atomic here because it is used only here
       DMA1_CMAR4 = (uint32_t)uart1_control.next_data_ptr; // Memory address Page 288
       DMA1_CNDTR4 = (uint16_t)UART1_TX_RX_BUF; // Memory size Page 287 (64 KB max)
       --uart1_control.block;
@@ -58,14 +61,14 @@ void DMA1_Channel4_IRQHandler()
 
     } else
 #endif
-      uart1_control.status_register = UART1_TRANSFER_COMPLETE;
+      __atomic_store_n(&uart1_control.status_register, UART1_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
 
     return;
   }
 
   // DMA1 error on transfer
   if (dma1_ch4_sr & TEIF4)
-    uart1_control.status_register = E_UART1_DMA1_CH4_TRANSMIT_ERROR;
+    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH4_TRANSMIT_ERROR, __ATOMIC_RELEASE);
 }
 
 // DMA1 for UART1 Rx events IRQ
@@ -80,13 +83,13 @@ void DMA1_Channel5_IRQHandler()
 
   // Receive complete
   if (dma1_ch5_sr & TCIF5) {
-    uart1_control.status_register = UART1_RECEIVE_COMPLETE;
+    __atomic_store_n(&uart1_control.status_register, UART1_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
     return;
   }
 
   // DMA1 error on receive
   if (dma1_ch5_sr & TEIF5)
-    uart1_control.status_register = E_UART1_DMA1_CH5_RECEIVE_ERROR;
+    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH5_RECEIVE_ERROR, __ATOMIC_RELEASE);
 }
 
 //Table 196. USART interrupt requests page 816
@@ -99,7 +102,7 @@ void USART1_IRQHandler()
   if (uart1_has_error) {
     USART1_CR1 &= ~(RE);  // Ensure Receive is disable
     DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
-    uart1_control.status_register = E_UART1_RECEIVE_ERROR_BASE | uart1_has_error;
+    __atomic_store_n(&uart1_control.status_register, E_UART1_RECEIVE_ERROR_BASE | uart1_has_error, __ATOMIC_RELEASE);
   }
 }
 
@@ -172,11 +175,14 @@ enum uart_status_t uart1_receive(
     if (uart1_is_busy())
       return UART_BUSY;
 
-    if (uart1_control.locked)
+    TIMEOUT_MS timeout_ms;
+    if (!sys_try_lock(&uart1_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
       return UART_LOCKED;
 
-    uart1_control.locked = true;
-    uart1_control.start_monitore = false;
+//    uart1_control.locked = true;
+//    uart1_control.start_monitore = false;
+    // We need to use __atomic here because process_uart1_time_event is always running
+    __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
 
     USART1_CR1 &= ~(RE);           // Ensure Receive is disable
     DMA1_CCR5 &= ~(DMA1_CCR5_EN);  // Disable DMA1_Channel5
@@ -199,7 +205,8 @@ enum uart_status_t uart1_receive(
     uart1_control.uart_callback = receive_uart_callback;
 
     init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);
-    uart1_control.start_monitore = true;
+    // We need to use __atomic here because process_uart1_time_event is always running
+    __atomic_store_n(&uart1_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 5 and UART1
 
     DMA1_CCR5 |= DMA1_CCR5_EN; // Enable DMA1 Channel 5 receive
     USART1_CR1 |= RE;  // Ensure Receive is enable
@@ -221,11 +228,14 @@ enum uart_status_t uart1_transmit(
   if (uart1_is_busy())
     return UART_BUSY;
 
-  if (uart1_control.locked)
+  TIMEOUT_MS timeout_ms;
+  if (!sys_try_lock(&uart1_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
     return UART_LOCKED;
 
-  uart1_control.locked = true;
-  uart1_control.start_monitore = false;
+//    uart1_control.locked = true;
+//    uart1_control.start_monitore = false;
+   // We need to use __atomic here because process_uart1_time_event is always running
+   __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
 
   DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4 (transmit)
   DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5 (receive)
@@ -264,7 +274,8 @@ enum uart_status_t uart1_transmit(
 
   //uart1_control.timeout = timeout;
   init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);
-  uart1_control.start_monitore = true;
+    // We need to use __atomic here because process_uart1_time_event is always running
+    __atomic_store_n(&uart1_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 4
 
   DMA1_CCR4 |= DMA1_CCR4_EN; // Enable DMA1 Channel 4 transmit
 
@@ -273,9 +284,9 @@ enum uart_status_t uart1_transmit(
 
 void process_uart1_time_event()
 {
-  if (uart1_control.start_monitore) {
+  if (__atomic_load_n(&uart1_control.start_monitore, __ATOMIC_SEQ_CST)) {
 
-    uint32_t status_register = (uint32_t)uart1_control.status_register;
+    uint32_t status_register = (uint32_t)__atomic_load_n(&uart1_control.status_register, __ATOMIC_SEQ_CST);
 
     switch (status_register) {
       case UART1_TRANSFER_COMPLETE:
@@ -311,9 +322,12 @@ process_uart1_time_event_finish:
           (void)USART1_SR;
           (void)USART1_DR;
 
-          uart1_control.status_register = 0;
-          uart1_control.start_monitore = false;
-          uart1_control.locked = false;
+          //uart1_control.status_register = 0;
+          __atomic_store_n(&uart1_control.status_register, 0, __ATOMIC_RELEASE);
+          //uart1_control.start_monitore = false;
+          __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE); // Stop monitoring
+          //uart1_control.locked = false;
+          __atomic_store_n(&uart1_control.locked, false, __ATOMIC_RELEASE); // Same as sys_unlock
           uart1_control.uart_callback(status_register);
         }
     }
