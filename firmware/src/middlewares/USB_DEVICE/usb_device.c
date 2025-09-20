@@ -6,6 +6,7 @@
 #include <usb_device.h>
 #include <usbd_cdc.h>
 #include <usbd_cdc_if.h>
+#include <solar48_config.h>
 
 typedef void (*usb_receive_cb_t)(uint8_t *, uint32_t);
 typedef void (*usb_receive_complete_cb_t)(void);
@@ -14,14 +15,6 @@ error_callback_t usb_err_fn = NULL;
 usb_receive_cb_t recv_cb = NULL;
 usb_receive_complete_cb_t recv_complete = NULL;
 USBD_HandleTypeDef hUsbDeviceFS;
-
-#define USBD_VID                       1155
-#define USBD_LANGID_STRING             1033
-#define USBD_MANUFACTURER_STRING       "DevFabioSilva"
-#define USBD_PID_FS                    22336
-#define USBD_PRODUCT_STRING_FS         "Solar48 Virtual Communication Port for 48 V solar panel"
-#define USBD_CONFIGURATION_STRING_FS   "CDC Config"
-#define USBD_INTERFACE_STRING_FS       "CDC Interface"
 
 static void Get_SerialNum(void);
 static void IntToUnicode(uint32_t value, uint8_t * pbuf, uint8_t len);

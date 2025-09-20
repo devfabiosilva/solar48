@@ -62,12 +62,13 @@ void __nvic_setprioritygrouping(uint32_t PriorityGroup)
   \param [in]  priority  Priority to set.
   \note    The priority cannot be set for every processor exception.
  */
+//NOTE IRQn should be >= 0
 void __nvic_set_priority(IRQn_Type IRQn, uint32_t priority)
 {
   if ((int32_t)(IRQn) >= 0)
     NVIC->IP[((uint32_t)IRQn)] = (uint8_t)((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
-  else
-    SCB->SHP[(((uint32_t)IRQn) & 0xFUL)-4UL] = (uint8_t)((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
+  //else
+  //  SCB->SHP[(((uint32_t)IRQn) & 0xFUL)-4UL] = (uint8_t)((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
 }
 
 uint32_t get_priority_grouping()

@@ -1,5 +1,6 @@
 
 #include <peripheral/ssd1306/fonts.h>
+#include <peripheral/ssd1306/ssd1306.h>
 
 // Bitmaps for 3 different fonts
 
@@ -297,6 +298,7 @@ static const uint16_t Font16x26 [] = {
 0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x3F07,0x7FC7,0x73E7,0xF1FF,0xF07E,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000, // Ascii = [~]
 };
 
-FontDef Font_7x10 = {7,10,Font7x10};
-FontDef Font_11x18 = {11,18,Font11x18};
-FontDef Font_16x26 = {16,26,Font16x26};
+FontDef Font_7x10 = {7,10,Font7x10, SSD1306_WIDTH / 7};
+FontDef Font_11x18 = {11,18,Font11x18, SSD1306_WIDTH / 11};
+FontDef Font_16x26 = {16,26,Font16x26, SSD1306_WIDTH / 16};
+
