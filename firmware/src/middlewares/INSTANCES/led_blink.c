@@ -34,7 +34,7 @@ static void led_blink_task(void *params)
   (void)params;
 
 #ifdef UART_TEST
-  static uint8_t cnt = 0;
+  static uint64_t cnt = 0;
   enum uart_status_t uart_status;
 #endif
   while (1) {
@@ -47,7 +47,7 @@ static void led_blink_task(void *params)
 #ifdef UART_TEST
     uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
     if (uart_status == UART_OK)
-      oled_cursor_printf(0, 40, "UART send %d", (int)cnt);
+      oled_cursor_printf(0, 40, "UART send %lu", (int)cnt);
     else
       oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 

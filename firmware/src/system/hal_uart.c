@@ -322,11 +322,8 @@ process_uart1_time_event_finish:
           (void)USART1_SR;
           (void)USART1_DR;
 
-          //uart1_control.status_register = 0;
           __atomic_store_n(&uart1_control.status_register, 0, __ATOMIC_RELEASE);
-          //uart1_control.start_monitore = false;
           __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE); // Stop monitoring
-          //uart1_control.locked = false;
           __atomic_store_n(&uart1_control.locked, false, __ATOMIC_RELEASE); // Same as sys_unlock
           uart1_control.uart_callback(status_register);
         }
