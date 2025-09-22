@@ -76,6 +76,25 @@ struct pdu_read_error_exception_t {
 }__attribute__((packed));
 // End
 
+//Write discrete
+struct pdu_write_discrete_req_t {
+  uint8_t function_code;
+  uint16_t starting_address;
+  uint16_t number_of_discrete_or_output_value;
+}__attribute__((packed));
+
+struct pdu_write_discrete_resp_t {
+  uint8_t function_code;
+  uint8_t byte_count;
+  uint8_t status[MODBUS_PDU_MAX_SIZE - 2];
+}__attribute__((packed));
+_Static_assert(sizeof(struct pdu_write_discrete_resp_t) == MODBUS_PDU_MAX_SIZE);
+
+struct pdu_writediscrete_error_exception_t {
+  uint8_t error_or_exception_code;
+}__attribute__((packed));
+//End
+
 typedef int (*mb_master_callback)(int);
 
 int master_send_req(uint16_t, MB_FUNCION, uint16_t, uint8_t, mb_master_callback);
