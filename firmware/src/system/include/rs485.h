@@ -79,21 +79,41 @@ struct pdu_read_error_exception_t {
 //Write discrete
 struct pdu_write_discrete_req_t {
   uint8_t function_code;
-  uint16_t starting_address;
-  uint16_t number_of_discrete_or_output_value;
+  uint16_t output_address_or_register_address;
+  uint16_t output_value_or_register_value;
 }__attribute__((packed));
 
 struct pdu_write_discrete_resp_t {
   uint8_t function_code;
-  uint8_t byte_count;
-  uint8_t status[MODBUS_PDU_MAX_SIZE - 2];
+  uint16_t output_address_or_register_address;
+  uint16_t output_value_or_register_value;
 }__attribute__((packed));
-_Static_assert(sizeof(struct pdu_write_discrete_resp_t) == MODBUS_PDU_MAX_SIZE);
 
-struct pdu_writediscrete_error_exception_t {
+struct pdu_write_discrete_error_exception_t {
   uint8_t error_or_exception_code;
 }__attribute__((packed));
 //End
+
+// Write
+struct pdu_write_req_t {
+  uint8_t function_code;
+  uint16_t starting_address;
+  uint16_t number_of_registers;
+  uint8_t byte_count;
+  uint16_t register_values[123];
+}__attribute__((packed));
+_Static_assert(sizeof(struct pdu_write_req_t) == MODBUS_PDU_MAX_SIZE - 1, "pdu_write_req_t size error");
+
+struct pdu_write_resp_t {
+  uint8_t function_code;
+  uint16_t starting_address;
+  uint16_t number_of_registers;
+}__attribute__((packed));
+
+struct pdu_write_error_exception_t {
+  uint8_t error_or_exception_code;
+}__attribute__((packed));
+// End
 
 typedef int (*mb_master_callback)(int);
 

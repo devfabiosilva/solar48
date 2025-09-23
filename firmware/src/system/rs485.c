@@ -3,7 +3,6 @@
 #include <rs485.h>
 #include <hal_uart.h>
 
-
 static uint8_t modbus_master_buffer[256]; 
 
 // Implement RTU only (uses UART1)
