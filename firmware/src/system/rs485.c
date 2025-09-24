@@ -21,28 +21,30 @@ static inline uint16_t swap16(uint16_t x) {
 
 static void swap16_array_fast(uint16_t *arr, size_t len)
 {
-  size_t i = 0;
-  for (; i + 3 < len; i += 4) {
-    uint32_t *p32 = (uint32_t *)&arr[i];
-    uint32_t *q32 = (uint32_t *)&arr[i + 2];
 
-    __asm__(
-        "rev %0, %0\n\t"
-        "rev16 %0, %0"
-      : "=r"(*p32)
-      : "0"(*p32)
-    );
+// rev16 instructions swaps 2 half words, so calling this is faster than simple swap bytes using C.
+// Examples a = 0x01020304
+// mov R0, #0x01020304
+// rev16 R0, R0
+// RESULT: 0x02010403
+// Refs.: https://developer.arm.com/documentation/ddi0602/2025-06/Base-Instructions/REV16--Reverse-bytes-in-16-bit-halfwords-
+//        https://developer.arm.com/documentation/dui0379/e/arm-and-thumb-instructions/rev16
+ 
+  uint32_t *p = (uint32_t *)arr;
+  size_t n = len >> 1; // Divide by 2
 
-    __asm__(
-        "rev %0, %0\n\t"
-        "rev16 %0, %0"
-      : "=r"(*q32)
-      : "0"(*q32)
-    );
+  while (n > 0) {
+    __asm__("rev16 %0, %0": "=r"(*p): "0"(*p));
+    p++;
+    --n;
   }
 
-  for (; i < len; i++)
-    __asm__("rev16 %0, %0" : "=r"(arr[i]) : "0"(arr[i]));
+  // If even
+  if (len & 1) {
+    uint32_t left = (uint32_t)arr[len - 1];
+    __asm__("rev16 %0, %0": "=r"(left): "0"(left)); // Last swap
+    arr[len - 1] = (uint16_t)left;
+  }
 }
 
 static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address, MB_FUNCION function, uint16_t mem_address, uint16_t n)
@@ -81,16 +83,36 @@ static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address,
   return 0;
 }
 
+static int master_check_receive()
+{
+  //TODO validate Receiving according to specification
+  return 0;
+}
+
+static void _master_receive(int status)
+{
+  switch (status) {
+    case UART1_RECEIVE_COMPLETE:
+      status = master_check_receive();
+    default:
+      sys_unlock(&master_rs485_rtu.lock);
+      master_rs485_rtu.callback(status);
+  }
+}
+
 static void _master_send_req(int status)
 {
   switch (status) {
     case UART1_TRANSFER_COMPLETE:
       // TODO implement slave receive buffer callback
-      sys_unlock(&master_rs485_rtu.lock); // TODO remove unlock here
-      break;
+      // TODO implement MAX485 implementation
+      int err = uart1_receive(modbus_master_buffer, sizeof(modbus_master_buffer), _master_receive, master_rs485_rtu.timeout);
+      if (!(err))
+        return;
+
     default:
-      //TODO implement error handler
       sys_unlock(&master_rs485_rtu.lock);
+      master_rs485_rtu.callback(status);
   }
 }
 
