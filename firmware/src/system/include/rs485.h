@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 // Page 5
 //The size of the MODBUS PDU is limited by the size constraint inherited from the first
@@ -17,7 +18,7 @@
 // Modbus_Application_Protocol_V1_1b.pdf 
 // 5.1 Public Function Code Definition Page 11
 typedef enum solar48_rs485_e {
-  READ_DISCRETE_COIL = 2,
+  READ_DISCRETE_INPUTS = 2,
   READ_COILS = 1,
   WRITE_SINGLE_COIL = 5,
   WRITE_MULTIPLE_COILS = 15,
@@ -115,9 +116,35 @@ struct pdu_write_error_exception_t {
 }__attribute__((packed));
 // End
 
-typedef int (*mb_master_callback)(int);
+typedef void (*mb_callback)(int);
 
-int master_send_req(uint16_t, MB_FUNCION, uint16_t, uint8_t, mb_master_callback);
+typedef union pdu_u {
+  struct pdu_read_discrete_req_t pdu_read_discrete_req;
+  struct pdu_read_discrete_resp_t pdu_read_discrete_resp;
+  struct pdu_read_discrete_error_exception_t pdu_read_discrete_error_exception;
+
+  struct pdu_read_req_t pdu_read_req;
+  struct pdu_read_resp_t pdu_read_resp;
+  struct pdu_read_error_exception_t pdu_read_error_exception;
+
+  struct pdu_write_discrete_req_t pdu_write_discrete_req;
+  struct pdu_write_discrete_resp_t pdu_write_discrete_resp;
+  struct pdu_write_discrete_error_exception_t pdu_write_discrete_error_exception;
+
+  struct pdu_write_req_t pdu_write_req;
+  struct pdu_write_resp_t pdu_write_resp;
+  struct pdu_write_error_exception_t pdu_write_error_exception;
+} PDU_FRAME;
+
+typedef struct solar48_rs485rtu_t {
+  volatile bool lock;
+  uint8_t address;
+  MB_FUNCION function;
+  uint32_t timeout_ms;
+  mb_callback callback;
+} SOLAR48_RS485_RTU;
+
+int master_send_req(uint8_t, MB_FUNCION, uint16_t, uint16_t, uint32_t, mb_callback);
 
 #endif
 

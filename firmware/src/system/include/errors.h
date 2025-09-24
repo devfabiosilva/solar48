@@ -88,6 +88,12 @@ void error_handler(int error);
 #define E_SYS_QUEUE_QUEUE_OFF 86
 ///////////////////////////////////
 
+// MASTER RS485 ERRORS
+#define E_MASTER_MODBUS_BUSY 400
+#define E_MASTER_INVALID_SLAVE_ADDRESS 401
+#define E_MASTER_INVALID_NUMBER_OF_COILS 402
+///////////////////////////////////
+
 #define E_NOT_IMPLEMENTED -1
 
 void error_handler(int);

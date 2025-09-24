@@ -87,5 +87,10 @@ _Static_assert(SYS_QUEUE_DEINIT_TIMEOUT_MS > SYS_QUEUE_DESTROY_TIMEOUT_MS, "SYS_
 
 // *****************************************
 
+// ****   MASTER RS485 RTU CONFIG       ****
+#define MASTER_RS485_TIMEOUT_MS 5
+
+// *****************************************
+
 #endif
 
