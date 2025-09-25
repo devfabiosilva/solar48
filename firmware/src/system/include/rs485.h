@@ -17,7 +17,7 @@
 
 // Modbus_Application_Protocol_V1_1b.pdf 
 // 5.1 Public Function Code Definition Page 11
-typedef enum solar48_rs485_e {
+typedef enum solar48_functions_rs485_e {
   READ_DISCRETE_INPUTS = 2,
   READ_COILS = 1,
   WRITE_SINGLE_COIL = 5,
@@ -116,7 +116,7 @@ struct pdu_write_error_exception_t {
 }__attribute__((packed));
 // End
 
-typedef void (*mb_callback)(int);
+typedef void (*mb_master_recv_callback)(int, uint8_t *, uint16_t);
 
 typedef union pdu_u {
   struct pdu_read_discrete_req_t pdu_read_discrete_req;
@@ -141,10 +141,10 @@ typedef struct solar48_rs485rtu_t {
   uint8_t address;
   MB_FUNCION function;
   uint32_t timeout_ms;
-  mb_callback callback;
+  mb_master_recv_callback callback;
 } SOLAR48_RS485_RTU;
 
-int master_send_req(uint8_t, MB_FUNCION, uint16_t, uint16_t, uint32_t, mb_callback);
+int master_send_req(uint8_t, MB_FUNCION, uint16_t, uint16_t, uint32_t, mb_master_recv_callback);
 
 #endif
 
