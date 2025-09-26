@@ -18,22 +18,22 @@ static SOLAR48_RS485_RTU slave_rs485_rtu = {0};
 extern void app_panic(const char *);
 
 static inline uint16_t swap16(uint16_t x) {
-    uint16_t y;
-    __asm__("rev16 %0, %1" : "=r"(y) : "r"(x));
-    return y;
+    uint32_t y = (uint32_t)x;
+    __asm__("rev16 %0, %0" : "+r"(y));
+    return (uint16_t)y;
 }
 
 static void swap16_array_fast(uint16_t *arr, size_t len)
 {
 
 // rev16 instructions swaps 2 half words, so calling this is faster than simple swap bytes using C.
-// Examples a = 0x01020304
+// Example: a = 0x01020304
 // mov R0, #0x01020304
 // rev16 R0, R0
 // RESULT: 0x02010403
 // Refs.: https://developer.arm.com/documentation/ddi0602/2025-06/Base-Instructions/REV16--Reverse-bytes-in-16-bit-halfwords-
 //        https://developer.arm.com/documentation/dui0379/e/arm-and-thumb-instructions/rev16
- 
+
   uint32_t *p = (uint32_t *)arr;
   size_t n = len >> 1; // Divide by 2
 
@@ -44,11 +44,9 @@ static void swap16_array_fast(uint16_t *arr, size_t len)
   }
 
   // If even
-  if (len & 1) {
-    uint32_t left = (uint32_t)arr[len - 1];
-    __asm__("rev16 %0, %0": "=r"(left): "0"(left)); // Last swap
-    arr[len - 1] = (uint16_t)left;
-  }
+  if (len & 1)
+    arr[len - 1] = swap16(arr[len - 1]);
+
 }
 
 static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address, MB_FUNCION function, uint16_t mem_address, uint16_t n)
@@ -60,90 +58,151 @@ static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address,
   modbus_master_buffer[0] = slave_address;
   PDU_FRAME *frame = (PDU_FRAME *)&modbus_master_buffer[1];
 
+  uint16_t m;
+  int error_on_invalid_n;
+
   switch (function) {
-    case READ_DISCRETE_INPUTS:
-      // TODO implement
-      break;
     case READ_COILS:
-      if (n < 1 || n > 2000) // 6.1 01 (0x01) Read Coils - Page 12
-        return E_MASTER_INVALID_NUMBER_OF_COILS;
+      error_on_invalid_n = E_MASTER_INVALID_NUMBER_OF_COILS;
 
-      uint16_t m = n >> 3; // Divide by 8
-      if (n & 7) // Remainder
-        ++m;
+      goto master_prepare_to_send_discrete;
 
-      frame->pdu_read_discrete_req.function_code = function;
-      frame->pdu_read_discrete_req.starting_address = swap16(mem_address); // Big endian
-      frame->pdu_read_discrete_req.number_of_discrete = swap16(m); // Big endian
+    case READ_DISCRETE_INPUTS:
+      error_on_invalid_n = E_MASTER_INVALID_NUMBER_OF_DISCRETE_INPUTS;
 
-      #define READ_COILS_REQ_SIZE (1 + sizeof(struct pdu_read_discrete_req_t))
-      *((uint16_t *)&modbus_master_buffer[READ_COILS_REQ_SIZE]) = crc16(modbus_master_buffer, READ_COILS_REQ_SIZE);
-      *out_data_size = (READ_COILS_REQ_SIZE + 2);
-      #undef READ_COILS_REQ_SIZE
-      break;
-//    default:
+      goto master_prepare_to_send_discrete;
   }
+
+  return E_UNEXPECTED_FUNCTION; // Guard
+
+master_prepare_to_send_discrete:
+
+  if (n < 1 || n > 2000)
+    return error_on_invalid_n; // 6.1 01 (0x01) Read Coils - Page 12, 6.2 02 (0x02) Read Discrete Inputs
+
+  m = n >> 3; // Divide by 8
+  if (n & 7) // Remainder
+    ++m;
+
+  frame->pdu_read_discrete_req.function_code = function;
+  frame->pdu_read_discrete_req.starting_address = swap16(mem_address); // Big endian
+  frame->pdu_read_discrete_req.number_of_discrete = swap16(m); // Big endian
+
+  #define READ_DISCRETE_REQ_SIZE (1 + sizeof(struct pdu_read_discrete_req_t))
+  *((uint16_t *)&modbus_master_buffer[READ_DISCRETE_REQ_SIZE]) = crc16(modbus_master_buffer, READ_DISCRETE_REQ_SIZE);
+  *out_data_size = (READ_DISCRETE_REQ_SIZE + 2);
+  #undef READ_DISCRETE_REQ_SIZE
 
   return 0;
 }
 
+#define MASTER_TRANSFER_SUCCESS 0
+#define MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE 1
+
+#define RS485_ERROR_CODE(x) (x + 0x80)
 // Helper function. All data is read from master an checks for validation
-static int master_check_receive(uint8_t **data, uint16_t *data_size)
+static int master_check_receive(MB_FUNCION *function, uint8_t **data, uint16_t *data_size)
 {
   *data = NULL;
   *data_size = 0;
-  //TODO validate Receiving according to specification
+  *function = master_rs485_rtu.function;
+
   if (master_rs485_rtu.address != modbus_master_buffer[0])
     return E_MASTER_INVALID_RECEIVE_SLAVE_ADDRESS;
 
   uint16_t crc;
-  uint8_t u8_sz;
+  uint8_t 
+    u8_sz,
+    *ptr,
+    error_code;
+
+  int 
+    ret_code = MASTER_TRANSFER_SUCCESS,
+    error_on_catch_exception,
+    error_unexpected_function,
+    error_invalid_data_size,
+    error_invalid_crc;
+
   PDU_FRAME *frame = (PDU_FRAME *)&modbus_master_buffer[1];
 
   switch (master_rs485_rtu.function) {
     case READ_COILS:
-      if (frame->pdu_read_discrete_resp.function_code != READ_COILS)
-        return E_UNEXPECTED_READ_COILS_FUNCTION;
-        
-      u8_sz = frame->pdu_read_discrete_resp.byte_count;
-      // (250 + 1 -> See: 6.1 01 (0x01) Read Coils - page 12) + sizeof(address) + sizeof(function) + sizeof(count) + sizeof(crc) = 256
-      if (u8_sz < 1 || u8_sz > 251)
-        return E_INVALID_READ_COILS_DATA_SIZE;
+      error_on_catch_exception = E_UNEXPECTED_READ_COILS_ERROR_CODE;
+      error_unexpected_function = E_UNEXPECTED_READ_COILS_FUNCTION;
+      error_invalid_data_size = E_INVALID_READ_COILS_DATA_SIZE;
+      error_invalid_crc = E_INVALID_READ_COILS_CRC;
 
-      memcpy(&crc, &frame->pdu_read_discrete_resp.status[u8_sz], sizeof(uint16_t)); // Guarantees ARM alignment
+      goto master_check_receive_read_discrete;
 
-      if (crc16(modbus_master_buffer, (size_t)(u8_sz + offsetof(struct pdu_read_discrete_resp_t, status) + 1)) == crc) {
-        if ((*data = (uint8_t *)malloc(u8_sz))) {
-          memcpy((void *)(*data), (void *)&frame->pdu_read_discrete_resp.status[0], (size_t)u8_sz);
-          *data_size = (uint16_t)u8_sz;
-          return 0;
-        }
-
-        app_panic("mds:ckrcv1");
-        return -1; // Never gets here
-      }
-
-      return E_INVALID_READ_COILS_CRC;
     case READ_DISCRETE_INPUTS:
-      if (frame->pdu_read_discrete_resp.function_code != READ_COILS)
-        return E_UNEXPECTED_DISCRETE_INPUTS_FUNCTION;
+      error_on_catch_exception = E_UNEXPECTED_READ_DISCRETE_INPUTS_ERROR_CODE;
+      error_unexpected_function = E_UNEXPECTED_DISCRETE_INPUTS_FUNCTION;
+      error_invalid_data_size = E_INVALID_DISCRETE_INPUTS_DATA_SIZE;
+      error_invalid_crc = E_INVALID_DISCRETE_INPUTS_CRC;
+
+      goto master_check_receive_read_discrete;
   }
 
-  return 0;
+  return E_UNEXPECTED_RECEIVE_FUNCTION; // Guard. Never gets here
+
+master_check_receive_read_discrete:
+  if ((frame->pdu_read_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+
+    error_code = frame->pdu_read_discrete_error_exception.error_or_exception_code;
+    if ((error_code > 0) && (error_code < 5)) {// Page 12
+      ptr = &frame->pdu_read_discrete_error_exception.function_code;
+      u8_sz = (uint8_t)sizeof(struct pdu_read_discrete_error_exception_t);
+      ret_code = MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE;
+      goto master_check_receive_copy_buffer1;
+    }
+
+    return error_on_catch_exception;
+  }
+
+  if (frame->pdu_read_discrete_resp.function_code != master_rs485_rtu.function)
+    return error_unexpected_function;
+        
+  u8_sz = frame->pdu_read_discrete_resp.byte_count;
+      // (250 + 1 -> See: 6.1 01 (0x01) Read Coils - page 12) + sizeof(address) + sizeof(function) + sizeof(count) + sizeof(crc) = 256
+  if (u8_sz < 1 || u8_sz > 251)
+    return error_invalid_data_size;
+
+  memcpy(&crc, &frame->pdu_read_discrete_resp.status[u8_sz], sizeof(uint16_t)); // Guarantees ARM alignment
+
+  if (crc16(modbus_master_buffer, (size_t)(u8_sz + offsetof(struct pdu_read_discrete_resp_t, status) + 1)) == crc) {
+    ptr = &frame->pdu_read_discrete_resp.status[0];
+    goto master_check_receive_copy_buffer1;
+  }
+
+  return error_invalid_crc;
+
+master_check_receive_copy_buffer1:
+  if ((*data = (uint8_t *)malloc((size_t)u8_sz))) {
+    memcpy((void *)(*data), (void *)ptr, (size_t)u8_sz);
+    *data_size = (uint16_t)u8_sz;
+    return ret_code;
+  }
+
+  app_panic("mds:ckrcv1");
+  return -1; // Never gets here
 }
+
+#undef RS485_ERROR_CODE
 
 static void _master_receive(int status)
 {
-  uint16_t *data = NULL, data_size = 0;
+  uint8_t *data = NULL;
+  uint16_t data_size = 0;
+  MB_FUNCION func;
   switch (status) {
     case UART1_RECEIVE_COMPLETE:
-      status = master_check_receive(&data, &data_size);
+      status = master_check_receive(&func, &data, &data_size);
 
       // STATUS = 0 => receive is valid and data is available on buffer
-      if (status == 0) {
+      if ((status == MASTER_TRANSFER_SUCCESS) || (status == MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE)) {
         // From here data is valid and formatted to Little endian in 16 bits results
         sys_unlock(&master_rs485_rtu.lock);
-        master_rs485_rtu.callback(status, data, data_size);
+        master_rs485_rtu.callback(status, func, data, data_size);
 
         if (data) // Guard
           free(data);
@@ -157,23 +216,24 @@ static void _master_receive(int status)
       if (data)
         app_panic("_mrcv:mem2");
       sys_unlock(&master_rs485_rtu.lock);
-      master_rs485_rtu.callback(status, data, data_size);
+      master_rs485_rtu.callback(status, MB_FUNCION_UNDEFINED, data, data_size);
   }
 }
+
+#undef MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE
+#undef MASTER_TRANSFER_SUCCESS
 
 static void _master_send_req(int status)
 {
   int err;
   switch (status) {
     case UART1_TRANSFER_COMPLETE:
-      // TODO implement slave receive buffer callback
-      // TODO implement MAX485 implementation
       if (!(err = uart1_receive(modbus_master_buffer, sizeof(modbus_master_buffer), _master_receive, master_rs485_rtu.timeout_ms)))
         return;
 
     default:
       sys_unlock(&master_rs485_rtu.lock);
-      master_rs485_rtu.callback(status, NULL, 0);
+      master_rs485_rtu.callback(status, MB_FUNCION_UNDEFINED, NULL, 0);
   }
 }
 

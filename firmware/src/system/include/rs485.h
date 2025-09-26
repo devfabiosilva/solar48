@@ -36,7 +36,8 @@ typedef enum solar48_functions_rs485_e {
   GET_COM_EVENT_COUNTER = 11,
   GET_COM_EVENT_LOG = 12,
   REPORT_SLAVE_ID = 17,
-  READ_DEVICE_INDENTIFICATION = 43
+  READ_DEVICE_INDENTIFICATION = 43,
+  MB_FUNCION_UNDEFINED = 0
 } MB_FUNCION;
 
 // Read discrete
@@ -54,6 +55,7 @@ struct pdu_read_discrete_resp_t {
 _Static_assert(sizeof(struct pdu_read_discrete_resp_t) == MODBUS_PDU_MAX_SIZE);
 
 struct pdu_read_discrete_error_exception_t {
+  uint8_t function_code;
   uint8_t error_or_exception_code;
 }__attribute__((packed));
 // End read discrete
@@ -112,11 +114,12 @@ struct pdu_write_resp_t {
 }__attribute__((packed));
 
 struct pdu_write_error_exception_t {
+  uint8_t function_code;
   uint8_t error_or_exception_code;
 }__attribute__((packed));
 // End
 
-typedef void (*mb_master_recv_callback)(int, uint8_t *, uint16_t);
+typedef void (*mb_master_recv_callback)(int, MB_FUNCION, uint8_t *, uint16_t);
 
 typedef union pdu_u {
   struct pdu_read_discrete_req_t pdu_read_discrete_req;
