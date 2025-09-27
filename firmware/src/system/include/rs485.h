@@ -22,7 +22,7 @@ typedef enum solar48_functions_rs485_e {
   READ_COILS = 1,
   WRITE_SINGLE_COIL = 5,
   WRITE_MULTIPLE_COILS = 15,
-  READ_INPUT_REGISTER = 4,
+  READ_INPUT_REGISTERS = 4,
   READ_HOLDING_REGISTERS = 3,
   WRITE_SINGLE_REGISTER = 6,
   WRITE_MULTIPLE_REGISTERS = 16,
@@ -75,6 +75,7 @@ struct pdu_read_resp_t {
 _Static_assert(sizeof(struct pdu_read_resp_t) == MODBUS_PDU_MAX_SIZE - 1, "pdu_read_resp_t size error");
 
 struct pdu_read_error_exception_t {
+  uint8_t function_code;
   uint8_t error_or_exception_code;
 }__attribute__((packed));
 // End
