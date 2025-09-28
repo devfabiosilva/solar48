@@ -94,6 +94,7 @@ struct pdu_write_discrete_resp_t {
 }__attribute__((packed));
 
 struct pdu_write_discrete_error_exception_t {
+  uint8_t function_code;
   uint8_t error_or_exception_code;
 }__attribute__((packed));
 //End
@@ -144,11 +145,21 @@ typedef struct solar48_rs485rtu_t {
   volatile bool lock;
   uint8_t address;
   MB_FUNCION function;
+  uint16_t n_data_or_discrete;
+  uint16_t *data;
   uint32_t timeout_ms;
   mb_master_recv_callback callback;
 } SOLAR48_RS485_RTU;
 
-int master_send_req(uint8_t, MB_FUNCION, uint16_t, uint16_t, uint32_t, mb_master_recv_callback);
+static int master_send_req(
+  uint8_t,
+  MB_FUNCION,
+  uint16_t,
+  uint16_t,
+  uint16_t *,
+  uint32_t,
+  mb_master_recv_callback
+);
 
 #endif
 

@@ -58,7 +58,7 @@ static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address,
   modbus_master_buffer[0] = slave_address;
   PDU_FRAME *frame = (PDU_FRAME *)&modbus_master_buffer[1];
 
-  uint16_t m;
+  uint16_t m, crc;
   int error_on_invalid_n;
 
   switch (function) {
@@ -81,9 +81,32 @@ static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address,
       error_on_invalid_n = E_MASTER_INVALID_NUMBER_OF_INPUT_REGISTERS;
 
       goto master_prepare_to_send_read_register;
+
+    case WRITE_SINGLE_COIL:
+      if (n == 0x0000 || n == 0xFF00)
+        goto master_prepare_to_send_write_discrete;
+
+      return E_INVALID_SINGLE_COIL_STATE;
+
+    case WRITE_SINGLE_REGISTER:
+      goto master_prepare_to_send_write_discrete;
   }
 
   return E_UNEXPECTED_FUNCTION; // Guard
+
+master_prepare_to_send_write_discrete:
+
+  frame->pdu_write_discrete_req.function_code = function;
+  frame->pdu_write_discrete_req.output_address_or_register_address = swap16(mem_address); // Big endian
+  frame->pdu_write_discrete_req.output_value_or_register_value = swap16(n); // Big endian
+
+  #define WRITE_REGISTER_REQ_SIZE (1 + sizeof(struct pdu_write_discrete_req_t))
+  crc = crc16((uint8_t *)modbus_master_buffer, WRITE_REGISTER_REQ_SIZE);
+  memcpy((void *)&modbus_master_buffer[WRITE_REGISTER_REQ_SIZE], (void *)&crc, sizeof(crc));
+  *out_data_size = (WRITE_REGISTER_REQ_SIZE + 2);
+  #undef WRITE_REGISTER_REQ_SIZE
+
+  return 0;
 
 master_prepare_to_send_read_register:
 
@@ -95,7 +118,8 @@ master_prepare_to_send_read_register:
   frame->pdu_read_req.number_of_registers = swap16(n); // Big endian
 
   #define READ_REGISTER_REQ_SIZE (1 + sizeof(struct pdu_read_req_t))
-  *((uint16_t *)&modbus_master_buffer[READ_REGISTER_REQ_SIZE]) = crc16(modbus_master_buffer, READ_REGISTER_REQ_SIZE);
+  crc = crc16((uint8_t *)modbus_master_buffer, READ_REGISTER_REQ_SIZE);
+  memcpy((void *)&modbus_master_buffer[READ_REGISTER_REQ_SIZE], (void *)&crc, sizeof(crc));
   *out_data_size = (READ_REGISTER_REQ_SIZE + 2);
   #undef READ_REGISTER_REQ_SIZE
 
@@ -115,7 +139,8 @@ master_prepare_to_send_read_discrete:
   frame->pdu_read_discrete_req.number_of_discrete = swap16(m); // Big endian
 
   #define READ_DISCRETE_REQ_SIZE (1 + sizeof(struct pdu_read_discrete_req_t))
-  *((uint16_t *)&modbus_master_buffer[READ_DISCRETE_REQ_SIZE]) = crc16(modbus_master_buffer, READ_DISCRETE_REQ_SIZE);
+  crc = crc16((uint8_t *)modbus_master_buffer, READ_DISCRETE_REQ_SIZE);
+  memcpy((void *)&modbus_master_buffer[READ_DISCRETE_REQ_SIZE], (void *)&crc, sizeof(crc));
   *out_data_size = (READ_DISCRETE_REQ_SIZE + 2);
   #undef READ_DISCRETE_REQ_SIZE
 
@@ -126,6 +151,10 @@ master_prepare_to_send_read_discrete:
 #define MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE 1
 
 #define RS485_ERROR_CODE(x) (x + 0x80)
+#define RS485_CHECK_EXCEPTION_CRC(type, on_error) \
+memcpy(&crc, &(&frame->type)[1], sizeof(uint16_t)); \
+if (crc16(modbus_master_buffer, (sizeof(frame->type) + 1)) != crc) \
+  return on_error;
 // Helper function. All data is read from master an checks for validation
 static int master_check_receive(MB_FUNCION *function, uint8_t **data, uint16_t *data_size)
 {
@@ -147,8 +176,9 @@ static int master_check_receive(MB_FUNCION *function, uint8_t **data, uint16_t *
     ret_code = MASTER_TRANSFER_SUCCESS,
     error_on_catch_exception,
     error_unexpected_function,
-    error_invalid_data_size,
-    error_invalid_crc;
+    error_invalid_data_size_or_unexpected_discrete,
+    error_invalid_crc,
+    error_invalid_exception_crc;
 
   PDU_FRAME *frame = (PDU_FRAME *)&modbus_master_buffer[1];
 
@@ -156,41 +186,100 @@ static int master_check_receive(MB_FUNCION *function, uint8_t **data, uint16_t *
     case READ_COILS:
       error_on_catch_exception = E_UNEXPECTED_READ_COILS_ERROR_CODE;
       error_unexpected_function = E_UNEXPECTED_READ_COILS_FUNCTION;
-      error_invalid_data_size = E_INVALID_READ_COILS_DATA_SIZE;
+      error_invalid_data_size_or_unexpected_discrete = E_INVALID_READ_COILS_DATA_SIZE;
       error_invalid_crc = E_INVALID_READ_COILS_CRC;
+      error_invalid_exception_crc = E_INVALID_READ_COILS_EXCEPTION_CRC;
 
       goto master_check_receive_read_discrete;
 
     case READ_DISCRETE_INPUTS:
       error_on_catch_exception = E_UNEXPECTED_READ_DISCRETE_INPUTS_ERROR_CODE;
       error_unexpected_function = E_UNEXPECTED_DISCRETE_INPUTS_FUNCTION;
-      error_invalid_data_size = E_INVALID_DISCRETE_INPUTS_DATA_SIZE;
+      error_invalid_data_size_or_unexpected_discrete = E_INVALID_DISCRETE_INPUTS_DATA_SIZE;
       error_invalid_crc = E_INVALID_DISCRETE_INPUTS_CRC;
+      error_invalid_exception_crc = E_INVALID_DISCRETE_INPUTS_EXCEPTION_CRC;
 
       goto master_check_receive_read_discrete;
 
     case READ_HOLDING_REGISTERS:
       error_on_catch_exception = E_UNEXPECTED_READ_HOLDING_REGISTERS_ERROR_CODE;
       error_unexpected_function = E_UNEXPECTED_READ_HOLDING_REGISTERS_FUNCTION;
-      error_invalid_data_size = E_INVALID_READ_HOLDING_REGISTERS_DATA_SIZE;
+      error_invalid_data_size_or_unexpected_discrete = E_INVALID_READ_HOLDING_REGISTERS_DATA_SIZE;
       error_invalid_crc = E_INVALID_READ_HOLDING_REGISTERS_CRC;
+      error_invalid_exception_crc = E_INVALID_READ_HOLDING_REGISTERS_EXCEPTION_CRC;
 
       goto master_check_receive_read_register;
 
     case READ_INPUT_REGISTERS:
       error_on_catch_exception = E_UNEXPECTED_READ_INPUT_REGISTERS_ERROR_CODE;
       error_unexpected_function = E_UNEXPECTED_READ_INPUT_REGISTERS_FUNCTION;
-      error_invalid_data_size = E_INVALID_READ_INPUT_REGISTERS_DATA_SIZE;
+      error_invalid_data_size_or_unexpected_discrete = E_INVALID_READ_INPUT_REGISTERS_DATA_SIZE;
       error_invalid_crc = E_INVALID_READ_INPUT_REGISTERS_CRC;
+      error_invalid_exception_crc = E_INVALID_READ_INPUT_REGISTERS_EXCEPTION_CRC;
 
       goto master_check_receive_read_register;
 
+    case WRITE_SINGLE_COIL:
+      error_on_catch_exception = E_UNEXPECTED_WRITE_SINGLE_COIL_ERROR_CODE;
+      error_unexpected_function = E_UNEXPECTED_WRITE_SINGLE_COIL_FUNCTION;
+      error_invalid_data_size_or_unexpected_discrete = E_INVALID_WRITE_SINGLE_COIL_DATA_SIZE;
+      error_invalid_crc = E_INVALID_WRITE_SINGLE_COIL_CRC;
+      error_invalid_exception_crc = E_INVALID_EXCEPTION_WRITE_SINGLE_COIL_CRC_CHECK;
+
+      goto master_check_receive_write_discrete;
+
+    case WRITE_SINGLE_REGISTER:
+      error_on_catch_exception = E_UNEXPECTED_WRITE_SINGLE_REGISTER_ERROR_CODE;
+      error_unexpected_function = E_UNEXPECTED_WRITE_SINGLE_REGISTER_FUNCTION;
+      error_invalid_data_size_or_unexpected_discrete = E_INVALID_WRITE_SINGLE_REGISTER_DATA_SIZE;
+      error_invalid_crc = E_INVALID_WRITE_SINGLE_REGISTER_CRC;
+      error_invalid_exception_crc = E_INVALID_EXCEPTION_WRITE_SINGLE_REGISTER_CRC_CHECK;
+
+      goto master_check_receive_write_discrete;
   }
 
   return E_UNEXPECTED_RECEIVE_FUNCTION; // Guard. Never gets here
 
+master_check_receive_write_discrete:
+  if ((frame->pdu_write_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+
+    RS485_CHECK_EXCEPTION_CRC(pdu_write_discrete_error_exception, error_invalid_exception_crc)
+
+    error_code = frame->pdu_write_discrete_error_exception.error_or_exception_code;
+    if ((error_code > 0) && (error_code < 5)) {// Page 12
+      ptr = &frame->pdu_write_discrete_error_exception.function_code;
+      u8_sz = (uint8_t)sizeof(struct pdu_write_discrete_error_exception_t);
+      ret_code = MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE;
+      goto master_check_receive_copy_buffer1;
+    }
+
+    return error_on_catch_exception;
+  }
+
+  if (frame->pdu_write_discrete_resp.function_code != master_rs485_rtu.function)
+    return error_unexpected_function;
+
+  uint16_t u16_tmp = swap16(frame->pdu_write_discrete_resp.output_value_or_register_value);
+
+  if (master_rs485_rtu.n_data_or_discrete != u16_tmp)
+    return error_invalid_data_size_or_unexpected_discrete;
+
+  #define CHECK_RECEIVE_WRITE_DISCRETE_PACKET_SIZE (sizeof(struct pdu_write_discrete_resp_t) + 1)
+  memcpy(&crc, &(&frame->pdu_write_discrete_resp)[1], sizeof(uint16_t)); // Guarantees ARM alignment
+
+  if (crc16(modbus_master_buffer, CHECK_RECEIVE_WRITE_DISCRETE_PACKET_SIZE) == crc) {
+    ptr = (uint8_t *)&u16_tmp;
+    u8_sz = (uint8_t)sizeof(((struct pdu_write_discrete_resp_t *)NULL)->output_value_or_register_value);
+    goto master_check_receive_copy_buffer1;
+  }
+  #undef CHECK_RECEIVE_WRITE_DISCRETE_PACKET_SIZE
+
+  return error_invalid_crc;
+
 master_check_receive_read_register:
   if ((frame->pdu_read_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+
+    RS485_CHECK_EXCEPTION_CRC(pdu_read_error_exception, error_invalid_exception_crc)
 
     error_code = frame->pdu_read_error_exception.error_or_exception_code;
     if ((error_code > 0) && (error_code < 5)) {// Page 12
@@ -209,7 +298,7 @@ master_check_receive_read_register:
   u8_sz = frame->pdu_read_resp.byte_count;
   // (2*125 -> See: 6.3 03 (0x03) Read Holding Registers - page 15) + sizeof(address) + sizeof(function) + sizeof(count) + sizeof(crc) = 255
   if (u8_sz < 1 || u8_sz > 250)
-    return error_invalid_data_size;
+    return error_invalid_data_size_or_unexpected_discrete;
 
   // Before copy crc, we need to divide u8_sz / 2. Status type is uint16_t (2 bytes. See page 15)
   memcpy(&crc, &(((uint8_t *)&frame->pdu_read_resp.status)[u8_sz]), sizeof(uint16_t)); // Guarantees ARM alignment
@@ -224,6 +313,8 @@ master_check_receive_read_register:
 
 master_check_receive_read_discrete:
   if ((frame->pdu_read_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+
+    RS485_CHECK_EXCEPTION_CRC(pdu_read_discrete_error_exception, error_invalid_exception_crc)
 
     error_code = frame->pdu_read_discrete_error_exception.error_or_exception_code;
     if ((error_code > 0) && (error_code < 5)) {// Page 12
@@ -242,7 +333,7 @@ master_check_receive_read_discrete:
   u8_sz = frame->pdu_read_discrete_resp.byte_count;
   // (250 + 1 -> See: 6.1 01 (0x01) Read Coils - page 12) + sizeof(address) + sizeof(function) + sizeof(count) + sizeof(crc) = 256
   if (u8_sz < 1 || u8_sz > 251)
-    return error_invalid_data_size;
+    return error_invalid_data_size_or_unexpected_discrete;
 
   memcpy(&crc, &frame->pdu_read_discrete_resp.status[u8_sz], sizeof(uint16_t)); // Guarantees ARM alignment
 
@@ -321,7 +412,15 @@ static void _master_send_req(int status)
 }
 
 // Implement RTU only (uses UART1)
-int master_send_req(uint8_t slave_address, MB_FUNCION function, uint16_t mem_address, uint16_t n, uint32_t timeout_ms, mb_master_recv_callback response_callback)
+int master_send_req(
+  uint8_t slave_address,
+  MB_FUNCION function,
+  uint16_t mem_address,
+  uint16_t n,
+  uint16_t *data,
+  uint32_t timeout_ms,
+  mb_master_recv_callback response_callback
+)
 {
 
   TIMEOUT_MS timeout;
@@ -332,6 +431,8 @@ int master_send_req(uint8_t slave_address, MB_FUNCION function, uint16_t mem_add
   master_rs485_rtu.address = slave_address;
   master_rs485_rtu.function = function;
   master_rs485_rtu.timeout_ms = timeout_ms;
+  master_rs485_rtu.n_data_or_discrete = n;
+  master_rs485_rtu.data = data;
   master_rs485_rtu.callback = response_callback;
 
   uint8_t out_data_size;
