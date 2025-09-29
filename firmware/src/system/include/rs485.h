@@ -112,7 +112,7 @@ _Static_assert(sizeof(struct pdu_write_req_t) == MODBUS_PDU_MAX_SIZE - 1, "pdu_w
 struct pdu_write_resp_t {
   uint8_t function_code;
   uint16_t starting_address;
-  uint16_t number_of_registers;
+  uint16_t number_of_registers_or_qty_of_outputs;
 }__attribute__((packed));
 
 struct pdu_write_error_exception_t {
@@ -145,8 +145,8 @@ typedef struct solar48_rs485rtu_t {
   volatile bool lock;
   uint8_t address;
   MB_FUNCION function;
+  uint16_t mem_address; // AKA Starting Address
   uint16_t n_data_or_discrete;
-  uint16_t *data;
   uint32_t timeout_ms;
   mb_master_recv_callback callback;
 } SOLAR48_RS485_RTU;
@@ -156,7 +156,7 @@ static int master_send_req(
   MB_FUNCION,
   uint16_t,
   uint16_t,
-  uint16_t *,
+  void *,
   uint32_t,
   mb_master_recv_callback
 );
