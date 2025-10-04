@@ -49,7 +49,86 @@ static void swap16_array_fast(uint16_t *arr, size_t len)
 
 }
 
-static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address, MB_FUNCION function, uint16_t mem_address, uint16_t n, void *any)
+//Read and implement
+//https://developer.arm.com/documentation/dui0472/m/Compiler-specific-Features/--attribute----packed---type-attribute
+//https://developer.arm.com/documentation/100748/0624/Alignment-support-in-Arm-Compiler-for-Embedded-6/Unaligned-access-support-in-Arm-Compiler-for-Embedded
+// IMPORTANT: Call this function if pointer is not aligned
+static void swap16_array_fast_safe(void *arr, size_t len)
+{
+
+  // If aligned always run fast
+  if (IS_ALIGNED_32(arr)) {
+    swap16_array_fast(arr, len);
+    return;
+  }
+
+  // If not aligned
+  uint32_t 
+    two_swap16_at_once,
+    *u32_ptr = (uint32_t *)arr;
+  int32_t
+    u32_len = (int32_t)(len >> 1); // Divide by 2
+
+  while (u32_len > 0) {
+    memcpy((void *)&two_swap16_at_once, (void *)u32_ptr, sizeof(two_swap16_at_once));
+    __asm__("rev16 %0, %0" : "+r"(two_swap16_at_once));
+    memcpy((void *)u32_ptr, (void *)&two_swap16_at_once, sizeof(two_swap16_at_once));
+    ++u32_ptr;
+    --u32_len;
+  }
+
+  if (len & 1) {
+    memcpy((void *)&two_swap16_at_once, (void *)u32_ptr, sizeof(uint16_t)); //Only 2 bytes left => sizeof(uint16_t)
+    __asm__("rev16 %0, %0" : "+r"(two_swap16_at_once));
+    memcpy((void *)u32_ptr, (void *)&two_swap16_at_once, sizeof(uint16_t)); // First 2 bytes only will be copied back and swapped
+  }
+}
+
+static inline void move_uint8_safe(void *dest, uint8_t value)
+{
+  uint8_t val = value;
+  memcpy((void *)dest, (void *)&val, sizeof(val));
+}
+
+static inline void swap_and_move_uint16_safe(void *dest, uint16_t src)
+{
+  uint32_t y = (uint32_t)src;
+  __asm__("rev16 %0, %0" : "+r"(y));
+
+  memcpy(dest, (void *)&y, sizeof(src)); // Copy 2 bytes (uint16_t)
+}
+
+static inline uint16_t read_and_swap_uint16_safe(void *src)
+{
+  uint32_t y;
+  memcpy((void *)&y, src, sizeof(uint16_t)); // Read 2 bytes only
+  __asm__("rev16 %0, %0" : "+r"(y));
+
+  return (uint16_t)y;
+}
+
+static inline bool swap_and_compare_uint16(uint16_t *a, uint16_t b)
+{
+  uint32_t y = (uint32_t)b;
+  __asm__("rev16 %0, %0" : "+r"(y));
+  return memcmp((void *)a, &y, sizeof(uint16_t)) == 0;
+}
+
+static inline uint8_t read_uint8(void *a)
+{
+  return (uint8_t)((uint8_t *)a)[0];
+}
+
+static int master_prepare_to_send(
+  uint8_t *out_data_size,
+  uint8_t slave_address,
+  MB_FUNCION function,
+  uint16_t mem_address,
+  uint16_t n,
+  uint16_t write_mem_address,
+  uint16_t n_write,
+  void *any
+)
 {
 
   if (slave_address > 247)
@@ -120,23 +199,56 @@ static int master_prepare_to_send(uint8_t *out_data_size, uint8_t slave_address,
       // Limit: 1968 / 16 = 123
       // (1 (slv address) + 2 (start address) + 2 (number of registers) + 1 (byte count) + 2*123 = 252) < 256
       goto master_prepare_to_send_write;
+
+    case READ_OR_WRITE_MULTIPLE_REGISTERS:
+      if (n < 1 || n > 0x007B)
+        return E_INVALID_READ_WRITE_MULTIPLE_REGISTER_LIMIT_RD;
+
+      if (n_write < 1 || n_write > 0x0079)
+        return E_INVALID_READ_WRITE_MULTIPLE_REGISTER_LIMIT_WR;
+
+      // Byte count
+      m = n_write << 1; // Multiply by 2 => 2Bytes = (uint16_t)
+
+      move_uint8_safe(&frame->pdu_read_write_req.function_code, function);
+      swap_and_move_uint16_safe(&frame->pdu_read_write_req.read_starting_address, mem_address);
+      swap_and_move_uint16_safe(&frame->pdu_read_write_req.quantity_to_read, n);
+      swap_and_move_uint16_safe(&frame->pdu_read_write_req.write_starting_address, write_mem_address);
+      swap_and_move_uint16_safe(&frame->pdu_read_write_req.quantity_to_write, n_write);
+
+      move_uint8_safe(&frame->pdu_read_write_req.write_byte_count, m); // Multiply by 2 => 2Bytes = (uint16_t)
+
+      // Copy and convert: Little Endian to Big Endian data is uint16_t *
+      swap16_array_fast_safe(memcpy((void *)&frame->pdu_read_write_req.write_register_values[0], (void *)any, (size_t)m), (size_t)n_write);
+
+      // We need to subtract 2 register_values[0] into sizeof(struct pdu_read_write_req_t). We can map it to uint8_t * or uint16_t *
+      #define READ_WRITE_REGISTER_REQ_SIZE (1 + offsetof(struct pdu_read_write_req_t, write_register_values[0]) - 2)
+      q = READ_WRITE_REGISTER_REQ_SIZE + m;
+      crc = crc16(modbus_master_buffer, q);
+      memcpy((void *)&modbus_master_buffer[(size_t)q], (void *)&crc, sizeof(crc));
+      *out_data_size = (q + sizeof(crc));
+      #undef READ_WRITE_REGISTER_REQ_SIZE
+
+      return 0;
   }
 
   return E_UNEXPECTED_FUNCTION; // Guard
 
 master_prepare_to_send_write:
 
-  frame->pdu_write_req.function_code = function;
-  frame->pdu_write_req.starting_address = swap16(mem_address); // Big endian
-  frame->pdu_write_req.number_of_registers = swap16(n); // Big endian
-  frame->pdu_write_req.byte_count = (uint8_t)m; // m bytes
+  move_uint8_safe(&frame->pdu_write_req.function_code, function);
+  swap_and_move_uint16_safe(&frame->pdu_write_req.starting_address, mem_address); // Big endian
+  swap_and_move_uint16_safe(&frame->pdu_write_req.number_of_registers, n); // Big endian
+  move_uint8_safe(&frame->pdu_write_req.byte_count, m); // m bytes
 
-  // Copy and convert: Little Endian to Big Endian if q != 0. If q != 0 data is uint16_t *
+  memcpy((void *)&frame->pdu_write_req.register_values[0], (void *)any, (size_t)m);
+
+  // Convert: Little Endian to Big Endian if q != 0. If q != 0 data is uint16_t *
   if (q)
-    swap16_array_fast((uint16_t *)memcpy((void *)&frame->pdu_write_req.register_values[0], (void *)any, (size_t)m), (size_t)q);
+    swap16_array_fast_safe(&frame->pdu_write_req.register_values[0], (size_t)q);
 
   // We need to subtract 2 register_values[0] into sizeof(struct pdu_write_req_t). We can map it to uint8_t * or uint16_t *
-  #define WRITE_REGISTER_REQ_SIZE (1 + sizeof(struct pdu_write_req_t) - 2)
+  #define WRITE_REGISTER_REQ_SIZE (1 + offsetof(struct pdu_write_req_t, register_values[0]) - 2)
   q = WRITE_REGISTER_REQ_SIZE + m;
   crc = crc16(modbus_master_buffer, q);
   memcpy((void *)&modbus_master_buffer[(size_t)q], (void *)&crc, sizeof(crc));
@@ -147,9 +259,9 @@ master_prepare_to_send_write:
 
 master_prepare_to_send_write_discrete:
 
-  frame->pdu_write_discrete_req.function_code = function;
-  frame->pdu_write_discrete_req.output_address_or_register_address = swap16(mem_address); // Big endian
-  frame->pdu_write_discrete_req.output_value_or_register_value = swap16(n); // Big endian
+  move_uint8_safe(&frame->pdu_write_discrete_req.function_code, function);
+  swap_and_move_uint16_safe(&frame->pdu_write_discrete_req.output_address_or_register_address, mem_address); // Big endian
+  swap_and_move_uint16_safe(&frame->pdu_write_discrete_req.output_value_or_register_value, n); // Big endian
 
   #define WRITE_DISCRETE_REQ_SIZE (1 + sizeof(struct pdu_write_discrete_req_t))
   crc = crc16(modbus_master_buffer, WRITE_DISCRETE_REQ_SIZE);
@@ -164,9 +276,9 @@ master_prepare_to_send_read_register:
   if (n < 1 || n > 125)
     return error_on_invalid_n;
 
-  frame->pdu_read_req.function_code = function;
-  frame->pdu_read_req.starting_address = swap16(mem_address); // Big endian
-  frame->pdu_read_req.number_of_registers = swap16(n); // Big endian
+  move_uint8_safe(&frame->pdu_read_req.function_code, function);
+  swap_and_move_uint16_safe(&frame->pdu_read_req.starting_address, mem_address); // Big endian
+  swap_and_move_uint16_safe(&frame->pdu_read_req.number_of_registers, n); // Big endian
 
   #define READ_REGISTER_REQ_SIZE (1 + sizeof(struct pdu_read_req_t))
   crc = crc16(modbus_master_buffer, READ_REGISTER_REQ_SIZE);
@@ -185,9 +297,9 @@ master_prepare_to_send_read_discrete:
   if (n & 7) // Remainder
     ++m;
 
-  frame->pdu_read_discrete_req.function_code = function;
-  frame->pdu_read_discrete_req.starting_address = swap16(mem_address); // Big endian
-  frame->pdu_read_discrete_req.number_of_discrete = swap16(m); // Big endian
+  move_uint8_safe(&frame->pdu_read_discrete_req.function_code, function);
+  swap_and_move_uint16_safe(&frame->pdu_read_discrete_req.starting_address, mem_address); // Big endian
+  swap_and_move_uint16_safe(&frame->pdu_read_discrete_req.number_of_discrete, m); // Big endian
 
   #define READ_DISCRETE_REQ_SIZE (1 + sizeof(struct pdu_read_discrete_req_t))
   crc = crc16(modbus_master_buffer, READ_DISCRETE_REQ_SIZE);
@@ -310,11 +422,11 @@ static int master_check_receive(MB_FUNCION *function, uint8_t **data, uint16_t *
   return E_UNEXPECTED_RECEIVE_FUNCTION; // Guard. Never gets here
 
 master_check_receive_write:
-  if ((frame->pdu_write_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+  if (read_uint8(&frame->pdu_write_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
 
     RS485_CHECK_EXCEPTION_CRC(pdu_write_error_exception, error_invalid_exception_crc)
 
-    error_code = frame->pdu_write_error_exception.error_or_exception_code;
+    error_code = read_uint8(&frame->pdu_write_error_exception.error_or_exception_code);
     if ((error_code > 0) && (error_code < 5)) {// Page 12
       ptr = &frame->pdu_write_error_exception.function_code;
       u8_sz = (uint8_t)sizeof(struct pdu_write_error_exception_t);
@@ -325,13 +437,13 @@ master_check_receive_write:
     return error_on_catch_exception;
   }
 
-  if (frame->pdu_write_resp.function_code != master_rs485_rtu.function)
+  if (read_uint8(&frame->pdu_write_resp.function_code) != master_rs485_rtu.function)
     return error_unexpected_function;
 
-  if (swap16(frame->pdu_write_resp.starting_address) != master_rs485_rtu.mem_address)
+  if (!swap_and_compare_uint16(&frame->pdu_write_resp.starting_address, master_rs485_rtu.mem_address))
     return E_RECEIVED_WRITE_ADDRESS_MISMATCH;
 
-  u16_tmp = swap16(frame->pdu_write_resp.number_of_registers_or_qty_of_outputs);
+  u16_tmp = read_and_swap_uint16_safe(&frame->pdu_write_resp.number_of_registers_or_qty_of_outputs);
 
   if (master_rs485_rtu.n_data_or_discrete != u16_tmp)
     return error_invalid_data_size_or_unexpected_discrete;
@@ -349,11 +461,11 @@ master_check_receive_write:
   return error_invalid_crc;
 
 master_check_receive_write_discrete:
-  if ((frame->pdu_write_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+  if (read_uint8(&frame->pdu_write_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
 
     RS485_CHECK_EXCEPTION_CRC(pdu_write_discrete_error_exception, error_invalid_exception_crc)
 
-    error_code = frame->pdu_write_discrete_error_exception.error_or_exception_code;
+    error_code = read_uint8(&frame->pdu_write_discrete_error_exception.error_or_exception_code);
     if ((error_code > 0) && (error_code < 5)) {// Page 12
       ptr = &frame->pdu_write_discrete_error_exception.function_code;
       u8_sz = (uint8_t)sizeof(struct pdu_write_discrete_error_exception_t);
@@ -364,13 +476,13 @@ master_check_receive_write_discrete:
     return error_on_catch_exception;
   }
 
-  if (frame->pdu_write_discrete_resp.function_code != master_rs485_rtu.function)
+  if (!swap_and_compare_uint16(&frame->pdu_write_discrete_resp.function_code, master_rs485_rtu.function))
     return error_unexpected_function;
 
-  if (swap16(frame->pdu_write_discrete_resp.output_address_or_register_address) != master_rs485_rtu.mem_address)
+  if (!swap_and_compare_uint16(&frame->pdu_write_discrete_resp.output_address_or_register_address, master_rs485_rtu.mem_address))
     return E_RECEIVED_WRITE_DISCRETE_ADDRESS_MISMATCH;
 
-  u16_tmp = swap16(frame->pdu_write_discrete_resp.output_value_or_register_value);
+  u16_tmp = read_and_swap_uint16_safe(&frame->pdu_write_discrete_resp.output_value_or_register_value);
 
   if (master_rs485_rtu.n_data_or_discrete != u16_tmp)
     return error_invalid_data_size_or_unexpected_discrete;
@@ -388,11 +500,11 @@ master_check_receive_write_discrete:
   return error_invalid_crc;
 
 master_check_receive_read_register:
-  if ((frame->pdu_read_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+  if (read_uint8(&frame->pdu_read_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
 
     RS485_CHECK_EXCEPTION_CRC(pdu_read_error_exception, error_invalid_exception_crc)
 
-    error_code = frame->pdu_read_error_exception.error_or_exception_code;
+    error_code = read_uint8(&frame->pdu_read_error_exception.error_or_exception_code);
     if ((error_code > 0) && (error_code < 5)) {// Page 12
       ptr = &frame->pdu_read_error_exception.function_code;
       u8_sz = (uint8_t)sizeof(struct pdu_read_error_exception_t);
@@ -403,10 +515,10 @@ master_check_receive_read_register:
     return error_on_catch_exception;
   }
 
-  if (frame->pdu_read_resp.function_code != master_rs485_rtu.function)
+  if (read_uint8(&frame->pdu_read_resp.function_code) != master_rs485_rtu.function)
     return error_unexpected_function;
 
-  u8_sz = frame->pdu_read_resp.byte_count;
+  u8_sz = read_uint8(&frame->pdu_read_resp.byte_count);
   // (2*125 -> See: 6.3 03 (0x03) Read Holding Registers - page 15) + sizeof(address) + sizeof(function) + sizeof(count) + sizeof(crc) = 255
   if (u8_sz < 1 || u8_sz > 250)
     return error_invalid_data_size_or_unexpected_discrete;
@@ -423,11 +535,11 @@ master_check_receive_read_register:
   return error_invalid_crc;
 
 master_check_receive_read_discrete:
-  if ((frame->pdu_read_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
+  if (read_uint8(&frame->pdu_read_discrete_error_exception.function_code) == RS485_ERROR_CODE(master_rs485_rtu.function)) {
 
     RS485_CHECK_EXCEPTION_CRC(pdu_read_discrete_error_exception, error_invalid_exception_crc)
 
-    error_code = frame->pdu_read_discrete_error_exception.error_or_exception_code;
+    error_code = read_uint8(&frame->pdu_read_discrete_error_exception.error_or_exception_code);
     if ((error_code > 0) && (error_code < 5)) {// Page 12
       ptr = &frame->pdu_read_discrete_error_exception.function_code;
       u8_sz = (uint8_t)sizeof(struct pdu_read_discrete_error_exception_t);
@@ -438,10 +550,10 @@ master_check_receive_read_discrete:
     return error_on_catch_exception;
   }
 
-  if (frame->pdu_read_discrete_resp.function_code != master_rs485_rtu.function)
+  if (read_uint8(&frame->pdu_read_discrete_resp.function_code) != master_rs485_rtu.function)
     return error_unexpected_function;
         
-  u8_sz = frame->pdu_read_discrete_resp.byte_count;
+  u8_sz = read_uint8(&frame->pdu_read_discrete_resp.byte_count);
   // (250 + 1 -> See: 6.1 01 (0x01) Read Coils - page 12) + sizeof(address) + sizeof(function) + sizeof(count) + sizeof(crc) = 256
   if (u8_sz < 1 || u8_sz > 251)
     return error_invalid_data_size_or_unexpected_discrete;
@@ -528,6 +640,8 @@ int master_send_req(
   MB_FUNCION function,
   uint16_t mem_address,
   uint16_t n,
+  uint16_t write_start_address,
+  uint16_t write_byte_count,
   void *data, // Either uint8_t * or uint16_t *
   uint32_t timeout_ms,
   mb_master_recv_callback response_callback
@@ -542,13 +656,15 @@ int master_send_req(
   master_rs485_rtu.address = slave_address;
   master_rs485_rtu.function = function;
   master_rs485_rtu.mem_address = mem_address;
+  master_rs485_rtu.write_start_address = write_start_address;
+  master_rs485_rtu.write_byte_count = write_byte_count;
   master_rs485_rtu.n_data_or_discrete = n;
   master_rs485_rtu.timeout_ms = timeout_ms;
 //  master_rs485_rtu.data = data;
   master_rs485_rtu.callback = response_callback;
 
   uint8_t out_data_size;
-  int err = master_prepare_to_send(&out_data_size, slave_address, function, mem_address, n, data);
+  int err = master_prepare_to_send(&out_data_size, slave_address, function, mem_address, n, write_start_address, write_byte_count, data);
 
   if (err) {
     sys_unlock(&master_rs485_rtu.lock);

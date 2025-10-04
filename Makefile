@@ -149,6 +149,7 @@ nm_release: $(OUT)_release.elf
 	$(ARM_PREFIX)nm $(OUT)_release.elf
 
 asm_release: $(OUT)_release.elf
+	$(ARM_PREFIX)strip $(OUT)_release.elf
 	$(ARM_PREFIX)objdump -D $(OUT)_release.elf > $(AS_CODE_RELEASE)
 
 flash_release: $(OUT)_release.bin

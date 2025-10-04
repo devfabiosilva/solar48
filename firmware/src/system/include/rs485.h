@@ -121,6 +121,30 @@ struct pdu_write_error_exception_t {
 }__attribute__((packed));
 // End
 
+//Read/Write
+struct pdu_read_write_req_t {
+  uint8_t function_code;
+  uint16_t read_starting_address;
+  uint16_t quantity_to_read;
+  uint16_t write_starting_address;
+  uint16_t quantity_to_write;
+  uint8_t write_byte_count;
+  uint16_t write_register_values[121];
+}__attribute__((packed));
+_Static_assert(sizeof(struct pdu_write_req_t) == MODBUS_PDU_MAX_SIZE - 1, "pdu_read_write_req_t size error");
+
+struct pdu_read_write_resp_t {
+  uint8_t function_code;
+  uint8_t quantity_read;
+  uint16_t read_register_value;
+}__attribute__((packed));
+
+struct pdu_read_write_exception_t {
+  uint8_t function_code;
+  uint8_t error_or_exception_code;
+}__attribute__((packed));
+//End
+
 typedef void (*mb_master_recv_callback)(int, MB_FUNCION, uint8_t *, uint16_t);
 
 typedef union pdu_u {
@@ -139,6 +163,10 @@ typedef union pdu_u {
   struct pdu_write_req_t pdu_write_req;
   struct pdu_write_resp_t pdu_write_resp;
   struct pdu_write_error_exception_t pdu_write_error_exception;
+
+  struct pdu_read_write_req_t pdu_read_write_req;
+  struct pdu_read_write_resp_t pdu_read_write_resp;
+  struct pdu_read_write_exception_t pdu_read_write_exception;
 } PDU_FRAME;
 
 typedef struct solar48_rs485rtu_t {
@@ -146,17 +174,21 @@ typedef struct solar48_rs485rtu_t {
   uint8_t address;
   MB_FUNCION function;
   uint16_t mem_address; // AKA Starting Address
+  uint16_t write_start_address; // AKA Write Starting Address for Read/Write Multiple registers function
   uint16_t n_data_or_discrete;
+  uint16_t write_byte_count; // AKA Write Byte Count for Read/Write Multiple registers function
   uint32_t timeout_ms;
   mb_master_recv_callback callback;
 } SOLAR48_RS485_RTU;
 
-static int master_send_req(
+int master_send_req(
   uint8_t,
   MB_FUNCION,
   uint16_t,
   uint16_t,
-  void *,
+  uint16_t,
+  uint16_t,
+  void *, // Either uint8_t * or uint16_t *
   uint32_t,
   mb_master_recv_callback
 );
