@@ -17,12 +17,6 @@ static SOLAR48_RS485_RTU slave_rs485_rtu = {0};
 
 extern void app_panic(const char *);
 
-static inline uint16_t swap16(uint16_t x) {
-    uint32_t y = (uint32_t)x;
-    __asm__("rev16 %0, %0" : "+r"(y));
-    return (uint16_t)y;
-}
-
 static void swap16_array_fast(uint16_t *arr, size_t len)
 {
 
@@ -44,8 +38,12 @@ static void swap16_array_fast(uint16_t *arr, size_t len)
   }
 
   // If even
-  if (len & 1)
-    arr[len - 1] = swap16(arr[len - 1]);
+  if (len & 1) {
+    uint32_t y;
+    memcpy((void *)&y, (void *)p, sizeof(uint16_t)); // Copy only 2 bytes (uint16_t)
+    __asm__("rev16 %0, %0" : "+r"(y));
+    memcpy((void *)p, (void *)&y, sizeof(uint16_t)); // Copy only 2 bytes (uint16_t)
+  }
 
 }
 
