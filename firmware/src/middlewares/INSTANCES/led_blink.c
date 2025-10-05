@@ -4,7 +4,16 @@
 #include <usb_io.h>
 #include <instance_prio.h>
 
-#define UART_TEST
+//#define UART_TEST
+#define RS485_TEST
+
+#ifdef RS485_TEST
+ #include <rs485.h>
+ #include <peripheral/ssd1306/oled_utils.h>
+
+static uint16_t data[] = {1, 2, 3, 4};
+#endif
+
 #ifdef UART_TEST
  #include <hal_uart.h>
  #include <peripheral/ssd1306/oled_utils.h>
@@ -29,6 +38,19 @@ void uart_rcv(int status)
 
 #endif
 
+#ifdef RS485_TEST
+void rs485_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+{
+  switch (status) {
+    case MASTER_TRANSFER_SUCCESS:
+      oled_cursor_printf(0, 50, "Success");
+      break;
+    default:
+      oled_cursor_printf(0, 50, "Fail %d", status);
+  }
+}
+#endif
+
 static void led_blink_task(void *params)
 {
   (void)params;
@@ -37,6 +59,15 @@ static void led_blink_task(void *params)
   static uint64_t cnt = 0;
   enum uart_status_t uart_status;
 #endif
+
+#ifdef RS485_TEST
+  int status;
+  uint8_t slv_addr = 0xAA;
+  MB_FUNCTION fc = WRITE_MULTIPLE_REGISTERS;
+  uint16_t mem_address = 0x0102;
+  uint16_t n = (uint16_t)sizeof(data);
+#endif
+
   while (1) {
     iwd_refresh();
     ledoff();
@@ -52,6 +83,27 @@ static void led_blink_task(void *params)
       oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 
     ++cnt;
+#endif
+
+#ifdef RS485_TEST
+/*
+int master_send_req(
+  uint8_t slave_address,
+  MB_FUNCTION function,
+  uint16_t mem_address,
+  uint16_t n,
+  uint16_t write_start_address,
+  uint16_t write_byte_count,
+  void *data, // Either uint8_t * or uint16_t *
+  uint32_t timeout_ms,
+  mb_master_recv_callback response_callback
+)
+*/
+    status = master_send_req(slv_addr, fc, mem_address, n, 0, 0, (void *)&data[0], 10, rs485_receive);
+    if (status == RS485_OK)
+      oled_cursor_printf(0, 40, "RS485 send");
+    else
+      oled_cursor_printf(0, 40, "RS485 error %d", (int)status);
 #endif
   }
 }

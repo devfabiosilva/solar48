@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <hal_uart.h>
 
 // Page 5
 //The size of the MODBUS PDU is limited by the size constraint inherited from the first
@@ -37,8 +38,8 @@ typedef enum solar48_functions_rs485_e {
   GET_COM_EVENT_LOG = 12,
   REPORT_SLAVE_ID = 17,
   READ_DEVICE_INDENTIFICATION = 43,
-  MB_FUNCION_UNDEFINED = 0
-} MB_FUNCION;
+  MB_FUNCTION_UNDEFINED = 0
+} MB_FUNCTION;
 
 // Read discrete
 struct pdu_read_discrete_req_t {
@@ -145,7 +146,7 @@ struct pdu_read_write_exception_t {
 }__attribute__((packed));
 //End
 
-typedef void (*mb_master_recv_callback)(int, MB_FUNCION, uint8_t *, uint16_t);
+typedef void (*mb_master_recv_callback)(int, MB_FUNCTION, uint8_t *, uint16_t);
 
 typedef union pdu_u {
   struct pdu_read_discrete_req_t pdu_read_discrete_req;
@@ -172,7 +173,7 @@ typedef union pdu_u {
 typedef struct solar48_rs485rtu_t {
   volatile bool lock;
   uint8_t address;
-  MB_FUNCION function;
+  MB_FUNCTION function;
   uint16_t mem_address; // AKA Starting Address
   uint16_t write_start_address; // AKA Write Starting Address for Read/Write Multiple registers function
   uint16_t n_data_or_discrete;
@@ -183,7 +184,7 @@ typedef struct solar48_rs485rtu_t {
 
 int master_send_req(
   uint8_t,
-  MB_FUNCION,
+  MB_FUNCTION,
   uint16_t,
   uint16_t,
   uint16_t,
@@ -192,6 +193,10 @@ int master_send_req(
   uint32_t,
   mb_master_recv_callback
 );
+
+#define RS485_OK UART_OK
+#define MASTER_TRANSFER_SUCCESS 0
+#define MASTER_TRANSFER_SUCCESS_WITH_ERROR_CODE 1
 
 #endif
 
