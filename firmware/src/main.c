@@ -11,6 +11,7 @@
 #include <registers.h>
 #include <process.h>
 #include <peripheral/ssd1306/oled_utils.h>
+#include <errors.h>
 
 #ifdef RTOS_SOLAR48
 

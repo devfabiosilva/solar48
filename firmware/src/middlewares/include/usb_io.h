@@ -2,6 +2,7 @@
   #define USB_IO_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 int usb_printf(const char *, ...);
 uint32_t rtc_get_timestamp();

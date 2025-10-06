@@ -92,5 +92,10 @@ _Static_assert(SYS_QUEUE_DEINIT_TIMEOUT_MS > SYS_QUEUE_DESTROY_TIMEOUT_MS, "SYS_
 
 // *****************************************
 
+// ****      ERROR LOG ERRORS           ****
+#define USE_USB_PRINTF_IN_ERROR_LOGS
+#define MAX_ERROR_LOGS_INSTANCES 6
+// *****************************************
+
 #endif
 

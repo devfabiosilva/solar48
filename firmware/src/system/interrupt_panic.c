@@ -234,10 +234,10 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
     // Trap here for debug
 #ifdef USE_USB_PRINTF_ON_PANIC
   panic_wait();
-  usb_printf("\nTsk=%p hlt:%s\n\n", xTask, pcTaskName);
+  usb_printf("\nhlt:%s Tsk=%p \n\n", pcTaskName, xTask);
 #else
   OLED_PANIC_PREPARE
-  _oled_printf_panic("Tsk=%p hld:%s", xTask, pcTaskName);
+  _oled_printf_panic("hld:%s Tsk=%p", pcTaskName, xTask);
   ssd1306_SetCursor(0, 12);
 #endif
   halt_rtos();

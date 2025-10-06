@@ -157,6 +157,7 @@ void error_handler(int error);
 #define E_NOT_IMPLEMENTED -1
 
 void error_handler(int);
+void init_error_handler_queue();
 
 #endif
 

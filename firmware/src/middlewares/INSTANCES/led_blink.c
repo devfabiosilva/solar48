@@ -21,8 +21,9 @@ static uint16_t data[] = {1, 2, 3, 4};
 
 extern void halt();
 static StaticTask_t exampleTaskTCB;
-static StackType_t exampleTaskStack[ 1*configMINIMAL_STACK_SIZE ];
-
+static StackType_t exampleTaskStack[ 2*configMINIMAL_STACK_SIZE ];
+//uxTaskGetStackHighWaterMark
+//configCHECK_FOR_STACK_OVERFLOW
 #ifdef UART_TEST
 
 void uart_rcv(int status)
@@ -85,23 +86,16 @@ static void led_blink_task(void *params)
     ++cnt;
 #endif
 
+  BaseType_t uxHighWaterMark, uxHighWaterMark_max = 0;
+
+  uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL)*sizeof(StackType_t); 
+  if (uxHighWaterMark > uxHighWaterMark_max)
+    uxHighWaterMark_max = uxHighWaterMark;
 #ifdef RS485_TEST
-/*
-int master_send_req(
-  uint8_t slave_address,
-  MB_FUNCTION function,
-  uint16_t mem_address,
-  uint16_t n,
-  uint16_t write_start_address,
-  uint16_t write_byte_count,
-  void *data, // Either uint8_t * or uint16_t *
-  uint32_t timeout_ms,
-  mb_master_recv_callback response_callback
-)
-*/
+
     status = master_send_req(slv_addr, fc, mem_address, n, 0, 0, (void *)&data[0], 10, rs485_receive);
     if (status == RS485_OK)
-      oled_cursor_printf(0, 40, "RS485 send");
+      oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
     else
       oled_cursor_printf(0, 40, "RS485 error %d", (int)status);
 #endif
@@ -112,7 +106,7 @@ void init_led_blink()
 {
   if (xTaskCreateStatic( led_blink_task,
                                 "led",
-                                1*configMINIMAL_STACK_SIZE,
+                                2*configMINIMAL_STACK_SIZE,
                                 NULL,
                                 PRIO_0,
                                 exampleTaskStack,
