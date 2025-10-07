@@ -69,6 +69,8 @@ static void led_blink_task(void *params)
   uint16_t n = (uint16_t)sizeof(data);
 #endif
 
+  BaseType_t uxHighWaterMark, uxHighWaterMark_max = 0;
+
   while (1) {
     iwd_refresh();
     ledoff();
@@ -85,8 +87,6 @@ static void led_blink_task(void *params)
 
     ++cnt;
 #endif
-
-  BaseType_t uxHighWaterMark, uxHighWaterMark_max = 0;
 
   uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL)*sizeof(StackType_t); 
   if (uxHighWaterMark > uxHighWaterMark_max)

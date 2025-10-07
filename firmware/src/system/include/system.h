@@ -13,6 +13,8 @@ void sys_unlock(volatile bool *);
 #define likely(x)   __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
+#define sys_unlock(lock) __atomic_store_n(lock, false, __ATOMIC_RELEASE)
+
 #define END_SETUP __enable_irq();
 #define DISABLE_SETUP __disable_irq();
 #endif

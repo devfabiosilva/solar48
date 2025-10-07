@@ -70,8 +70,8 @@ bool sys_try_lock_if_gbl_is_false(volatile bool *global_lock, volatile bool *loc
     iwd_refresh();
   } while (1);
 }
-
+/*
 void sys_unlock(volatile bool *lock) {
   __atomic_store_n(lock, false, __ATOMIC_RELEASE);
 }
-
+*/

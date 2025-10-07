@@ -46,6 +46,7 @@ volatile static int last_usb_error;
 void usb_error(int value)
 {
   last_usb_error = value;
+  error_handler(value);
 // TODO Add error handler here
 //  ssd1306_SetCursor(0, 40);
 //  oled_printf("USBerr %d-%d", value, ++n);

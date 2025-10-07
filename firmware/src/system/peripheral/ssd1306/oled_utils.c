@@ -36,7 +36,7 @@ int init_oled(char *msg)
   if (ssd1306_Init())
     return E_OLED_INIT_FAILED;
 
-  sys_queue_init(&oled_print_queue, -1, true); // If any sys_queue_init fails it runs PANIC
+  sys_queue_init(&oled_print_queue, OLED_PRINTIF_QUEUE_SIZE, OLED_PRINTF_ENABLE_GLOBAL_ERROR); // If any sys_queue_init fails it runs PANIC
 
   set_font_size(FONT_11x18);
   oled_cursor_printf(0, 0, msg);

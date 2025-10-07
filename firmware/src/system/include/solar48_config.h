@@ -67,6 +67,8 @@ _Static_assert(SYSTICK_TICKS <= 0xFFFFFF, "SYSTICK_TICKS too high for SysTick LO
 
 // ****   OLED PRINTF configuration     ****
 #define OLED_PRINTIF_TIMEOUT_MS 5
+#define OLED_PRINTIF_QUEUE_SIZE 16 // -1 is loaded default
+#define OLED_PRINTF_ENABLE_GLOBAL_ERROR true
 
 // *****************************************
 
@@ -88,7 +90,7 @@ _Static_assert(SYS_QUEUE_DEINIT_TIMEOUT_MS > SYS_QUEUE_DESTROY_TIMEOUT_MS, "SYS_
 // *****************************************
 
 // ****   MASTER RS485 RTU CONFIG       ****
-#define MASTER_RS485_TIMEOUT_MS 5
+#define MASTER_RS485_TIMEOUT_MS 50
 
 // *****************************************
 
