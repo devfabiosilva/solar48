@@ -180,6 +180,15 @@ typedef struct solar48_rs485rtu_t {
   uint16_t write_byte_count; // AKA Write Byte Count for Read/Write Multiple registers function
   uint32_t timeout_ms;
   mb_master_recv_callback callback;
+  // Receive processing
+  uint8_t *first_pass; // First pass: check error or continue
+  uint8_t first_pass_len; // First pass length
+  uint8_t *second_pass; // Second pass: check received data length and calculate dinamically
+  uint8_t second_pass_len; // First pass
+  // transfer_left_data_limit (master mode): is the left N data left - 2 bytes limit to inform
+  // DMA to reload the rest of incoming data. 0 -> if not zero, expected_receive_data 
+  //is the size of data length pointer in request
+  uint8_t transfer_left_data_limit;
 } SOLAR48_RS485_RTU;
 
 int master_send_req(

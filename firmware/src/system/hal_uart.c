@@ -8,6 +8,15 @@
 
 // #define UART1_TRANSMIT_USE_BLOCK
 
+#ifdef IMPLEMET_RS485_MASTER_OVER_UART1
+
+#include <rs485.h>
+#include <memory.h>
+
+extern SOLAR48_RS485_RTU master_rs485_rtu;
+
+#endif
+
 struct uart_control_t {
   volatile bool start_monitore;               // UART start timeout monitore event
   volatile bool locked;                       // UART locked
@@ -83,7 +92,46 @@ void DMA1_Channel5_IRQHandler()
 
   // Receive complete
   if (dma1_ch5_sr & TCIF5) {
+#ifdef IMPLEMET_RS485_MASTER_OVER_UART1
+    if (master_rs485_rtu.first_pass) {
+
+      DMA1_CMAR5 = (uint32_t)master_rs485_rtu.second_pass; // Memory address Page 288
+
+      if (read_uint8(master_rs485_rtu.first_pass) < 0x81) {
+
+        DMA1_CNDTR5 = (uint16_t)master_rs485_rtu.second_pass_len; // Memory size
+
+        if (master_rs485_rtu.transfer_left_data_limit == 0)
+          master_rs485_rtu.second_pass = NULL;
+
+      } else {
+
+        DMA1_CNDTR5 = 3; // 1 (exception code) +  2 (crc)
+        master_rs485_rtu.second_pass = NULL;
+
+      }
+
+      master_rs485_rtu.first_pass = NULL;
+      DMA1_CCR5 |= (DMA1_CCR5_EN); // Enable again to second pass or exception
+
+    } else if (master_rs485_rtu.second_pass) {
+
+      DMA1_CMAR5 = (uint32_t)&master_rs485_rtu.second_pass[1]; // Memory address Page 288
+
+      uint8_t data_sz = read_uint8(master_rs485_rtu.second_pass);
+
+      if (data_sz > master_rs485_rtu.transfer_left_data_limit)
+        data_sz = master_rs485_rtu.transfer_left_data_limit; // Guard: Security
+
+      DMA1_CNDTR5 = (uint16_t)(data_sz + 2); // rest of the data plus crc (2 bytes)
+
+      master_rs485_rtu.second_pass = NULL;
+      DMA1_CCR5 |= (DMA1_CCR5_EN); // Enable again to second pass or exception
+
+    } else
+#endif
     __atomic_store_n(&uart1_control.status_register, UART1_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
+
     return;
   }
 

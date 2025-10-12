@@ -7,116 +7,17 @@
 #include <solar48_config.h>
 #include <crc.h>
 #include <stdlib.h>
+#include <memory.h>
 #include <string.h>
 
 static uint8_t modbus_master_buffer[256];
+static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
 //static uint8_t modbus_slave_buffer[256];
 
-static SOLAR48_RS485_RTU master_rs485_rtu = {0};
+SOLAR48_RS485_RTU master_rs485_rtu = {0};
 //static SOLAR48_RS485_RTU slave_rs485_rtu = {0};
 
 extern void app_panic(const char *);
-
-static void swap16_array_fast(uint16_t *arr, size_t len)
-{
-
-// rev16 instructions swaps 2 half words, so calling this is faster than simple swap bytes using C.
-// Example: a = 0x01020304
-// mov R0, #0x01020304
-// rev16 R0, R0
-// RESULT: 0x02010403
-// Refs.: https://developer.arm.com/documentation/ddi0602/2025-06/Base-Instructions/REV16--Reverse-bytes-in-16-bit-halfwords-
-//        https://developer.arm.com/documentation/dui0379/e/arm-and-thumb-instructions/rev16
-
-  uint32_t *p = (uint32_t *)arr;
-  size_t n = len >> 1; // Divide by 2
-
-  while (n > 0) {
-    __asm__("rev16 %0, %0": "=r"(*p): "0"(*p));
-    p++;
-    --n;
-  }
-
-  // If even
-  if (len & 1) {
-    uint32_t y;
-    memcpy((void *)&y, (void *)p, sizeof(uint16_t)); // Copy only 2 bytes (uint16_t)
-    __asm__("rev16 %0, %0" : "+r"(y));
-    memcpy((void *)p, (void *)&y, sizeof(uint16_t)); // Copy only 2 bytes back inverted (uint16_t)
-  }
-
-}
-
-//Read and implement
-//https://developer.arm.com/documentation/dui0472/m/Compiler-specific-Features/--attribute----packed---type-attribute
-//https://developer.arm.com/documentation/100748/0624/Alignment-support-in-Arm-Compiler-for-Embedded-6/Unaligned-access-support-in-Arm-Compiler-for-Embedded
-// IMPORTANT: Call this function if pointer is not aligned
-static void swap16_array_fast_safe(void *arr, size_t len)
-{
-
-  // If aligned always run fast
-  if (IS_ALIGNED_32(arr)) {
-    swap16_array_fast(arr, len);
-    return;
-  }
-
-  // If not aligned
-  uint32_t 
-    two_swap16_at_once,
-    *u32_ptr = (uint32_t *)arr;
-  int32_t
-    u32_len = (int32_t)(len >> 1); // Divide by 2
-
-  while (u32_len > 0) {
-    memcpy((void *)&two_swap16_at_once, (void *)u32_ptr, sizeof(two_swap16_at_once));
-    __asm__("rev16 %0, %0" : "+r"(two_swap16_at_once));
-    memcpy((void *)u32_ptr, (void *)&two_swap16_at_once, sizeof(two_swap16_at_once));
-    ++u32_ptr;
-    --u32_len;
-  }
-
-  if (len & 1) {
-    memcpy((void *)&two_swap16_at_once, (void *)u32_ptr, sizeof(uint16_t)); //Only 2 bytes left => sizeof(uint16_t)
-    __asm__("rev16 %0, %0" : "+r"(two_swap16_at_once));
-    memcpy((void *)u32_ptr, (void *)&two_swap16_at_once, sizeof(uint16_t)); // First 2 bytes only will be copied back and swapped
-  }
-}
-
-static inline void move_uint8_safe(void *dest, uint8_t value)
-{
-  uint8_t val = value;
-  memcpy((void *)dest, (void *)&val, sizeof(val));
-}
-
-static inline void swap_and_move_uint16_safe(void *dest, uint16_t src)
-{
-  uint32_t y = (uint32_t)src;
-  __asm__("rev16 %0, %0" : "+r"(y));
-
-  memcpy(dest, (void *)&y, sizeof(src)); // Copy 2 bytes (uint16_t)
-}
-
-static inline uint16_t read_and_swap_uint16_safe(void *src)
-{
-  uint32_t y;
-  memcpy((void *)&y, src, sizeof(uint16_t)); // Read 2 bytes only
-  __asm__("rev16 %0, %0" : "+r"(y));
-
-  return (uint16_t)y;
-}
-// Reads from unaligned uint16_t value a and compares with value swapped b value. Thus return a (from pointer) == b (swapped)
-static inline bool swap_and_compare_uint16(void *a, uint16_t b)
-{
-  uint32_t y = (uint32_t)b;
-  __asm__("rev16 %0, %0" : "+r"(y));
-  return memcmp((void *)a, &y, sizeof(uint16_t)) == 0;
-}
-
-// Reads uint8_t from unaligned
-static inline uint8_t read_uint8(void *a)
-{
-  return (uint8_t)((uint8_t *)a)[0];
-}
 
 static int master_prepare_to_send(
   uint8_t *out_data_size,
@@ -247,6 +148,12 @@ static int master_prepare_to_send(
 
 master_prepare_to_send_write:
 
+  master_rs485_rtu.first_pass = &frame->pdu_write_resp.function_code;
+  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
+  master_rs485_rtu.second_pass = (uint8_t *)&frame->pdu_write_resp.starting_address;
+  master_rs485_rtu.second_pass_len = 4; // 2 bytes + 2 bytes
+  master_rs485_rtu.transfer_left_data_limit = 0; // Disable. Receive is only size of first_pass_len + second_pass_len or error packed size
+
   move_uint8_safe(&frame->pdu_write_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_write_req.starting_address, mem_address); // Big endian
   swap_and_move_uint16_safe(&frame->pdu_write_req.number_of_registers, n); // Big endian
@@ -270,6 +177,12 @@ master_prepare_to_send_write:
 
 master_prepare_to_send_write_discrete:
 
+  master_rs485_rtu.first_pass = &frame->pdu_write_discrete_resp.function_code;
+  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
+  master_rs485_rtu.second_pass = (uint8_t *)&frame->pdu_write_discrete_resp.output_address_or_register_address;
+  master_rs485_rtu.second_pass_len = 4; // 2 bytes + 2 bytes
+  master_rs485_rtu.transfer_left_data_limit = 0; // Disable. Receive is only size of first_pass_len + second_pass_len or error packed size
+
   move_uint8_safe(&frame->pdu_write_discrete_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_write_discrete_req.output_address_or_register_address, mem_address); // Big endian
   swap_and_move_uint16_safe(&frame->pdu_write_discrete_req.output_value_or_register_value, n); // Big endian
@@ -286,6 +199,12 @@ master_prepare_to_send_read_register:
 
   if (n < 1 || n > 125)
     return error_on_invalid_n;
+
+  master_rs485_rtu.first_pass = &frame->pdu_read_resp.function_code;
+  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
+  master_rs485_rtu.second_pass = &frame->pdu_read_resp.byte_count;
+  master_rs485_rtu.second_pass_len = 1; // 1 byte count
+  master_rs485_rtu.transfer_left_data_limit = 250; // 250 + 3 + 2 (crc) = 255. Guard: Don't trust, verify
 
   move_uint8_safe(&frame->pdu_read_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_read_req.starting_address, mem_address); // Big endian
@@ -307,6 +226,12 @@ master_prepare_to_send_read_discrete:
   m = n >> 3; // Divide by 8
   if (n & 7) // Remainder
     ++m;
+
+  master_rs485_rtu.first_pass = &frame->pdu_read_discrete_resp.function_code;
+  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
+  master_rs485_rtu.second_pass = &frame->pdu_read_discrete_resp.byte_count;
+  master_rs485_rtu.second_pass_len = 1; // 1 byte count
+  master_rs485_rtu.transfer_left_data_limit = 250; // 250 + 3 + 2 (crc) = 255. Guard: Don't trust, verify
 
   move_uint8_safe(&frame->pdu_read_discrete_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_read_discrete_req.starting_address, mem_address); // Big endian
@@ -632,7 +557,8 @@ master_check_receive_read_discrete:
   return error_invalid_crc;
 
 master_check_receive_copy_buffer1:
-  if ((*data = (uint8_t *)malloc((size_t)u8_sz))) {
+  //if ((*data = (uint8_t *)malloc((size_t)u8_sz))) {
+  if ((*data = (uint8_t *)solar48_mem(&modbus_master_buffer_receive_dynamic, (size_t)u8_sz))) {
     memcpy((void *)(*data), (void *)ptr, (size_t)u8_sz);
 
     if (resize_vec_size)
@@ -664,11 +590,12 @@ static void _master_receive(int status)
         sys_unlock(&master_rs485_rtu.lock);
         master_rs485_rtu.callback(status, func, data, data_size);
 
+/*
         if (data) // Guard
           free(data);
         else
           app_panic("_mrcv:mem1");
-
+*/
         return;
       }
 
@@ -685,7 +612,7 @@ static void _master_send_req(int status)
 
   switch (status) {
     case UART1_TRANSFER_COMPLETE:
-      if (!(status = uart1_receive(modbus_master_buffer, sizeof(modbus_master_buffer), _master_receive, master_rs485_rtu.timeout_ms)))
+      if (!(status = uart1_receive(modbus_master_buffer, (size_t)master_rs485_rtu.first_pass_len, _master_receive, master_rs485_rtu.timeout_ms)))
         return;
 
     default:
