@@ -140,6 +140,8 @@
 
 //9.2.2 Port configuration register high (GPIOx_CRH) (x=A..G) Page 172
 #define GPIOA_CRH (*(volatile uint32_t *)(GPIOA_BASE + 0x04))
+ #define GPIOA_MODE8_VAL(val) (val<<0)
+ #define GPIOA_CNF8_VAL(val) (val<<2)
  #define GPIOA_MODE9_VAL(val) (val<<4)
  #define GPIOA_CNF9_VAL(val) (val<<6)
  #define GPIOA_MODE10_VAL(val) (val<<8)
@@ -149,6 +151,8 @@
 //#define GPIOC_BASE   0x40011000
 #define GPIOC_CRH    (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
 #define GPIOC_ODR    (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
+#define GPIOA_ODR    (*(volatile uint32_t *)(GPIOA_BASE + 0x0C))
+ #define ODR8 8
 
 #define GPIOB_CRL (*(volatile uint32_t *)(GPIOB_BASE + 0x00)) //page 171 9.2.1
  #define GPIOB_MODE6_VAL(val) (val<<24)

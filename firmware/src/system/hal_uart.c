@@ -8,7 +8,7 @@
 
 // #define UART1_TRANSMIT_USE_BLOCK
 
-#ifdef IMPLEMET_RS485_MASTER_OVER_UART1
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 
 #include <rs485.h>
 #include <memory.h>
@@ -92,7 +92,7 @@ void DMA1_Channel5_IRQHandler()
 
   // Receive complete
   if (dma1_ch5_sr & TCIF5) {
-#ifdef IMPLEMET_RS485_MASTER_OVER_UART1
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
     if (master_rs485_rtu.first_pass) {
 
       DMA1_CMAR5 = (uint32_t)master_rs485_rtu.second_pass; // Memory address Page 288
@@ -159,6 +159,16 @@ void USART1_IRQHandler()
 void init_uart1()
 {
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+
+  // ---- Control pin (PA8) for MAX485 ----
+  // PA8 -> Output pin for MAX485 DE/RE_B. Default 1
+  //9.2.2 Port configuration register high (GPIOx_CRH) (x=A..G) Page 172
+  GPIOA_CRH &= ~(GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b11));
+  GPIOA_CRH |= GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b00); // Output mode, max speed 50 MHz and GPIO as output mode
+
+#endif
+
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
   RCC_APB2ENR |= IOPAEN;   // Enables GPIOA. Page 113
   RCC_APB2ENR |= USART1EN; // Enables USART1. Page 113
@@ -205,6 +215,10 @@ void init_uart1()
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
   __nvic_enable_irq(USART1_IRQn);
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+  // PA8 Pin master enable transmit
+  MASTER_RS485_DRIVER_TRANSMIT_MODE
+#endif
 }
 
 inline bool uart1_is_busy()
@@ -227,10 +241,13 @@ enum uart_status_t uart1_receive(
     if (!sys_try_lock(&uart1_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
       return UART_LOCKED;
 
-//    uart1_control.locked = true;
-//    uart1_control.start_monitore = false;
     // We need to use __atomic here because process_uart1_time_event is always running
     __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
+
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+    // Prepare MAX485 driver receive mode
+    MASTER_RS485_DRIVER_RECEIVE_MODE
+#endif
 
     USART1_CR1 &= ~(RE);           // Ensure Receive is disable
     DMA1_CCR5 &= ~(DMA1_CCR5_EN);  // Disable DMA1_Channel5
@@ -280,10 +297,13 @@ enum uart_status_t uart1_transmit(
   if (!sys_try_lock(&uart1_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
     return UART_LOCKED;
 
-//    uart1_control.locked = true;
-//    uart1_control.start_monitore = false;
    // We need to use __atomic here because process_uart1_time_event is always running
    __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
+
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+  // Prepare MAX485 driver transmit mode
+  MASTER_RS485_DRIVER_TRANSMIT_MODE
+#endif
 
   DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4 (transmit)
   DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5 (receive)
@@ -330,6 +350,19 @@ enum uart_status_t uart1_transmit(
   return UART_OK;
 }
 
+/**
+ * @brief Periodic UART1 event processor (acts as a soft watchdog).
+ *
+ * This function must be called periodically (e.g. every 1ms).
+ * It monitors UART1 DMA transfer and receive states, detects timeouts,
+ * ensures DMA/USART are disabled on failure, and calls the registered
+ * callback with the final status (success, error, timeout).
+ *
+ * Concurrency rules:
+ *  - uart1_control.locked prevents concurrent TX/RX operations.
+ *  - ISR may access master_rs485_rtu only when locked = true.
+ *  - Timeout always releases lock and disables DMA safely.
+ */
 void process_uart1_time_event()
 {
   if (__atomic_load_n(&uart1_control.start_monitore, __ATOMIC_SEQ_CST)) {

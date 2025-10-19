@@ -590,12 +590,6 @@ static void _master_receive(int status)
         sys_unlock(&master_rs485_rtu.lock);
         master_rs485_rtu.callback(status, func, data, data_size);
 
-/*
-        if (data) // Guard
-          free(data);
-        else
-          app_panic("_mrcv:mem1");
-*/
         return;
       }
 

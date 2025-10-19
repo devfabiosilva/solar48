@@ -15,19 +15,21 @@
 void init_gpios(void)
 {
     RCC_APB2ENR |= IOPCEN;
-    // Configurar PC13 como saída push-pull 2MHz
-    GPIOC_CRH &= ~(0xF << 20); // Limpar bits MODE13 e CNF13
+    // Configure PC13 as output push-pull 2MHz
+    GPIOC_CRH &= ~(0xF << 20); // Clear bits MODE13 e CNF13
     GPIOC_CRH |=  (0x2 << 20); // MODE13 = 0b10 (Output 2 MHz)
 }
 
+// TODO remove. For testing only
 void ledon()
 {
-  GPIOC_ODR &= ~(1 << 13); // LED ligado (nível baixo no PC13)
+  GPIOC_ODR &= ~(1 << 13); // LED on (low level no PC13)
 }
 
+// TODO remove. For testing only
 void ledoff()
 {
- GPIOC_ODR |= (1 << 13);  // LED desligado
+ GPIOC_ODR |= (1 << 13);  // LED off
 }
 
 void blink_n(int n)
