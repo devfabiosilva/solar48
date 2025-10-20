@@ -11,7 +11,7 @@
  #include <rs485.h>
  #include <peripheral/ssd1306/oled_utils.h>
 
-static uint16_t data[] = {1, 2, 3, 4};
+static uint16_t data[] = {1, 2, 3};
 #endif
 
 #ifdef UART_TEST
@@ -93,7 +93,7 @@ static void led_blink_task(void *params)
     uxHighWaterMark_max = uxHighWaterMark;
 #ifdef RS485_TEST
 
-    status = master_send_req(slv_addr, fc, mem_address, n, 0, 0, (void *)&data[0], 10, rs485_receive);
+    status = master_send_req(slv_addr, fc, mem_address, n, 0, 0, (void *)&data[0], 4, rs485_receive);
     if (status == RS485_OK)
       oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
     else

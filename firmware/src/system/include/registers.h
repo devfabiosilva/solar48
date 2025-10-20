@@ -147,12 +147,13 @@
  #define GPIOA_MODE10_VAL(val) (val<<8)
  #define GPIOA_CNF10_VAL(val) (val<<10)
 
+#define GPIOA_ODR    (*(volatile uint32_t *)(GPIOA_BASE + 0x0C))
+ #define ODR8 8
+
 //GPIO
 //#define GPIOC_BASE   0x40011000
 #define GPIOC_CRH    (*(volatile uint32_t *)(GPIOC_BASE + 0x04))
 #define GPIOC_ODR    (*(volatile uint32_t *)(GPIOC_BASE + 0x0C))
-#define GPIOA_ODR    (*(volatile uint32_t *)(GPIOA_BASE + 0x0C))
- #define ODR8 8
 
 #define GPIOB_CRL (*(volatile uint32_t *)(GPIOB_BASE + 0x00)) //page 171 9.2.1
  #define GPIOB_MODE6_VAL(val) (val<<24)
@@ -284,8 +285,10 @@ void __nvic_disable_irq(IRQn_Type);
 //USART1_BASE
 #define USART1_SR (*(volatile uint32_t *)(USART1_BASE + 0x00)) // Page 818: 27.6.1
   #define CTS (1<<9)
-  #define RXNE (1<<5)
+  #define TXE (1<<7)
   #define TC (1<<6)
+  #define RXNE (1<<5)
+  #define IDLE (1<<4)
   #define ORE (1<<3)
   #define NE (1<<2)
   #define FE (1<<1)
@@ -310,13 +313,20 @@ void __nvic_disable_irq(IRQn_Type);
 
 // 27.6.5 Control register 2 (USART_CR2) page 823
 #define USART1_CR2 (*(volatile uint32_t *)(USART1_BASE + 0x10))
+ #define LBCL (1<<8)
+ #define CLKEN (1<<11)
 
 //27.6.6 Control register 3 (USART_CR3) page 824
 #define USART1_CR3 (*(volatile uint32_t *)(USART1_BASE + 0x14))
   #define EIE (1<<0)
   #define NACK (1<<4)
+  #define SCEN (1<<5)
   #define DMAT (1<<7)
   #define DMAR (1<<8)
+
+//27.6.7 Guard time and prescaler register (USART_GTPR) Page 826
+#define USART_GTPR (*(volatile uint32_t *)(USART1_BASE + 0x18))
+ #define GT(val) (val<<8)
 
 //13.4.3 DMA channel x configuration register (DMA_CCRx) (x = 1..7, where x = channel number) Page 286
 #define DMA1_CCRx(x) (*(volatile uint32_t *)(DMA1_BASE + 0x08 + 20*(x - 1)))

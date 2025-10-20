@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <string.h>
+#include <registers.h>
 
 static uint8_t modbus_master_buffer[256];
 static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
@@ -577,6 +578,9 @@ master_check_receive_copy_buffer1:
 
 static void _master_receive(int status)
 {
+
+  MASTER_RS485_DRIVER_TRANSMIT_MODE // Enable transmit mode in driver
+
   uint8_t *data = NULL;
   uint16_t data_size = 0;
   MB_FUNCTION func;

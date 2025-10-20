@@ -22,11 +22,13 @@ struct uart_control_t {
   volatile bool locked;                       // UART locked
   volatile TIMEOUT_MS timeout;                // UART timeout
   volatile uint32_t status_register;          // UART status register
+/*
 #ifdef UART1_TRANSMIT_USE_BLOCK
   volatile uint8_t *next_data_ptr;            // Data pointer
   volatile int32_t block;                     // Data is divided by n x UART1_TX_RX_BUF
   volatile int32_t left;                      // Data remaining left = data size % UART1_TX_RX_BUF
 #endif
+*/
   uart_callback_func uart_callback;           // Uart transmit/receive callback event
 };
 
@@ -47,8 +49,15 @@ void DMA1_Channel4_IRQHandler()
 
   DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
 
+  // DMA1 error on transfer
+  if (dma1_ch4_sr & TEIF4) {
+    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH4_TRANSMIT_ERROR, __ATOMIC_RELEASE);
+    return;
+  }
+
   // Transfer complete
   if (dma1_ch4_sr & TCIF4) {
+/*
 #ifdef UART1_TRANSMIT_USE_BLOCK
 
     //we don't need __atomic here because it is used only here 
@@ -70,14 +79,14 @@ void DMA1_Channel4_IRQHandler()
 
     } else
 #endif
-      __atomic_store_n(&uart1_control.status_register, UART1_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+*/
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+    //MASTER_RS485_DRIVER_RECEIVE_MODE // Select MAX485 in receive mode
+#endif
 
-    return;
+   __atomic_store_n(&uart1_control.status_register, UART1_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+
   }
-
-  // DMA1 error on transfer
-  if (dma1_ch4_sr & TEIF4)
-    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH4_TRANSMIT_ERROR, __ATOMIC_RELEASE);
 }
 
 // DMA1 for UART1 Rx events IRQ
@@ -159,6 +168,10 @@ void USART1_IRQHandler()
 void init_uart1()
 {
 
+  // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
+  RCC_APB2ENR |= IOPAEN;   // Enables GPIOA. Page 113
+  RCC_APB2ENR |= USART1EN; // Enables USART1. Page 113
+
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 
   // ---- Control pin (PA8) for MAX485 ----
@@ -166,12 +179,9 @@ void init_uart1()
   //9.2.2 Port configuration register high (GPIOx_CRH) (x=A..G) Page 172
   GPIOA_CRH &= ~(GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b11));
   GPIOA_CRH |= GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b00); // Output mode, max speed 50 MHz and GPIO as output mode
+//  GPIOA_CRH |= GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b10); // Output alternat function for PA8 and max speed 50Mhz
 
 #endif
-
-  // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
-  RCC_APB2ENR |= IOPAEN;   // Enables GPIOA. Page 113
-  RCC_APB2ENR |= USART1EN; // Enables USART1. Page 113
 
   // 7.3.6 AHB peripheral clock enable register (RCC_AHBENR) Page 111
   RCC_AHBENR |= DMA1EN;
@@ -192,9 +202,12 @@ void init_uart1()
   //See page 798: 27.3.4 Fractional baud rate generation
   USART1_BRR = UART1_DEFAULT_SPEED;
 
+//  USART_GTPR =  GT(16)|0b00001; // Divide source clock by 62 * GT(val)
+
   USART1_CR3 = (
                   DMAT | // DMA enable transmitter
                   DMAR | // DMA enable receiver
+//                  SCEN|
                   EIE    // Error interrupt enable
                );
 
@@ -205,7 +218,12 @@ void init_uart1()
                  PEIE| // Parity error interrupt enabled
                  TE // Transmit enable
                );
-
+/*
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+  USART1_CR2 |= LBCL;
+  USART1_CR2 |= CLKEN; // PA8 as UART1 clock pulse page 823
+#endif
+*/
   USART1_CR1 |= UE;      // Enable UART1
 
 
@@ -245,8 +263,9 @@ enum uart_status_t uart1_receive(
     __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+    //USART1_CR2 &= ~(LBCL); // Disable last bit clock pulse (if enabled)
     // Prepare MAX485 driver receive mode
-    MASTER_RS485_DRIVER_RECEIVE_MODE
+//    MASTER_RS485_DRIVER_RECEIVE_MODE
 #endif
 
     USART1_CR1 &= ~(RE);           // Ensure Receive is disable
@@ -301,6 +320,7 @@ enum uart_status_t uart1_transmit(
    __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+//  USART1_CR1 &= ~(TCIE);
   // Prepare MAX485 driver transmit mode
   MASTER_RS485_DRIVER_TRANSMIT_MODE
 #endif
@@ -321,7 +341,7 @@ enum uart_status_t uart1_transmit(
   uart1_control.uart_callback = transmit_uart_callback;
 
   DMA1_CMAR4 = (uint32_t)data; // Memory address Page 288
-
+/*
 #ifdef UART1_TRANSMIT_USE_BLOCK
   uart1_control.next_data_ptr = data;
   int32_t block = (int32_t)data_size / UART1_TX_RX_BUF;
@@ -337,13 +357,14 @@ enum uart_status_t uart1_transmit(
   uart1_control.block = block;
   uart1_control.left = left;
 #else
+*/
   DMA1_CNDTR4 = (uint16_t)data_size;
-#endif
+//#endif
 
   //uart1_control.timeout = timeout;
   init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);
-    // We need to use __atomic here because process_uart1_time_event is always running
-    __atomic_store_n(&uart1_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 4
+  // We need to use __atomic here because process_uart1_time_event is always running
+  __atomic_store_n(&uart1_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 4
 
   DMA1_CCR4 |= DMA1_CCR4_EN; // Enable DMA1 Channel 4 transmit
 
@@ -371,10 +392,12 @@ void process_uart1_time_event()
 
     switch (status_register) {
       case UART1_TRANSFER_COMPLETE:
-          if (USART1_SR & TC)
-            goto process_uart1_time_event_finish;
-          else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
-            goto process_uart1_time_event_timeout_error;
+         if (USART1_SR & TC) {
+           MASTER_RS485_DRIVER_RECEIVE_MODE
+           goto process_uart1_time_event_finish;
+         }
+         else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
+           goto process_uart1_time_event_timeout_error;
         break;
       case UART1_RECEIVE_COMPLETE:
           if (USART1_SR & RXNE)
