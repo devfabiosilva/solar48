@@ -11,7 +11,7 @@
 #include <string.h>
 #include <registers.h>
 
-static uint8_t modbus_master_buffer[256];
+uint8_t modbus_master_buffer[256];
 static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
 //static uint8_t modbus_slave_buffer[256];
 
@@ -576,11 +576,8 @@ master_check_receive_copy_buffer1:
 
 #undef RS485_ERROR_CODE
 
-static void _master_receive(int status)
+void _master_receive(int status)
 {
-
-  MASTER_RS485_DRIVER_TRANSMIT_MODE // Enable transmit mode in driver
-
   uint8_t *data = NULL;
   uint16_t data_size = 0;
   MB_FUNCTION func;
@@ -601,14 +598,20 @@ static void _master_receive(int status)
       if (data)
         app_panic("_mrcv:mem2");
       sys_unlock(&master_rs485_rtu.lock);
-      master_rs485_rtu.callback(status, MB_FUNCTION_UNDEFINED, data, data_size);
+      master_rs485_rtu.callback(status, MB_FUNCTION_UNDEFINED, NULL, 0);
   }
 }
 
 static void _master_send_req(int status)
 {
 
+  if (status != UART1_TRANSFER_COMPLETE) {
+      sys_unlock(&master_rs485_rtu.lock);
+      master_rs485_rtu.callback(status, MB_FUNCTION_UNDEFINED, NULL, 0);
+  }
+/*
   switch (status) {
+
     case UART1_TRANSFER_COMPLETE:
       if (!(status = uart1_receive(modbus_master_buffer, (size_t)master_rs485_rtu.first_pass_len, _master_receive, master_rs485_rtu.timeout_ms)))
         return;
@@ -616,7 +619,7 @@ static void _master_send_req(int status)
     default:
       sys_unlock(&master_rs485_rtu.lock);
       master_rs485_rtu.callback(status, MB_FUNCTION_UNDEFINED, NULL, 0);
-  }
+  }*/
 }
 
 // Implement RTU only (uses UART1)

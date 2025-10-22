@@ -96,6 +96,7 @@
  #define USBEN (1<<23)
  #define PWREN (1<<28)
  #define I2C1EN (1<<21)
+ #define TIM2EN (1<<0)
 //TODO implement read/sets for RCC_APB1ENR if needed
 //END Clock->RCC_APB1ENR
 
@@ -389,6 +390,29 @@ void __nvic_disable_irq(IRQn_Type);
   #define CTCIF5 (1<<17)
   #define CHTIF5 (1<<18)
   #define CTEIF5 (1<<19)
+
+//15.3 TIMx functional description page 368
+//15.4.1 TIMx control register 1 (TIMx_CR1) Page 404
+#define TIM2_CR1 (*(volatile uint16_t *)(TIM2_BASE + 0x00))
+ #define CEN (1<<0)
+ #define OPM (1<<3)
+
+//15.4.4 TIMx DMA/Interrupt enable register (TIMx_DIER) page 409
+#define TIM2_DIER (*(volatile uint16_t *)(TIM2_BASE + 0x0C))
+ #define UIE (1<<0)
+
+//15.4.5 TIMx status register (TIMx_SR) page 410
+#define TIM2_SR (*(volatile uint16_t *)(TIM2_BASE + 0x10))
+ #define UIF (1<<0)
+
+//15.4.10 TIMx counter (TIMx_CNT) page 418
+#define TIM2_CNT (*(volatile uint16_t *)(TIM2_BASE + 0x24))
+
+//15.4.11 TIMx prescaler (TIMx_PSC) page 419
+#define TIM2_PSC (*(volatile uint16_t *)(TIM2_BASE + 0x28))
+
+// 15.4.12 TIMx auto-reload register (TIMx_ARR) page 419
+#define TIM2_ARR (*(volatile uint16_t *)(TIM2_BASE + 0x2C))
 
 #endif
 

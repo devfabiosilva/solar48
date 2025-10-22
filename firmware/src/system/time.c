@@ -2,6 +2,7 @@
 #include <core_cm3.h>
 #include <watchdog.h>
 #include <time.h>
+#include <solar48_config.h>
 
 //#define SYSTICK_TICKS    ((CPU_FREQ_HZ / (SYS_TICK_DIV * SYS_TICK_FREQ_HZ)) - 1UL)
 
@@ -112,4 +113,15 @@ void delay(uint64_t milliseconds)
   //__WFI(); If only one interruption or principal
 }
 #endif
+
+////// Implementation of TIM2 timer
+
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+void TIM2_IRQHandler()
+{
+// TODO implement for optional use (non RS485 master over uart1 layer)
+}
+
+#endif
+////// End of TIM2 timer implementation
 

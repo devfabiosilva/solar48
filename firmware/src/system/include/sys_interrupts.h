@@ -6,6 +6,7 @@
 #ifdef RTOS_SOLAR48
 
  #define PEND_SV_CALL  0              // This must be always 0 for RTOS (higher priority)
+ #define TIM2_PRIO     7
  #define RTC_PRIO      8              // Internal interrupt has more priority than external interrupt
  #define DMA1_CH4_PRIO 9              // Used in UART1 TX for ModBus Master
  #define DMA1_CH5_PRIO DMA1_CH4_PRIO  // Used in UART1 RX for ModBus Master
@@ -18,14 +19,15 @@
 
 #else
 
- #define SYSTICK_PRIO  1
- #define RTC_PRIO      2
- #define DMA1_CH4_PRIO 3
+ #define TIM2_PRIO     1
+ #define SYSTICK_PRIO  2
+ #define RTC_PRIO      3
+ #define DMA1_CH4_PRIO 4
  #define DMA1_CH5_PRIO DMA1_CH4_PRIO
- #define UART1_PRIO    4
- #define USB_PRIO      5
- #define I2C1_EV_PRIO  6
- #define I2C1_ER_PRIO  7
+ #define UART1_PRIO    5
+ #define USB_PRIO      6
+ #define I2C1_EV_PRIO  7
+ #define I2C1_ER_PRIO  8
 
 #endif
 

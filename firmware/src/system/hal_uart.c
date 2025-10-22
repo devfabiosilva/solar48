@@ -14,6 +14,8 @@
 #include <memory.h>
 
 extern SOLAR48_RS485_RTU master_rs485_rtu;
+extern uint8_t modbus_master_buffer[];
+extern void _master_receive(int);
 
 #endif
 
@@ -81,7 +83,9 @@ void DMA1_Channel4_IRQHandler()
 #endif
 */
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-    //MASTER_RS485_DRIVER_RECEIVE_MODE // Select MAX485 in receive mode
+    TIM2_SR &= ~(UIF); // Disable overflow flag
+    TIM2_CNT = 0;
+    TIM2_CR1 |= CEN; // Enable Timer 2
 #endif
 
    __atomic_store_n(&uart1_control.status_register, UART1_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
@@ -163,6 +167,18 @@ void USART1_IRQHandler()
   }
 }
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+void TIM2_IRQHandler()
+{
+  if (TIM2_SR & UIF) {
+
+    TIM2_SR &= ~(UIF);
+
+    uart1_receive(modbus_master_buffer, (size_t)master_rs485_rtu.first_pass_len, _master_receive, master_rs485_rtu.timeout_ms);
+  }
+}
+#endif
+
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
 
 void init_uart1()
@@ -173,6 +189,8 @@ void init_uart1()
   RCC_APB2ENR |= USART1EN; // Enables USART1. Page 113
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+
+  RCC_APB1ENR |= TIM2EN; // Enable Timer 2 page 115
 
   // ---- Control pin (PA8) for MAX485 ----
   // PA8 -> Output pin for MAX485 DE/RE_B. Default 1
@@ -218,25 +236,30 @@ void init_uart1()
                  PEIE| // Parity error interrupt enabled
                  TE // Transmit enable
                );
-/*
-#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-  USART1_CR2 |= LBCL;
-  USART1_CR2 |= CLKEN; // PA8 as UART1 clock pulse page 823
-#endif
-*/
-  USART1_CR1 |= UE;      // Enable UART1
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+  TIM2_CR1 = OPM; // One Pulse Mode activated for TIMER2 page 404
+  TIM2_CNT = 0; // Reset counter page 418
+  TIM2_PSC = 720; // Test prescale. TODO adjust according to UART1 Speed
+  TIM2_ARR = 9; // Test auto reload. TODO adjust according to UART1 Speed
+  TIM2_SR &= ~(UIF); // Reset overflow flag
+  TIM2_DIER = UIE; // Timer 2 interrupt enable
+#endif
+
+  USART1_CR1 |= UE;      // Enable UART1
 
   dma1_channel4_init((void *)&USART1_DR);
   dma1_channel5_init((void *)&USART1_DR);
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+  MASTER_RS485_DRIVER_TRANSMIT_MODE // Enable RS485 Master transmit pin
+  __nvic_set_priority(TIM2_IRQn, TIM2_PRIO); // Set timer 2 priority
+  __nvic_enable_irq(TIM2_IRQn); // Enable IRQ for TIMER2
+#endif
+
   __nvic_set_priority(USART1_IRQn, UART1_PRIO);
   __nvic_enable_irq(USART1_IRQn);
 
-#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-  // PA8 Pin master enable transmit
-  MASTER_RS485_DRIVER_TRANSMIT_MODE
-#endif
 }
 
 inline bool uart1_is_busy()
@@ -250,6 +273,7 @@ enum uart_status_t uart1_receive(
   uint32_t timeout
 )
 {
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
   if ((data != NULL) && (data_size > 0)) {
 
     if (uart1_is_busy())
@@ -258,14 +282,14 @@ enum uart_status_t uart1_receive(
     TIMEOUT_MS timeout_ms;
     if (!sys_try_lock(&uart1_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
       return UART_LOCKED;
+#endif
 
     // We need to use __atomic here because process_uart1_time_event is always running
     __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-    //USART1_CR2 &= ~(LBCL); // Disable last bit clock pulse (if enabled)
     // Prepare MAX485 driver receive mode
-//    MASTER_RS485_DRIVER_RECEIVE_MODE
+    MASTER_RS485_DRIVER_RECEIVE_MODE
 #endif
 
     USART1_CR1 &= ~(RE);           // Ensure Receive is disable
@@ -294,8 +318,9 @@ enum uart_status_t uart1_receive(
 
     DMA1_CCR5 |= DMA1_CCR5_EN; // Enable DMA1 Channel 5 receive
     USART1_CR1 |= RE;  // Ensure Receive is enable
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
   }
- 
+#endif 
   return UART_OK;
 }
 
@@ -392,12 +417,13 @@ void process_uart1_time_event()
 
     switch (status_register) {
       case UART1_TRANSFER_COMPLETE:
-         if (USART1_SR & TC) {
-           MASTER_RS485_DRIVER_RECEIVE_MODE
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+         if (USART1_SR & TC)
            goto process_uart1_time_event_finish;
-         }
          else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
            goto process_uart1_time_event_timeout_error;
+#endif
+        // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event
         break;
       case UART1_RECEIVE_COMPLETE:
           if (USART1_SR & RXNE)
@@ -416,6 +442,12 @@ process_uart1_time_event_timeout_error:
           status_register = E_UART1_TIMEOUT;
 
 process_uart1_time_event_finish:
+
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+          TIM2_CR1 &= ~(CEN); // Disable Timer 2
+          TIM2_SR &= ~(UIF); // Disable overflow flag
+          TIM2_CNT = 0;
+#endif
           DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Ensure Disable DMA1_Channel4
           DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Ensure Disable DMA1_Channel5
           USART1_CR1 &= ~(RE);  // Ensure Receive is disable
@@ -429,6 +461,9 @@ process_uart1_time_event_finish:
           __atomic_store_n(&uart1_control.status_register, 0, __ATOMIC_RELEASE);
           __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE); // Stop monitoring
           __atomic_store_n(&uart1_control.locked, false, __ATOMIC_RELEASE); // Same as sys_unlock
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+          MASTER_RS485_DRIVER_TRANSMIT_MODE
+#endif
           uart1_control.uart_callback(status_register);
         }
     }
