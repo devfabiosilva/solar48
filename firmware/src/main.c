@@ -30,9 +30,9 @@ void setup()
 
   init_usb();
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
-  init_uart1(UART1_DEFAULT_SPEED);
+  init_uart1(UART1_DEFAULT_SPEED, PARITY_DISABLE);
 #else
-  init_master_rs485(speed_2_4_kbps);
+  init_master_rs485(speed_19_2_kpbs, PARITY_DISABLE);
 #endif
   hal_i2c1_init();
   init_rtc(realtime);

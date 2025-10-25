@@ -308,6 +308,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define TCIE (1<<6)
   #define TXEIE (1<<7)
   #define PEIE (1<<8)
+  #define PS (1<<9)
   #define PCE (1<<10)
   #define M (1<<12)
   #define UE (1<<13)

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <errors.h>
 #include <solar48_config.h>
+#include <registers.h>
 
 //27.5 USART mode configuration page 817
 //2.2 List of abbreviations for registers page 45
@@ -26,10 +27,14 @@
 #define UART1_2250_KBPS     UART_SPEED(2, 0)     // 2250 kbps
 #define UART1_4500_KBPS     UART_SPEED(1, 0)     // 4500 kbps
 
+#define UART1_PARITY_MODE_DISABLE 0
+#define UART1_PARITY_MODE_ODD (M|PCE|PEIE)
+#define UART1_PARITY_MODE_EVEN (UART1_PARITY_MODE_ODD|PS)
+
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
 enum uart1_speed_e {
   speed_2_4_kbps = UART1_2_4_KBPS,
-  speed_9_6_KBPS = UART1_9_6_KBPS,
+  speed_9_6_kbps = UART1_9_6_KBPS,
   speed_19_2_kpbs = UART1_19_2_KBPS,
   speed_57_6_kbps = UART1_57_6_KBPS,
   speed_115_2_kbps = UART1_115_2_KBPS,
@@ -40,15 +45,21 @@ enum uart1_speed_e {
   speed_4500_kbps = UART1_4500_KBPS
 };
 
+enum uart1_mode_e {
+  PARITY_DISABLE = UART1_PARITY_MODE_DISABLE,
+  PARITY_ODD = UART1_PARITY_MODE_ODD,
+  PARITY_EVEN = UART1_PARITY_MODE_EVEN
+};
+
  #define UART1_DEFAULT_SPEED speed_115_2_kbps
 
-void init_uart1(enum uart1_speed_e speed);
+void init_uart1(enum uart1_speed_e speed, enum uart1_mode_e);
 
 #else
 
 enum rs485_master_speed_e {
   speed_2_4_kbps = 0,
-  speed_9_6_KBPS,
+  speed_9_6_kbps,
   speed_19_2_kpbs,
   speed_57_6_kbps,
   speed_115_2_kbps,
@@ -59,9 +70,15 @@ enum rs485_master_speed_e {
   speed_4500_kbps
 };
 
+enum rs485_master_mode_e {
+  PARITY_DISABLE = UART1_PARITY_MODE_DISABLE,
+  PARITY_ODD = UART1_PARITY_MODE_ODD,
+  PARITY_EVEN = UART1_PARITY_MODE_EVEN
+};
+
  #define RS485_MASTER_DEFAULT_SPEED speed_115_2_kbps
 
-void init_master_rs485(enum rs485_master_speed_e speed);
+void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e);
 
 #endif
 

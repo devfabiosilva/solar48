@@ -94,6 +94,12 @@ void DMA1_Channel5_IRQHandler()
 
   DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
 
+  // DMA1 error on receive
+  if (dma1_ch5_sr & TEIF5) {
+    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH5_RECEIVE_ERROR, __ATOMIC_RELEASE);
+    return;
+  }
+
   // Receive complete
   if (dma1_ch5_sr & TCIF5) {
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
@@ -136,12 +142,8 @@ void DMA1_Channel5_IRQHandler()
 #endif
     __atomic_store_n(&uart1_control.status_register, UART1_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
 
-    return;
   }
 
-  // DMA1 error on receive
-  if (dma1_ch5_sr & TEIF5)
-    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH5_RECEIVE_ERROR, __ATOMIC_RELEASE);
 }
 
 //Table 196. USART interrupt requests page 816
@@ -172,9 +174,9 @@ void TIM2_IRQHandler()
 
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
-void init_uart1(enum uart1_speed_e speed)
+void init_uart1(enum uart1_speed_e speed, enum uart1_mode_e mode)
 #else
-void init_master_rs485(enum rs485_master_speed_e speed)
+void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e mode)
 #endif
 {
 
@@ -228,9 +230,10 @@ void init_master_rs485(enum rs485_master_speed_e speed)
 
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART1_CR1 = (
-                 PCE|M|  //Parit control enable and stop bit + 9 bit
+                 ((uint32_t)mode)|
+                 /*PCE|M|*/  //Parit control enable and stop bit + 9 bit
                  /*RE|*/
-                 PEIE| // Parity error interrupt enabled
+                 /*PEIE|*/ // Parity error interrupt enabled
                  TE // Transmit enable
                );
 
@@ -406,10 +409,11 @@ void process_uart1_time_event()
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
          if (USART1_SR & TC)
            goto process_uart1_time_event_finish;
-         else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
-           goto process_uart1_time_event_timeout_error;
+         else
 #endif
-        // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event
+         if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
+           goto process_uart1_time_event_timeout_error;
+        // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event or execute error on timeout
         break;
       case UART1_RECEIVE_COMPLETE:
           if (USART1_SR & RXNE)
