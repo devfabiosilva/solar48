@@ -1,12 +1,10 @@
 #include <registers.h>
-#include <hal_uart.h>
 #include <sys_interrupts.h>
 #include <dma.h>
 #include <solar48_config.h>
 #include <time.h>
 #include <system.h>
-
-// #define UART1_TRANSMIT_USE_BLOCK
+#include <hal_uart.h>
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 
@@ -17,6 +15,28 @@ extern SOLAR48_RS485_RTU master_rs485_rtu;
 extern uint8_t modbus_master_buffer[];
 extern void _master_receive(int);
 
+static void uart1_receive(
+  uint8_t *, size_t,
+  uart_callback_func,
+  uint32_t
+);
+
+static const struct master_rs485_speed_t {
+  uint32_t uart1_speed;
+  uint16_t tim2_adj;
+} MASTER_RS485_SPEED[] = {
+    {UART1_2_4_KBPS, 952},
+    {UART1_9_6_KBPS, 476},
+    {UART1_19_2_KBPS, 336},
+    {UART1_57_6_KBPS, 194},
+    {UART1_115_2_KBPS, 137},
+    {UART1_230_769_KBPS, 97},
+    {UART1_461_538_KBPS, 68},
+    {UART1_923_076_KBPS, 47},
+    {UART1_2250_KBPS, 31},
+    {UART1_4500_KBPS, 22}
+};
+
 #endif
 
 struct uart_control_t {
@@ -24,13 +44,6 @@ struct uart_control_t {
   volatile bool locked;                       // UART locked
   volatile TIMEOUT_MS timeout;                // UART timeout
   volatile uint32_t status_register;          // UART status register
-/*
-#ifdef UART1_TRANSMIT_USE_BLOCK
-  volatile uint8_t *next_data_ptr;            // Data pointer
-  volatile int32_t block;                     // Data is divided by n x UART1_TX_RX_BUF
-  volatile int32_t left;                      // Data remaining left = data size % UART1_TX_RX_BUF
-#endif
-*/
   uart_callback_func uart_callback;           // Uart transmit/receive callback event
 };
 
@@ -59,29 +72,7 @@ void DMA1_Channel4_IRQHandler()
 
   // Transfer complete
   if (dma1_ch4_sr & TCIF4) {
-/*
-#ifdef UART1_TRANSMIT_USE_BLOCK
 
-    //we don't need __atomic here because it is used only here 
-    if (uart1_control.block > 0) {
-
-      //we don't need __atomic here because it is used only here
-      DMA1_CMAR4 = (uint32_t)uart1_control.next_data_ptr; // Memory address Page 288
-      DMA1_CNDTR4 = (uint16_t)UART1_TX_RX_BUF; // Memory size Page 287 (64 KB max)
-      --uart1_control.block;
-      uart1_control.next_data_ptr += UART1_TX_RX_BUF;
-      DMA1_CCR4 |= (DMA1_CCR4_EN); // Enable DMA1_Channel4
-
-    } else if (uart1_control.left) {
-
-      DMA1_CMAR4 = (uint32_t)uart1_control.next_data_ptr; // Memory address Page 288
-      DMA1_CNDTR4 = (uint16_t)uart1_control.left; // Memory size Page 287 (64 KB max)
-      uart1_control.left = 0;
-      DMA1_CCR4 |= (DMA1_CCR4_EN); // Enable DMA1_Channel4
-
-    } else
-#endif
-*/
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
     TIM2_SR &= ~(UIF); // Disable overflow flag
     TIM2_CNT = 0;
@@ -180,8 +171,11 @@ void TIM2_IRQHandler()
 #endif
 
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
-
-void init_uart1()
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+void init_uart1(enum uart1_speed_e speed)
+#else
+void init_master_rs485(enum rs485_master_speed_e speed)
+#endif
 {
 
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
@@ -218,8 +212,11 @@ void init_uart1()
 
   // Set UART 1 Speed
   //See page 798: 27.3.4 Fractional baud rate generation
-  USART1_BRR = UART1_DEFAULT_SPEED;
-
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+  USART1_BRR = MASTER_RS485_SPEED[speed].uart1_speed;
+#else
+  USART1_BRR = (uint32_t)speed;
+#endif
 //  USART_GTPR =  GT(16)|0b00001; // Divide source clock by 62 * GT(val)
 
   USART1_CR3 = (
@@ -240,8 +237,9 @@ void init_uart1()
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
   TIM2_CR1 = OPM; // One Pulse Mode activated for TIMER2 page 404
   TIM2_CNT = 0; // Reset counter page 418
-  TIM2_PSC = 720; // Test prescale. TODO adjust according to UART1 Speed
-  TIM2_ARR = 9; // Test auto reload. TODO adjust according to UART1 Speed
+  uint16_t tim2_adj = MASTER_RS485_SPEED[speed].tim2_adj;
+  TIM2_PSC = tim2_adj;
+  TIM2_ARR = tim2_adj - 1;
   TIM2_SR &= ~(UIF); // Reset overflow flag
   TIM2_DIER = UIE; // Timer 2 interrupt enable
 #endif
@@ -266,8 +264,12 @@ inline bool uart1_is_busy()
 {
   return (((DMA1_CCR4 & DMA1_CCR4_EN) != 0) || ((USART1_CR1 & RE) != 0));
 }
-
-enum uart_status_t uart1_receive(
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+static void
+#else
+enum uart_status_t
+#endif
+uart1_receive(
   uint8_t *data, size_t data_size,
   uart_callback_func receive_uart_callback,
   uint32_t timeout
@@ -320,8 +322,9 @@ enum uart_status_t uart1_receive(
     USART1_CR1 |= RE;  // Ensure Receive is enable
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
   }
-#endif 
+
   return UART_OK;
+#endif
 }
 
 enum uart_status_t uart1_transmit(
@@ -366,25 +369,8 @@ enum uart_status_t uart1_transmit(
   uart1_control.uart_callback = transmit_uart_callback;
 
   DMA1_CMAR4 = (uint32_t)data; // Memory address Page 288
-/*
-#ifdef UART1_TRANSMIT_USE_BLOCK
-  uart1_control.next_data_ptr = data;
-  int32_t block = (int32_t)data_size / UART1_TX_RX_BUF;
-  int32_t left = (int32_t)data_size % UART1_TX_RX_BUF;
 
-  if (block > 0) {
-    DMA1_CNDTR4 = (uint16_t)UART1_TX_RX_BUF; // Memory size Page 287 (64 KB max)
-    uart1_control.next_data_ptr += UART1_TX_RX_BUF;
-    --block;
-  } else
-    DMA1_CNDTR4 = (uint16_t)left; // Memory size Page 287 (64 KB max)
-
-  uart1_control.block = block;
-  uart1_control.left = left;
-#else
-*/
   DMA1_CNDTR4 = (uint16_t)data_size;
-//#endif
 
   //uart1_control.timeout = timeout;
   init_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout, timeout);

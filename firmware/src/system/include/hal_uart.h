@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <errors.h>
+#include <solar48_config.h>
 
 //27.5 USART mode configuration page 817
 //2.2 List of abbreviations for registers page 45
@@ -24,7 +25,45 @@
 #define UART1_923_076_KBPS  UART_SPEED(4, 14)    // 923.076 kbps
 #define UART1_2250_KBPS     UART_SPEED(2, 0)     // 2250 kbps
 #define UART1_4500_KBPS     UART_SPEED(1, 0)     // 4500 kbps
-#define UART1_DEFAULT_SPEED UART1_115_2_KBPS
+
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+enum uart1_speed_e {
+  speed_2_4_kbps = UART1_2_4_KBPS,
+  speed_9_6_KBPS = UART1_9_6_KBPS,
+  speed_19_2_kpbs = UART1_19_2_KBPS,
+  speed_57_6_kbps = UART1_57_6_KBPS,
+  speed_115_2_kbps = UART1_115_2_KBPS,
+  speed_230_769_kbps = UART1_230_769_KBPS,
+  speed_461_538_kbps = UART1_461_538_KBPS,
+  speed_923_076_kbps = UART1_923_076_KBPS,
+  speed_2250_kbps = UART1_2250_KBPS,
+  speed_4500_kbps = UART1_4500_KBPS
+};
+
+ #define UART1_DEFAULT_SPEED speed_115_2_kbps
+
+void init_uart1(enum uart1_speed_e speed);
+
+#else
+
+enum rs485_master_speed_e {
+  speed_2_4_kbps = 0,
+  speed_9_6_KBPS,
+  speed_19_2_kpbs,
+  speed_57_6_kbps,
+  speed_115_2_kbps,
+  speed_230_769_kbps,
+  speed_461_538_kbps,
+  speed_923_076_kbps,
+  speed_2250_kbps,
+  speed_4500_kbps
+};
+
+ #define RS485_MASTER_DEFAULT_SPEED speed_115_2_kbps
+
+void init_master_rs485(enum rs485_master_speed_e speed);
+
+#endif
 
 //UART2 @ PCLK1 = 36 MHz
 #define UART2_2_4_KBPS      UART_SPEED(937, 8)   // 2.4 kbps
@@ -47,19 +86,19 @@ enum uart_status_t {
   UART_LOCKED = E_UART1_LOCKED
 };
 
-void init_uart1();
-
 enum uart_status_t uart1_transmit(
   uint8_t *, size_t,
   uart_callback_func,
   uint32_t
 );
 
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
 enum uart_status_t uart1_receive(
   uint8_t *, size_t,
   uart_callback_func,
   uint32_t
 );
+#endif
 
 bool uart1_is_busy();
 

@@ -609,17 +609,6 @@ static void _master_send_req(int status)
       sys_unlock(&master_rs485_rtu.lock);
       master_rs485_rtu.callback(status, MB_FUNCTION_UNDEFINED, NULL, 0);
   }
-/*
-  switch (status) {
-
-    case UART1_TRANSFER_COMPLETE:
-      if (!(status = uart1_receive(modbus_master_buffer, (size_t)master_rs485_rtu.first_pass_len, _master_receive, master_rs485_rtu.timeout_ms)))
-        return;
-
-    default:
-      sys_unlock(&master_rs485_rtu.lock);
-      master_rs485_rtu.callback(status, MB_FUNCTION_UNDEFINED, NULL, 0);
-  }*/
 }
 
 // Implement RTU only (uses UART1)

@@ -29,7 +29,11 @@ void setup()
   __nvic_setprioritygrouping(NVIC_PRIORITYGROUP_4);
 
   init_usb();
-  init_uart1();
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+  init_uart1(UART1_DEFAULT_SPEED);
+#else
+  init_master_rs485(speed_2_4_kbps);
+#endif
   hal_i2c1_init();
   init_rtc(realtime);
 
