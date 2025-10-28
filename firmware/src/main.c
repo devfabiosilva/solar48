@@ -13,6 +13,10 @@
 #include <peripheral/ssd1306/oled_utils.h>
 #include <errors.h>
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+#include <rs485.h>
+#endif
+
 #ifdef RTOS_SOLAR48
 
 #include <FreeRTOS/FreeRTOS.h>
@@ -32,7 +36,7 @@ void setup()
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
   init_uart1(UART1_DEFAULT_SPEED, PARITY_DISABLE);
 #else
-  init_master_rs485(speed_19_2_kpbs, PARITY_DISABLE);
+  init_master_rs485(speed_230_769_kbps, PARITY_DISABLE);
 #endif
   hal_i2c1_init();
   init_rtc(realtime);
@@ -79,14 +83,40 @@ void uart_rcv(int status)
        oled_cursor_printf(0, 50, "Fail %d", status);
    }
 }
-
-uint64_t cnt = 0;
 uint64_t uart_timeout;
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+uint64_t cnt = 0;
+
 void test_uart1_transmit()
+#else
+
+void rs485_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+{
+  switch (status) {
+    case MASTER_TRANSFER_SUCCESS:
+      oled_cursor_printf(0, 50, "Success");
+      break;
+    default:
+      oled_cursor_printf(0, 50, "Fail %d", status);
+  }
+}
+
+uint8_t slv_addr = 0xAA;
+MB_FUNCTION fc = WRITE_MULTIPLE_REGISTERS;
+uint16_t mem_address = 0x0102;
+static uint16_t data[] = {
+  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+  17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+};
+
+uint16_t n = (uint16_t)sizeof(data);
+
+void test_rs485_trasmit()
+#endif
 {
   if (milliseconds() > uart_timeout) {
     uart_timeout = milliseconds() + 500;
-
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
     enum uart_status_t uart_status;
 
     uart_status = uart1_transmit((uint8_t *)&cnt, sizeof(cnt), uart_rcv, 10);
@@ -96,6 +126,16 @@ void test_uart1_transmit()
       oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 
     ++cnt;
+
+#else
+
+    int status = master_send_req(slv_addr, fc, mem_address, n, 0, 0, (void *)&data[0], 40, rs485_receive);
+    if (status == RS485_OK)
+      oled_cursor_printf(0, 40, "RS485 success");
+    else
+      oled_cursor_printf(0, 40, "RS485 error %d", status);
+
+#endif
   }
 }
 
@@ -115,7 +155,11 @@ void run(void)
     process_uart1_time_event();
     run_process_int_ext();
     run_process();
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
     test_uart1_transmit();
+#else
+    test_rs485_trasmit();
+#endif
     _run_oled_process();
     delay(1);
   }

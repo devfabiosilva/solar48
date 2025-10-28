@@ -409,7 +409,6 @@ void process_uart1_time_event()
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
          if (USART1_SR & TC)
            goto process_uart1_time_event_finish;
-         else
 #endif
          if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
            goto process_uart1_time_event_timeout_error;
@@ -418,7 +417,8 @@ void process_uart1_time_event()
       case UART1_RECEIVE_COMPLETE:
           if (USART1_SR & RXNE)
             goto process_uart1_time_event_finish;
-          else if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
+
+          if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
             goto process_uart1_time_event_timeout_error;
         break;
       default:
