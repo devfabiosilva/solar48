@@ -143,6 +143,7 @@ $(OUT)_release.elf: $(SRC_FOLDER)/main.c $(SYS_OBJ_RELEASE) $(PERIPH_SD1306_OBJ_
 	$(CC) $(CFLAGS_RELEASE) -Wl,-Map=solar48_release.map $(LDFLAGS) -I$(MIDDLEWARE_FOLDER_INC) -I$(SYSTEM_FOLDER_INC) -o $@ $^
 
 $(OUT)_release.bin: $(OUT)_release.elf
+	$(ARM_PREFIX)strip $(OUT)_release.elf
 	$(OBJCOPY) -O binary $< $@
 
 nm_release: $(OUT)_release.elf

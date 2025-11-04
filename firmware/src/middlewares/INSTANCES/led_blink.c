@@ -3,6 +3,7 @@
 #include <watchdog.h>
 #include <usb_io.h>
 #include <instance_prio.h>
+#include <solar48_config.h>
 
 //#define UART_TEST
 #define RS485_TEST
@@ -24,7 +25,7 @@ static uint16_t data[] = {
 
 extern void halt();
 static StaticTask_t exampleTaskTCB;
-static StackType_t exampleTaskStack[ 2*configMINIMAL_STACK_SIZE ];
+static StackType_t exampleTaskStack[ LED_BLINK_STACK_SIZE ];
 //uxTaskGetStackHighWaterMark
 //configCHECK_FOR_STACK_OVERFLOW
 #ifdef UART_TEST
@@ -109,7 +110,7 @@ void init_led_blink()
 {
   if (xTaskCreateStatic( led_blink_task,
                                 "led",
-                                2*configMINIMAL_STACK_SIZE,
+                                LED_BLINK_STACK_SIZE,
                                 NULL,
                                 PRIO_0,
                                 exampleTaskStack,

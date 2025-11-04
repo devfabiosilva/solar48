@@ -3,11 +3,12 @@
 #include <instance_prio.h>
 #include <sys_queue.h>
 #include <errors.h>
+#include <solar48_config.h>
 
 extern void halt();
 extern void _run_oled_process();
 static StaticTask_t processTaskSysQueueTCB;
-static StackType_t processTaskSysQueueStack[ 2*configMINIMAL_STACK_SIZE ];
+static StackType_t processTaskSysQueueStack[ PROCESS_SYS_QUEUE_STACK_SIZE ];
 
 extern void run_error_handler();
 
@@ -28,7 +29,7 @@ void init_sys_queue_task()
   init_error_handler_queue();
   if (xTaskCreateStatic( run_proc_sys_queue_task,
                                 "sysqueue_proc",
-                                2*configMINIMAL_STACK_SIZE,
+                                PROCESS_SYS_QUEUE_STACK_SIZE,
                                 NULL,
                                 PRIO_2, // PRIO_1
                                 processTaskSysQueueStack,

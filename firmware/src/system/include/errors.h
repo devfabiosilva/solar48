@@ -159,5 +159,9 @@ void error_handler(int error);
 void error_handler(int);
 void init_error_handler_queue();
 
+#ifndef RTOS_SOLAR48
+void run_error_handler();
+#endif
+
 #endif
 

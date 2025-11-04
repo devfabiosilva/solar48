@@ -150,6 +150,7 @@ void run(void)
   blink_n(1);
   usb_printf("\nReady ...\n\n");
   uart_timeout = milliseconds() + 200;
+  init_error_handler_queue();
   while (1) {
     run_process_int_int();
     process_uart1_time_event();
@@ -161,6 +162,7 @@ void run(void)
     test_rs485_trasmit();
 #endif
     _run_oled_process();
+    run_error_handler();
     delay(1);
   }
 }

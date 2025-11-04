@@ -2,10 +2,11 @@
 #include <usb_io.h>
 #include <process.h>
 #include <instance_prio.h>
+#include <solar48_config.h>
 
 extern void halt();
 static StaticTask_t processTaskTCB;
-static StackType_t processTaskStack[ 2*configMINIMAL_STACK_SIZE ];
+static StackType_t processTaskStack[ PROCESS_INST_STACK_SIZE ];
 
 static void run_proc_task(void *params)
 {
@@ -22,7 +23,7 @@ void init_process_task()
 {
   if (xTaskCreateStatic( run_proc_task,
                                 "process",
-                                2*configMINIMAL_STACK_SIZE,
+                                PROCESS_INST_STACK_SIZE,
                                 NULL,
                                 PRIO_3, // PRIO_1
                                 processTaskStack,
