@@ -3,7 +3,7 @@
 #include <instance_prio.h>
 #include <solar48_config.h>
 
-extern void halt();
+extern void app_panic(const char *);
 extern void rtos_milli_task(void *);
 static StaticTask_t rtosMilliTaskTCB;
 static StackType_t rtosMilliTaskStack[ PROCESS_RTOS_MILLI_STACK_SIZE ];
@@ -18,7 +18,6 @@ void init_rtos_milli()
                                 rtosMilliTaskStack,
                                 &( rtosMilliTaskTCB ) )) return;
 
-  usb_printf("rtos_milli task error!\n");
-  halt();
+  app_panic("rtosminit");
 }
 

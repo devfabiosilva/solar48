@@ -3,7 +3,7 @@
 #include <instance_prio.h>
 #include <solar48_config.h>
 
-extern void halt();
+extern void app_panic(const char *);
 extern void process_uart1_time_event();
 static StaticTask_t processPeriphEvtTaskTCB;
 static StackType_t processPeriphEvtTaskStack[ PROCESS_PERIPH_TIME_EV_STACK_SIZE ];
@@ -28,7 +28,6 @@ void init_process_periph_evt_task()
                                 processPeriphEvtTaskStack,
                                 &( processPeriphEvtTaskTCB ) )) return;
 
-  usb_printf("External event time task error\n");
-  halt();
+  app_panic("perExtEvInit");
 }
 

@@ -4,7 +4,7 @@
 #include <instance_prio.h>
 #include <solar48_config.h>
 
-extern void halt();
+extern void app_panic(const char *);
 static StaticTask_t processIntExtTaskTCB;
 static StackType_t processIntExtTaskStack[ PROCESS_INT_EXT_STACK_SIZE ];
 
@@ -29,7 +29,6 @@ void init_process_int_ext_task()
                                 processIntExtTaskStack,
                                 &( processIntExtTaskTCB ) )) return;
 
-  usb_printf("Process int ext task error\n");
-  halt();
+  app_panic("procIntExtInit");
 }
 

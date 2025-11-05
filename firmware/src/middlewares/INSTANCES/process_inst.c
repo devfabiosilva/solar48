@@ -4,7 +4,7 @@
 #include <instance_prio.h>
 #include <solar48_config.h>
 
-extern void halt();
+extern void app_panic(const char *);
 static StaticTask_t processTaskTCB;
 static StackType_t processTaskStack[ PROCESS_INST_STACK_SIZE ];
 
@@ -29,7 +29,6 @@ void init_process_task()
                                 processTaskStack,
                                 &( processTaskTCB ) )) return;
 
-  usb_printf("Process task error\n");
-  halt();
+  app_panic("procinit");
 }
 

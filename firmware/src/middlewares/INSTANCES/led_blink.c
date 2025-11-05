@@ -23,7 +23,7 @@ static uint16_t data[] = {
  #include <peripheral/ssd1306/oled_utils.h>
 #endif
 
-extern void halt();
+extern void app_panic(const char *);
 static StaticTask_t exampleTaskTCB;
 static StackType_t exampleTaskStack[ LED_BLINK_STACK_SIZE ];
 //uxTaskGetStackHighWaterMark
@@ -116,7 +116,6 @@ void init_led_blink()
                                 exampleTaskStack,
                                 &( exampleTaskTCB ) )) return;
 
-  usb_printf("Led task error!\n");
-  halt();
+  app_panic("ledinit");
 }
 

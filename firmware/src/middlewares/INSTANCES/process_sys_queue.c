@@ -5,7 +5,7 @@
 #include <errors.h>
 #include <solar48_config.h>
 
-extern void halt();
+extern void app_panic(const char *);
 extern void _run_oled_process();
 static StaticTask_t processTaskSysQueueTCB;
 static StackType_t processTaskSysQueueStack[ PROCESS_SYS_QUEUE_STACK_SIZE ];
@@ -35,7 +35,6 @@ void init_sys_queue_task()
                                 processTaskSysQueueStack,
                                 &( processTaskSysQueueTCB ) )) return;
 
-  usb_printf("Process sys queue error\n");
-  halt();
+  app_panic("sysqprinit");
 }
 
