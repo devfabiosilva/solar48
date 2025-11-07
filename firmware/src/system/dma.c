@@ -50,7 +50,7 @@ void dma1_channel6_init(void *peripheral_address)
   DMA1_CPAR6 = (uint32_t)peripheral_address; // Peripheral address Page 288
 
   DMA1_CCR6 |= (
-                 DMA1_PL5_SEL(0b01) | // Priority MEDIUM
+                 DMA1_PL6_SEL(0b01) | // Priority MEDIUM
                  DMA1_MINC6 |         // Memory increment mode
                  DMA1_TCIE6 |         // Transfer complete interrupt enable
                  DMA1_TEIE6           // DMA error interrupt enable

@@ -73,6 +73,10 @@ void run(void)
 
 #else
 
+uint64_t uart_timeout;
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
+uint64_t cnt = 0;
+
 void uart_rcv(int status)
 {
    switch (status) {
@@ -83,13 +87,8 @@ void uart_rcv(int status)
        oled_cursor_printf(0, 50, "Fail %d", status);
    }
 }
-uint64_t uart_timeout;
-#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
-uint64_t cnt = 0;
-
 void test_uart1_transmit()
 #else
-
 void rs485_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
 {
   switch (status) {
