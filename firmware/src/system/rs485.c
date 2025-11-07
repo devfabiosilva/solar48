@@ -11,12 +11,15 @@
 #include <string.h>
 #include <registers.h>
 
+// master mode
 uint8_t modbus_master_buffer[256];
-static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
-//static uint8_t modbus_slave_buffer[256];
-
 SOLAR48_RS485_RTU master_rs485_rtu = {0};
-//static SOLAR48_RS485_RTU slave_rs485_rtu = {0};
+static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
+
+// slave mode
+uint8_t modbus_slave_buffer[256];
+SOLAR48_RS485_RTU slave_rs485_rtu = {0};
+static SOLAR48_MEM modbus_slave_buffer_receive_dynamic = {0};
 
 extern void app_panic(const char *);
 

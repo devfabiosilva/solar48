@@ -368,6 +368,29 @@ void __nvic_disable_irq(IRQn_Type);
 #define DMA1_CMAR5 DMA1_CMARx(5)
 #define DMA1_CNDTR5 DMA1_CNDTRx(5)
 
+// DMA1 CHANNEL 6
+#define DMA1_CCR6 DMA1_CCRx(6)
+  #define DMA1_CCR6_EN (1<<0)
+  #define DMA1_TCIE6 (1<<1)
+  #define DMA1_TEIE6 (1<<3)
+  #define DMA1_MINC6 (1<<7)
+  #define DMA1_PL6_SEL(val) (val<<12)
+
+#define DMA1_CPAR6 DMA1_CPARx(6)
+#define DMA1_CMAR6 DMA1_CMARx(6)
+
+// DMA1 CHANNEL 7
+#define DMA1_CCR7 DMA1_CCRx(7)
+  #define DMA1_CCR7_EN (1<<0)
+  #define DMA1_TCIE7 (1<<1)
+  #define DMA1_TEIE7 (1<<3)
+  #define DMA1_DIR7 (1<<4)
+  #define DMA1_MINC7 (1<<7)
+  #define DMA1_PL7_SEL(val) (val<<12)
+
+#define DMA1_CPAR7 DMA1_CPARx(7)
+#define DMA1_CMAR7 DMA1_CMARx(7)
+
 //13.4.1 DMA interrupt status register (DMA_ISR) Page 284
 #define DMA1_ISR (*(volatile uint32_t *)(DMA1_BASE + 0x00))
   #define GIF4 (1<<12)

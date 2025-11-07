@@ -267,6 +267,7 @@ inline bool uart1_is_busy()
 {
   return (((DMA1_CCR4 & DMA1_CCR4_EN) != 0) || ((USART1_CR1 & RE) != 0));
 }
+
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 static void
 #else
@@ -388,9 +389,9 @@ enum uart_status_t uart1_transmit(
 /**
  * @brief Periodic UART1 event processor (acts as a soft watchdog).
  *
- * This function must be called periodically (e.g. every 1ms).
+ * This function must be called periodically (every 1ms).
  * It monitors UART1 DMA transfer and receive states, detects timeouts,
- * ensures DMA/USART are disabled on failure, and calls the registered
+ * ensures DMA1/USART1 are disabled on failure, and calls the registered
  * callback with the final status (success, error, timeout).
  *
  * Concurrency rules:
@@ -459,4 +460,34 @@ process_uart1_time_event_finish:
     }
   }
 }
+
+
+/////////////UART2/RS485 slave implementation
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+extern uint8_t modbus_slave_buffer;
+extern SOLAR48_RS485_RTU slave_rs485_rtu;
+#else
+
+#endif
+
+// DMA1 for UART2 Rx events IRQ
+void DMA1_Channel6_IRQHandler()
+{
+// TODO implement DMA1 for UART2/RS485 SLAVE RX event
+}
+
+// DMA1 for UART2 Tx events IRQ
+void DMA1_Channel7_IRQHandler()
+{
+// TODO implement DMA1 for UART2/RS485 SLAVE TX event
+}
+
+//Table 196. USART interrupt requests page 816
+void USART2_IRQHandler()
+{
+// TODO implement UART2 IRQ event
+}
+
+//IMPLEMENT_RS485_SLAVE_OVER_UART2
 
