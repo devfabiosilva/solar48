@@ -165,10 +165,14 @@ void swap16_array_fast(uint16_t *arr, size_t len)
 
   // If even
   if (len & 1) {
+    uint16_t y = *((uint16_t *)p);
+    *((uint16_t *)p) = (y >> 8) | (y << 8);
+    /*
     uint32_t y;
     memcpy((void *)&y, (void *)p, sizeof(uint16_t)); // Copy only 2 bytes (uint16_t)
     __asm__("rev16 %0, %0" : "+r"(y));
     memcpy((void *)p, (void *)&y, sizeof(uint16_t)); // Copy only 2 bytes back inverted (uint16_t)
+    */
   }
 
 }
