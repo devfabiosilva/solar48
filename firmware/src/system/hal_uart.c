@@ -554,7 +554,7 @@ enum uart2_status_t uart2_receive(
   if ((data != NULL) && (data_size > 0)) {
 
     if (uart2_is_busy())
-      return UART_BUSY;
+      return UART2_BUSY;
 
     TIMEOUT_MS timeout_ms;
     if (!sys_try_lock(&uart2_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
