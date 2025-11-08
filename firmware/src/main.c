@@ -153,6 +153,7 @@ void run(void)
   while (1) {
     run_process_int_int();
     process_uart1_time_event();
+    process_uart2_time_event();
     run_process_int_ext();
     run_process();
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1

@@ -27,9 +27,9 @@
 #define UART1_2250_KBPS     UART_SPEED(2, 0)     // 2250 kbps
 #define UART1_4500_KBPS     UART_SPEED(1, 0)     // 4500 kbps
 
-#define UART1_PARITY_MODE_DISABLE 0
-#define UART1_PARITY_MODE_ODD (M|PCE|PEIE)
-#define UART1_PARITY_MODE_EVEN (UART1_PARITY_MODE_ODD|PS)
+#define UART_PARITY_MODE_DISABLE 0
+#define UART_PARITY_MODE_ODD (M|PCE|PEIE)
+#define UART_PARITY_MODE_EVEN (UART_PARITY_MODE_ODD|PS)
 
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
 enum uart1_speed_e {
@@ -46,9 +46,9 @@ enum uart1_speed_e {
 };
 
 enum uart1_mode_e {
-  PARITY_DISABLE = UART1_PARITY_MODE_DISABLE,
-  PARITY_ODD = UART1_PARITY_MODE_ODD,
-  PARITY_EVEN = UART1_PARITY_MODE_EVEN
+  PARITY_DISABLE = UART_PARITY_MODE_DISABLE,
+  PARITY_ODD = UART_PARITY_MODE_ODD,
+  PARITY_EVEN = UART_PARITY_MODE_EVEN
 };
 
  #define UART1_DEFAULT_SPEED speed_115_2_kbps
@@ -71,9 +71,9 @@ enum rs485_master_speed_e {
 };
 
 enum rs485_master_mode_e {
-  PARITY_DISABLE = UART1_PARITY_MODE_DISABLE,
-  PARITY_ODD = UART1_PARITY_MODE_ODD,
-  PARITY_EVEN = UART1_PARITY_MODE_EVEN
+  PARITY_DISABLE = UART_PARITY_MODE_DISABLE,
+  PARITY_ODD = UART_PARITY_MODE_ODD,
+  PARITY_EVEN = UART_PARITY_MODE_EVEN
 };
 
  #define RS485_MASTER_DEFAULT_SPEED speed_115_2_kbps
@@ -97,20 +97,20 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
 
 typedef void (*uart_callback_func)(int);
 
-enum uart_status_t {
+enum uart1_status_t {
   UART_OK = 0,
   UART_BUSY = E_UART1_BUSY,
   UART_LOCKED = E_UART1_LOCKED
 };
 
-enum uart_status_t uart1_transmit(
+enum uart1_status_t uart1_transmit(
   uint8_t *, size_t,
   uart_callback_func,
   uint32_t
 );
 
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
-enum uart_status_t uart1_receive(
+enum uart1_status_t uart1_receive(
   uint8_t *, size_t,
   uart_callback_func,
   uint32_t
@@ -121,10 +121,55 @@ bool uart1_is_busy();
 
 #ifndef RTOS_SOLAR48
 void process_uart1_time_event();
+void process_uart2_time_event();
 #endif
 
 #define UART1_TRANSFER_COMPLETE 1
 #define UART1_RECEIVE_COMPLETE 2
+
+#define UART2_TRANSFER_COMPLETE UART1_TRANSFER_COMPLETE
+#define UART2_RECEIVE_COMPLETE UART1_RECEIVE_COMPLETE
+
+// UART2 Implementation
+enum uart2_status_t {
+  UART2_OK = 0,
+  UART2_BUSY = E_UART2_BUSY,
+  UART2_LOCKED = E_UART2_LOCKED
+};
+
+enum uart2_speed_e {
+  speed2_2_4_kbps = UART2_2_4_KBPS,
+  speed2_9_6_kbps = UART2_9_6_KBPS,
+  speed2_19_2_kpbs = UART2_19_2_KBPS,
+  speed2_57_6_kbps = UART2_57_6_KBPS,
+  speed2_115_2_kbps = UART2_115_2_KBPS,
+  speed2_230_769_kbps = UART2_230_769_KBPS,
+  speed2_461_538_kbps = UART2_461_538_KBPS,
+  speed2_923_076_kbps = UART2_923_076_KBPS,
+  speed2_2250_kbps = UART2_2250_KBPS
+};
+
+enum uart2_mode_e {
+  PARITY_DISABLE2 = UART_PARITY_MODE_DISABLE,
+  PARITY_ODD2 = UART_PARITY_MODE_ODD,
+  PARITY_EVEN2 = UART_PARITY_MODE_EVEN
+};
+
+void init_uart2(enum uart2_speed_e, enum uart2_mode_e);
+
+bool uart2_is_busy();
+
+enum uart2_status_t uart2_receive(
+  uint8_t *, size_t,
+  uart_callback_func,
+  uint32_t
+);
+
+enum uart2_status_t uart2_transmit(
+  uint8_t *, size_t,
+  uart_callback_func,
+  uint32_t
+);
 
 #endif
 

@@ -271,7 +271,7 @@ inline bool uart1_is_busy()
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 static void
 #else
-enum uart_status_t
+enum uart1_status_t
 #endif
 uart1_receive(
   uint8_t *data, size_t data_size,
@@ -331,7 +331,7 @@ uart1_receive(
 #endif
 }
 
-enum uart_status_t uart1_transmit(
+enum uart1_status_t uart1_transmit(
   uint8_t *data, size_t data_size,
   uart_callback_func transmit_uart_callback,
   uint32_t timeout
@@ -464,6 +464,8 @@ process_uart1_time_event_finish:
 
 /////////////UART2/RS485 slave implementation
 
+volatile struct uart_control_t uart2_control = {0};
+
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 extern uint8_t modbus_slave_buffer;
 extern SOLAR48_RS485_RTU slave_rs485_rtu;
@@ -489,5 +491,222 @@ void USART2_IRQHandler()
 // TODO implement UART2 IRQ event
 }
 
-//IMPLEMENT_RS485_SLAVE_OVER_UART2
+
+//27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
+void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
+{
+  // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
+  RCC_APB2ENR |= IOPAEN;   // Enables GPIOA. Page 113
+  RCC_APB1ENR |= USART2EN; // Enables USART2. Page 115
+
+  // 7.3.6 AHB peripheral clock enable register (RCC_AHBENR) Page 111
+  RCC_AHBENR |= DMA1EN;
+
+  // ---- Configure GPIOA TX ----
+  // PA2 = TX (AF push-pull), PA3 = RX (input floating)
+  //9.2.1 Port configuration register low (GPIOx_CRL) (x=A..G) Page 171
+  GPIOA_CRL &= ~(GPIOA_MODE2_VAL(0b11) | GPIOA_CNF2_VAL(0b11));
+  GPIOA_CRL |= GPIOA_MODE2_VAL(0b11) | GPIOA_CNF2_VAL(0b10); // Output mode, max speed 50 MHz and Alternate function output Push-pull
+
+  // ---- Configure GPIOA RX ----
+  // PA2 = TX (AF push-pull), PA3 = RX (input floating)
+  //9.2.1 Port configuration register low (GPIOx_CRL) (x=A..G) Page 171
+  GPIOA_CRL &= ~(GPIOA_MODE3_VAL(0b11) | GPIOA_CNF3_VAL(0b11));
+  GPIOA_CRL |= GPIOA_MODE3_VAL(0b00) | GPIOA_CNF3_VAL(0b01); // Floating input mode (reset state)
+
+  // Set UART 2 Speed
+  //See page 798: 27.3.4 Fractional baud rate generation
+  USART2_BRR = (uint32_t)speed;
+
+  USART2_CR3 = (
+                  DMAT | // DMA enable transmitter
+                  DMAR | // DMA enable receiver
+                  EIE    // Error interrupt enable
+               );
+
+  //27.6.4 Control register 1 (USART_CR1) Page: 821
+  USART2_CR1 = (
+                 ((uint32_t)mode)|
+                 TE // Transmit enable
+               );
+
+  USART2_CR1 |= UE;      // Enable UART2
+
+  dma1_channel6_init((void *)&USART2_DR);
+  dma1_channel7_init((void *)&USART2_DR);
+
+  __nvic_set_priority(USART2_IRQn, UART2_PRIO);
+  __nvic_enable_irq(USART2_IRQn);
+}
+
+inline bool uart2_is_busy()
+{
+  return (((DMA1_CCR7 & DMA1_CCR7_EN) != 0) || ((USART2_CR1 & RE) != 0));
+}
+
+enum uart2_status_t uart2_receive(
+  uint8_t *data, size_t data_size,
+  uart_callback_func receive_uart_callback,
+  uint32_t timeout
+)
+{
+
+  if ((data != NULL) && (data_size > 0)) {
+
+    if (uart2_is_busy())
+      return UART_BUSY;
+
+    TIMEOUT_MS timeout_ms;
+    if (!sys_try_lock(&uart2_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
+      return UART2_LOCKED;
+
+    // We need to use __atomic here because process_uart2_time_event is always running
+    __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE);
+
+
+    USART2_CR1 &= ~(RE);           // Ensure Receive is disable
+    DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
+    DMA1_CCR7 &= ~(DMA1_CCR7_EN);  // Disable DMA1_Channel7
+
+    USART2_CR2 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
+    // Clear any status register
+    (void)USART2_SR;
+    (void)USART2_DR;
+
+    USART2_CR1 |= (RXNEIE); // Enable UART2 RX not empty (data to be read) interrupt enable after cleaning status register and data
+
+    // Clear Channel 6 global interrupts status registers
+    DMA1_IFCR = (CTEIF6|CHTIF6|CTCIF6|CGIF6);
+
+    DMA1_CMAR6 = (uint32_t)data; // Memory address Page 288
+    DMA1_CNDTR6 = (uint16_t)data_size; // Memory size
+
+    uart2_control.status_register = 0;
+    uart2_control.uart_callback = receive_uart_callback;
+
+    init_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout, timeout);
+    // We need to use __atomic here because process_uart2_time_event is always running
+    __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 6 and UART2
+
+    DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 receive
+    USART2_CR1 |= RE;  // Ensure Receive is enable
+  }
+
+  return UART2_OK;
+}
+
+enum uart2_status_t uart2_transmit(
+  uint8_t *data, size_t data_size,
+  uart_callback_func transmit_uart_callback,
+  uint32_t timeout
+)
+{
+
+  if ((data == NULL) || (data_size == 0))
+    return UART2_OK;
+
+  if (uart2_is_busy())
+    return UART2_BUSY;
+
+  TIMEOUT_MS timeout_ms;
+  if (!sys_try_lock(&uart2_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
+    return UART2_LOCKED;
+
+   // We need to use __atomic here because process_uart1_time_event is always running
+   __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE);
+
+  DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Disable DMA1_Channel7 (transmit)
+  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6 (receive)
+  USART2_CR1 &= ~(RE);  // Ensure Receive is disable (receive)
+
+  USART2_CR1 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
+  // Clear any status register
+  (void)USART2_SR;
+  (void)USART2_DR;
+
+  // Clear Channel 7 global interrupts status registers
+  DMA1_IFCR = (CTEIF7|CHTIF7|CTCIF7|CGIF7);
+
+  uart2_control.status_register = 0;
+  uart2_control.uart_callback = transmit_uart_callback;
+
+  DMA1_CMAR7 = (uint32_t)data; // Memory address Page 288
+  DMA1_CNDTR7 = (uint16_t)data_size;
+
+  //uart2_control.timeout = timeout;
+  init_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout, timeout);
+  // We need to use __atomic here because process_uart2_time_event is always running
+  __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 7
+
+  DMA1_CCR7 |= DMA1_CCR7_EN; // Enable DMA1 Channel 7 transmit
+
+  return UART2_OK;
+}
+
+/**
+ * @brief Periodic UART2 event processor (acts as a soft watchdog).
+ *
+ * This function must be called periodically (every 1ms).
+ * It monitors UART2 DMA transfer and receive states, detects timeouts,
+ * ensures DMA1/USART2 are disabled on failure, and calls the registered
+ * callback with the final status (success, error, timeout).
+ *
+ * Concurrency rules:
+ *  - uart2_control.locked prevents concurrent TX/RX operations.
+ *  - ISR may access slave_rs485_rtu only when locked = true.
+ *  - Timeout always releases lock and disables DMA safely.
+ */
+void process_uart2_time_event()
+{
+  if (__atomic_load_n(&uart2_control.start_monitore, __ATOMIC_SEQ_CST)) {
+
+    uint32_t status_register = (uint32_t)__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST);
+
+    switch (status_register) {
+      case UART2_TRANSFER_COMPLETE:
+         if (USART2_SR & TC)
+           goto process_uart2_time_event_finish;
+
+         if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
+           goto process_uart2_time_event_timeout_error;
+        // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event or execute error on timeout
+        break;
+      case UART2_RECEIVE_COMPLETE:
+          if (USART2_SR & RXNE)
+            goto process_uart2_time_event_finish;
+
+          if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
+            goto process_uart2_time_event_timeout_error;
+        break;
+      default:
+
+        if (status_register) // Unknown error
+          goto process_uart2_time_event_finish;
+
+        if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout)) {
+
+process_uart2_time_event_timeout_error:
+          status_register = E_UART2_TIMEOUT;
+
+process_uart2_time_event_finish:
+
+          DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
+          DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
+          USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+
+          USART2_CR1 &= ~(RXNEIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data
+
+          // Clear interrupts and status registers
+          (void)USART2_SR;
+          (void)USART2_DR;
+
+          __atomic_store_n(&uart2_control.status_register, 0, __ATOMIC_RELEASE);
+          __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE); // Stop monitoring
+          __atomic_store_n(&uart2_control.locked, false, __ATOMIC_RELEASE); // Same as sys_unlock
+
+          uart2_control.uart_callback(status_register);
+        }
+    }
+  }
+}
 

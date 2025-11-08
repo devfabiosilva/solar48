@@ -93,6 +93,7 @@
 
 //BEGIN Clock->RCC_APB1ENR (Page 115)
 #define RCC_APB1ENR (*(volatile uint32_t *)(RCC_BASE + 0x1C))
+ #define USART2EN (1<<17)
  #define USBEN (1<<23)
  #define PWREN (1<<28)
  #define I2C1EN (1<<21)
@@ -138,6 +139,13 @@
 
 #define RTC_CNTH (*(volatile uint16_t *)(RTC_BASE + 0x18)) //Page 491
 #define RTC_CNTL (*(volatile uint16_t *)(RTC_BASE + 0x1C)) //Page 491
+
+//9.2.1 Port configuration register low (GPIOx_CRL) (x=A..G) Page 171
+#define GPIOA_CRL (*(volatile uint32_t *)(GPIOA_BASE + 0x00))
+ #define GPIOA_MODE2_VAL(val) (val<<8)
+ #define GPIOA_CNF2_VAL(val) (val<<10)
+ #define GPIOA_MODE3_VAL(val) (val<<12)
+ #define GPIOA_CNF3_VAL(val) (val<<14)
 
 //9.2.2 Port configuration register high (GPIOx_CRH) (x=A..G) Page 172
 #define GPIOA_CRH (*(volatile uint32_t *)(GPIOA_BASE + 0x04))
@@ -295,10 +303,18 @@ void __nvic_disable_irq(IRQn_Type);
   #define FE (1<<1)
   #define PE (1<<0)
 
+//USART2_BASE
+#define USART2_SR (*(volatile uint32_t *)(USART2_BASE + 0x00)) // Page 818: 27.6.1. Note: Bit control is same as USART1_SR
+
 #define USART1_DR (*(volatile uint32_t *)(USART1_BASE + 0x04)) // Page 820: 27.6.2
+
+#define USART2_DR (*(volatile uint32_t *)(USART2_BASE + 0x04)) // Page 820: 27.6.2
 
 // See page 798: 27.3.4 Fractional baud rate generation
 #define USART1_BRR (*(volatile uint32_t *)(USART1_BASE + 0x08)) // 27.6.3 Baud rate register (USART_BRR) page 820
+
+// See page 798: 27.3.4 Fractional baud rate generation
+#define USART2_BRR (*(volatile uint32_t *)(USART2_BASE + 0x08)) // 27.6.3 Baud rate register (USART_BRR) page 820
 
 #define USART1_CR1 (*(volatile uint32_t *)(USART1_BASE + 0x0C)) //27.6.4 Control register 1 (USART_CR1) page 821
   #define RE (1<<2)
@@ -313,10 +329,15 @@ void __nvic_disable_irq(IRQn_Type);
   #define M (1<<12)
   #define UE (1<<13)
 
+#define USART2_CR1 (*(volatile uint32_t *)(USART2_BASE + 0x0C)) //27.6.4 Control register 1 (USART_CR1) page 821. Note. Control bits are same as USART1_CR1
+
 // 27.6.5 Control register 2 (USART_CR2) page 823
 #define USART1_CR2 (*(volatile uint32_t *)(USART1_BASE + 0x10))
  #define LBCL (1<<8)
  #define CLKEN (1<<11)
+
+// 27.6.5 Control register 2 (USART_CR2) page 823
+#define USART2_CR2 (*(volatile uint32_t *)(USART2_BASE + 0x10)) //Note: Control bits is same as USART1_CR2
 
 //27.6.6 Control register 3 (USART_CR3) page 824
 #define USART1_CR3 (*(volatile uint32_t *)(USART1_BASE + 0x14))
@@ -325,6 +346,9 @@ void __nvic_disable_irq(IRQn_Type);
   #define SCEN (1<<5)
   #define DMAT (1<<7)
   #define DMAR (1<<8)
+
+//27.6.6 Control register 3 (USART_CR3) page 824
+#define USART2_CR3 (*(volatile uint32_t *)(USART2_BASE + 0x14)) // NOTE: Control bits are same as USART1_CR3
 
 //27.6.7 Guard time and prescaler register (USART_GTPR) Page 826
 #define USART_GTPR (*(volatile uint32_t *)(USART1_BASE + 0x18))
@@ -378,6 +402,7 @@ void __nvic_disable_irq(IRQn_Type);
 
 #define DMA1_CPAR6 DMA1_CPARx(6)
 #define DMA1_CMAR6 DMA1_CMARx(6)
+#define DMA1_CNDTR6 DMA1_CNDTRx(6)
 
 // DMA1 CHANNEL 7
 #define DMA1_CCR7 DMA1_CCRx(7)
@@ -390,6 +415,7 @@ void __nvic_disable_irq(IRQn_Type);
 
 #define DMA1_CPAR7 DMA1_CPARx(7)
 #define DMA1_CMAR7 DMA1_CMARx(7)
+#define DMA1_CNDTR7 DMA1_CNDTRx(7)
 
 //13.4.1 DMA interrupt status register (DMA_ISR) Page 284
 #define DMA1_ISR (*(volatile uint32_t *)(DMA1_BASE + 0x00))
@@ -414,6 +440,16 @@ void __nvic_disable_irq(IRQn_Type);
   #define CTCIF5 (1<<17)
   #define CHTIF5 (1<<18)
   #define CTEIF5 (1<<19)
+
+  #define CGIF6 (1<<20)
+  #define CTCIF6 (1<<21)
+  #define CHTIF6 (1<<22)
+  #define CTEIF6 (1<<23)
+
+  #define CGIF7 (1<<24)
+  #define CTCIF7 (1<<25)
+  #define CHTIF7 (1<<26)
+  #define CTEIF7 (1<<27)
 
 //15.3 TIMx functional description page 368
 //15.4.1 TIMx control register 1 (TIMx_CR1) Page 404

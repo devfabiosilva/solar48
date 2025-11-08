@@ -5,6 +5,7 @@
 
 extern void app_panic(const char *);
 extern void process_uart1_time_event();
+extern void process_uart2_time_event();
 static StaticTask_t processPeriphEvtTaskTCB;
 static StackType_t processPeriphEvtTaskStack[ PROCESS_PERIPH_TIME_EV_STACK_SIZE ];
 
@@ -14,6 +15,7 @@ static void run_process_periph_evt_task(void *params)
 
   while (1) {
     process_uart1_time_event();
+    process_uart2_time_event();
     vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
