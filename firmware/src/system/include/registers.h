@@ -429,6 +429,16 @@ void __nvic_disable_irq(IRQn_Type);
   #define HTIF5 (1<<18)
   #define TEIF5 (1<<19)
 
+  #define GIF6 (1<<20)
+  #define TCIF6 (1<<21)
+  #define HTIF6 (1<<22)
+  #define TEIF6 (1<<23)
+
+  #define GIF7 (1<<24)
+  #define TCIF7 (1<<25)
+  #define HTIF7 (1<<26)
+  #define TEIF7 (1<<27)
+
 //13.4.2 DMA interrupt flag clear register (DMA_IFCR) Page 285
 #define DMA1_IFCR (*(volatile uint32_t *)(DMA1_BASE + 0x04))
   #define CGIF4 (1<<12)

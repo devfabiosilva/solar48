@@ -476,21 +476,63 @@ extern SOLAR48_RS485_RTU slave_rs485_rtu;
 // DMA1 for UART2 Rx events IRQ
 void DMA1_Channel6_IRQHandler()
 {
-// TODO implement DMA1 for UART2/RS485 SLAVE RX event
+  uint32_t dma1_ch6_sr = DMA1_ISR;
+
+  // Clear Channel 6 global interrupts status registers
+  DMA1_IFCR = (CTEIF6|CHTIF6|CTCIF6|CGIF6);
+
+  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel5
+
+  // DMA1 error on receive
+  if (dma1_ch6_sr & TEIF6) {
+    __atomic_store_n(&uart2_control.status_register, E_UART2_DMA1_CH6_RECEIVE_ERROR, __ATOMIC_RELEASE);
+    return;
+  }
+
+  // Receive complete
+  if (dma1_ch6_sr & TCIF6) {
+    __atomic_store_n(&uart2_control.status_register, UART2_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
+
+  }
 }
 
 // DMA1 for UART2 Tx events IRQ
 void DMA1_Channel7_IRQHandler()
 {
-// TODO implement DMA1 for UART2/RS485 SLAVE TX event
+  uint32_t dma1_ch7_sr = DMA1_ISR;
+
+  // Clear Channel 7 global interrupts status registers
+  DMA1_IFCR = (CTEIF7|CHTIF7|CTCIF7|CGIF7);
+
+  DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Disable DMA1_Channel7
+
+  // DMA1 error on transfer
+  if (dma1_ch7_sr & TEIF7) {
+    __atomic_store_n(&uart2_control.status_register, E_UART2_DMA1_CH7_TRANSMIT_ERROR, __ATOMIC_RELEASE);
+    return;
+  }
+
+  // Transfer complete
+  if (dma1_ch7_sr & TCIF7) {
+
+   __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+
+  }
 }
 
 //Table 196. USART interrupt requests page 816
 void USART2_IRQHandler()
 {
-// TODO implement UART2 IRQ event
-}
+  // Clear any status register
+  uint32_t uart2_has_error = (USART2_SR & (ORE|NE|FE|PE));
+  (void)USART2_DR;
 
+  if (uart2_has_error) {
+    USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+    DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+    __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
+  }
+}
 
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
 void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
