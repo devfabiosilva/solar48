@@ -181,7 +181,7 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
 {
 
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
-  RCC_APB2ENR |= IOPAEN;   // Enables GPIOA. Page 113
+  RCC_APB2ENR |= (IOPAEN|AFIOEN);   // Enables GPIOA. Page 113
   RCC_APB2ENR |= USART1EN; // Enables USART1. Page 113
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
@@ -538,7 +538,7 @@ void USART2_IRQHandler()
 void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
 {
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
-  RCC_APB2ENR |= IOPAEN;   // Enables GPIOA. Page 113
+  RCC_APB2ENR |= (IOPAEN|AFIOEN);   // Enables GPIOA. Page 113
   RCC_APB1ENR |= USART2EN; // Enables USART2. Page 115
 
   // 7.3.6 AHB peripheral clock enable register (RCC_AHBENR) Page 111

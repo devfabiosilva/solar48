@@ -7,6 +7,7 @@
 
 //#define UART_TEST
 #define RS485_TEST
+#define UART2_TEST
 
 #ifdef RS485_TEST
  #include <rs485.h>
@@ -19,6 +20,11 @@ static uint16_t data[] = {
 #endif
 
 #ifdef UART_TEST
+ #include <hal_uart.h>
+ #include <peripheral/ssd1306/oled_utils.h>
+#endif
+
+#ifdef UART2_TEST
  #include <hal_uart.h>
  #include <peripheral/ssd1306/oled_utils.h>
 #endif
@@ -38,6 +44,21 @@ void uart_rcv(int status)
       break;
     default:
       oled_cursor_printf(0, 50, "Fail");
+  }
+}
+
+#endif
+
+#ifdef UART2_TEST
+
+void uart2_rcv(int status)
+{
+  switch (status) {
+    case UART2_TRANSFER_COMPLETE:
+      oled_cursor_printf(0, 50, "Success2");
+      break;
+    default:
+      oled_cursor_printf(0, 50, "Fail2 %d", status);
   }
 }
 
@@ -65,6 +86,11 @@ static void led_blink_task(void *params)
   enum uart_status_t uart_status;
 #endif
 
+#ifdef UART2_TEST
+  static uint64_t cnt2 = 0;
+  enum uart2_status_t uart2_status;
+#endif
+
 #ifdef RS485_TEST
   int status;
   uint8_t slv_addr = 0xAA;
@@ -90,6 +116,16 @@ static void led_blink_task(void *params)
       oled_cursor_printf(0, 40, "UART error %d", (int)uart_status);
 
     ++cnt;
+#endif
+
+#ifdef UART2_TEST
+    uart2_status = uart2_transmit((uint8_t *)&cnt2, sizeof(cnt2), uart2_rcv, 10);
+    if (uart2_status == UART2_OK)
+      oled_cursor_printf(0, 40, "UART2 send %lu", (int)cnt2);
+    else
+      oled_cursor_printf(0, 40, "UART2 error %d", (int)uart2_status);
+
+    ++cnt2;
 #endif
 
   uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL)*sizeof(StackType_t); 
