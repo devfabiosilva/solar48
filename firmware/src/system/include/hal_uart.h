@@ -92,7 +92,6 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
 #define UART2_461_538_KBPS  UART_SPEED(4, 14)    // 461.538 kbps
 #define UART2_923_076_KBPS  UART_SPEED(2, 7)     // 923.076 kbps
 #define UART2_2250_KBPS     UART_SPEED(1, 0)    // 2250 kbps
-#define UART2_DEFAULT_SPEED UART2_115_2_KBPS
 //#define UART2_4500_KBPS     N/A
 
 typedef void (*uart_callback_func)(int);
@@ -137,6 +136,8 @@ enum uart2_status_t {
   UART2_LOCKED = E_UART2_LOCKED
 };
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
+
 enum uart2_speed_e {
   speed2_2_4_kbps = UART2_2_4_KBPS,
   speed2_9_6_kbps = UART2_9_6_KBPS,
@@ -155,7 +156,36 @@ enum uart2_mode_e {
   PARITY_EVEN2 = UART_PARITY_MODE_EVEN
 };
 
+ #define UART2_DEFAULT_SPEED speed2_115_2_kbps
+
 void init_uart2(enum uart2_speed_e, enum uart2_mode_e);
+
+#else
+
+enum rs485_slave_speed_e {
+  speed2_2_4_kbps = 0,
+  speed2_9_6_kbps,
+  speed2_19_2_kpbs,
+  speed2_57_6_kbps,
+  speed2_115_2_kbps,
+  speed2_230_769_kbps,
+  speed2_461_538_kbps,
+  speed2_923_076_kbps,
+  speed2_2250_kbps,
+  speed2_4500_kbps
+};
+
+enum rs485_slave_mode_e {
+  PARITY_DISABLE2 = UART_PARITY_MODE_DISABLE,
+  PARITY_ODD2 = UART_PARITY_MODE_ODD,
+  PARITY_EVEN2 = UART_PARITY_MODE_EVEN
+};
+
+ #define RS485_SLAVE_DEFAULT_SPEED speed2_115_2_kbps
+
+void init_slave_rs485(enum rs485_slave_speed_e, enum rs485_slave_mode_e);
+
+#endif
 
 bool uart2_is_busy();
 

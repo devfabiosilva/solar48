@@ -194,7 +194,7 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
   GPIOA_CRH &= ~(GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b11));
   GPIOA_CRH |= GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b00); // Output mode, max speed 50 MHz and GPIO as output mode
 //  GPIOA_CRH |= GPIOA_MODE8_VAL(0b11) | GPIOA_CNF8_VAL(0b10); // Output alternat function for PA8 and max speed 50Mhz
-
+  MASTER_RS485_DRIVER_TRANSMIT_MODE // Enable RS485 Master transmit pin
 #endif
 
   // 7.3.6 AHB peripheral clock enable register (RCC_AHBENR) Page 111
@@ -253,7 +253,6 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
   dma1_channel5_init((void *)&USART1_DR);
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-  MASTER_RS485_DRIVER_TRANSMIT_MODE // Enable RS485 Master transmit pin
   __nvic_set_priority(TIM2_IRQn, TIM2_PRIO); // Set timer 2 priority
   __nvic_enable_irq(TIM2_IRQn); // Enable IRQ for TIMER2
 #endif
@@ -467,9 +466,27 @@ process_uart1_time_event_finish:
 volatile struct uart_control_t uart2_control = {0};
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+
+#include <rs485.h>
+#include <memory.h>
+
 extern uint8_t modbus_slave_buffer;
 extern SOLAR48_RS485_RTU slave_rs485_rtu;
-#else
+
+static const struct slave_rs485_speed_t {
+  uint32_t uart2_speed;
+  uint16_t tim3_adj;
+} SLAVE_RS485_SPEED[] = {
+    {UART2_2_4_KBPS, 952}, //TODO adjust tim3_adj to = 2.5 frame, because 1 Idle frame + 2.5 frame = 3.5 frames
+    {UART2_9_6_KBPS, 476},
+    {UART2_19_2_KBPS, 336},
+    {UART2_57_6_KBPS, 194},
+    {UART2_115_2_KBPS, 137},
+    {UART2_230_769_KBPS, 97},
+    {UART2_461_538_KBPS, 68},
+    {UART2_923_076_KBPS, 47},
+    {UART2_2250_KBPS, 31}
+};
 
 #endif
 
@@ -534,12 +551,41 @@ void USART2_IRQHandler()
   }
 }
 
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+void TIM3_IRQHandler()
+{
+  if (TIM3_SR & UIF) {
+
+    TIM3_SR &= ~(UIF);
+
+    //TODO implement this
+  }
+}
+#endif
+
 //27 Universal synchronous asynchronous receiver transmitter (USART) Page 785
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
+#else
+void init_slave_rs485(enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode)
+#endif
 {
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
   RCC_APB2ENR |= (IOPAEN|AFIOEN);   // Enables GPIOA. Page 113
   RCC_APB1ENR |= USART2EN; // Enables USART2. Page 115
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+
+  RCC_APB1ENR |= TIM3EN; // Enable Timer 3 page 115
+
+  // ---- Control pin (PA1) for MAX485 ----
+  // PA1 -> Output pin for MAX485 DE/RE_B. Default 0
+  //9.2.1 Port configuration register low (GPIOx_CRL) (x=A..G) Page 171
+  GPIOA_CRL &= ~(GPIOA_MODE1_VAL(0b11) | GPIOA_CNF1_VAL(0b11));
+  GPIOA_CRL |= GPIOA_MODE1_VAL(0b11) | GPIOA_CNF1_VAL(0b00); // Output mode, max speed 50 MHz and GPIO as output mode
+
+  SLAVE_RS485_DRIVER_RECEIVE_MODE // Enable RS485 Slave receive
+#endif
 
   // 7.3.6 AHB peripheral clock enable register (RCC_AHBENR) Page 111
   RCC_AHBENR |= DMA1EN;
@@ -558,7 +604,11 @@ void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
 
   // Set UART 2 Speed
   //See page 798: 27.3.4 Fractional baud rate generation
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  USART2_BRR = SLAVE_RS485_SPEED[speed].uart2_speed
+#else
   USART2_BRR = (uint32_t)speed;
+#endif
 
   USART2_CR3 = (
                   DMAT | // DMA enable transmitter
@@ -572,10 +622,25 @@ void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
                  TE // Transmit enable
                );
 
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  TIM3_CR1 = OPM; // One Pulse Mode activated for TIMER3 page 404
+  TIM3_CNT = 0; // Reset counter page 418
+  uint16_t tim3_adj = SLAVE_RS485_SPEED[speed].tim3_adj;
+  TIM3_PSC = tim3_adj;
+  TIM3_ARR = tim3_adj - 1;
+  TIM3_SR &= ~(UIF); // Reset overflow flag
+  TIM3_DIER = UIE; // Timer 3 interrupt enable
+#endif
+
   USART2_CR1 |= UE;      // Enable UART2
 
   dma1_channel6_init((void *)&USART2_DR);
   dma1_channel7_init((void *)&USART2_DR);
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  __nvic_set_priority(TIM3_IRQn, TIM3_PRIO); // Set timer 3 priority
+  __nvic_enable_irq(TIM3_IRQn); // Enable IRQ for TIMER3
+#endif
 
   __nvic_set_priority(USART2_IRQn, UART2_PRIO);
   __nvic_enable_irq(USART2_IRQn);
@@ -711,7 +776,7 @@ void process_uart2_time_event()
 
          if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
            goto process_uart2_time_event_timeout_error;
-        // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event or execute error on timeout
+        // If RS485 slave: Do nothing. Timer3 ISR will resolve UART2_TRANSFER_COMPLETE event or execute error on timeout
         break;
       case UART2_RECEIVE_COMPLETE:
           if (USART2_SR & RXNE)

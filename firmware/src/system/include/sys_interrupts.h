@@ -7,6 +7,7 @@
 
  #define PEND_SV_CALL  0              // This must be always 0 for RTOS (higher priority)
  #define TIM2_PRIO     5
+ #define TIM3_PRIO     TIM2_PRIO
  #define RTC_PRIO      6              // Internal interrupt has more priority than external interrupt
  #define DMA1_CH4_PRIO 7              // Used in UART1 TX for ModBus Master
  #define DMA1_CH5_PRIO DMA1_CH4_PRIO  // Used in UART1 RX for ModBus Master
@@ -23,6 +24,7 @@
 #else
 
  #define TIM2_PRIO     1
+ #define TIM3_PRIO     TIM2_PRIO
  #define SYSTICK_PRIO  2
  #define RTC_PRIO      3
  #define DMA1_CH4_PRIO 4

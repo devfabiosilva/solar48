@@ -114,14 +114,3 @@ void delay(uint64_t milliseconds)
 }
 #endif
 
-////// Implementation of TIM2 timer
-
-#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
-void TIM2_IRQHandler()
-{
-// TODO implement for optional use (non RS485 master over uart1 layer)
-}
-
-#endif
-////// End of TIM2 timer implementation
-
