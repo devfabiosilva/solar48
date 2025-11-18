@@ -11,13 +11,33 @@
 #include <string.h>
 #include <registers.h>
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+/*
+struct rs485_memory_input_register {
+  // MPPT Photovoltaic input
+  uint16_t mppt_pv_voltage; // In Volts
+  uint16_t mppt_pv_current; // In Ampères
+  uint16_t mppt_pv_power;   // In Watts
+  uint16_t mppt_pv_energy;  // In kWh
+
+  // Battery bank
+  uint16_t mppt_bat_type;
+  uint16_t mppt_bat_voltage; // In volts
+  uint16_t mppt_bat_current; // In Ampères
+  uint16_t mppt_bat_temp;
+};
+*/
+
+// 4.1 Protocol description (Page 5)
+#define RS485_PDU_MAX_SIZE 256
+
 // master mode
-uint8_t modbus_master_buffer[256];
+uint8_t modbus_master_buffer[RS485_PDU_MAX_SIZE];
 SOLAR48_RS485_RTU master_rs485_rtu = {0};
 static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
 
 // slave mode
-uint8_t modbus_slave_buffer[256];
+uint8_t modbus_slave_buffer[RS485_PDU_MAX_SIZE + 1]; // +1 is about DMA1 receive mode (error overflow receive detect)
 SOLAR48_RS485_RTU slave_rs485_rtu = {0};
 static SOLAR48_MEM modbus_slave_buffer_receive_dynamic = {0};
 
@@ -657,3 +677,4 @@ int master_send_req(
   return err;
 }
 //__builtin_popcount()
+#endif

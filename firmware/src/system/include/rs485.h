@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <hal_uart.h>
 
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 // Page 5
 //The size of the MODBUS PDU is limited by the size constraint inherited from the first
 //MODBUS implementation on Serial Line network (max. RS485 ADU = 256 bytes).
@@ -209,6 +210,8 @@ int master_send_req(
 
 #define MASTER_RS485_DRIVER_TRANSMIT_MODE GPIOA_ODR |= (1<<ODR8);
 #define MASTER_RS485_DRIVER_RECEIVE_MODE GPIOA_ODR &= ~(1<<ODR8);
+
+#endif
 
 #define SLAVE_RS485_DRIVER_TRANSMIT_MODE GPIOA_ODR |= (1<<ODR1);
 #define SLAVE_RS485_DRIVER_RECEIVE_MODE GPIOA_ODR &= ~(1<<ODR1);

@@ -7,7 +7,7 @@
 
 //#define UART_TEST
 #define RS485_TEST
-#define UART2_TEST
+//#define UART2_TEST
 
 #ifdef RS485_TEST
  #include <rs485.h>
@@ -83,7 +83,7 @@ static void led_blink_task(void *params)
 
 #ifdef UART_TEST
   static uint64_t cnt = 0;
-  enum uart_status_t uart_status;
+  enum uart1_status_t uart_status;
 #endif
 
 #ifdef UART2_TEST

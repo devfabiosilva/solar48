@@ -301,12 +301,14 @@ uart1_receive(
     DMA1_CCR5 &= ~(DMA1_CCR5_EN);  // Disable DMA1_Channel5
     DMA1_CCR4 &= ~(DMA1_CCR4_EN);  // Disable DMA1_Channel4
 
-    USART1_CR1 &= ~(RXNEIE); // Disable UART1 interrupt enable before cleaning status register and data
+    //USART1_CR1 &= ~(RXNEIE); // Disable UART1 interrupt enable before cleaning status register and data
+    USART1_CR3 &= ~(EIE); // Disable UART1 interrupt enable before cleaning status register and data
     // Clear any status register
     (void)USART1_SR;
     (void)USART1_DR;
 
-    USART1_CR1 |= (RXNEIE); // Enable UART1 RX not empty (data to be read) interrupt enable after cleaning status register and data
+    //USART1_CR1 |= (RXNEIE); // Enable UART1 RX not empty (data to be read) interrupt enable after cleaning status register and data
+    USART1_CR3 |= (EIE); // Enable UART1 RX not empty (data to be read) interrupt enable after cleaning status register and data
 
     // Clear Channel 5 global interrupts status registers
     DMA1_IFCR = (CTEIF5|CHTIF5|CTCIF5|CGIF5);
@@ -360,7 +362,8 @@ enum uart1_status_t uart1_transmit(
   DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5 (receive)
   USART1_CR1 &= ~(RE);  // Ensure Receive is disable (receive)
 
-  USART1_CR1 &= ~(RXNEIE); // Disable UART1 interrupt enable before cleaning status register and data
+  //USART1_CR1 &= ~(RXNEIE); // Disable UART1 interrupt enable before cleaning status register and data
+  USART1_CR3 &= ~(EIE); //// Disable UART1 interrupt enable before cleaning status register and data
   // Clear any status register
   (void)USART1_SR;
   (void)USART1_DR;
@@ -442,7 +445,8 @@ process_uart1_time_event_finish:
           DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Ensure Disable DMA1_Channel5
           USART1_CR1 &= ~(RE);  // Ensure Receive is disable
 
-          USART1_CR1 &= ~(RXNEIE); // Ensure Disable UART1 interrupt enable before cleaning status register and data
+          //USART1_CR1 &= ~(RXNEIE); // Ensure Disable UART1 interrupt enable before cleaning status register and data
+          USART1_CR3 &= ~(EIE); // Ensure Disable UART1 interrupt enable before cleaning status register and data
 
           // Clear interrupts and status registers
           (void)USART1_SR;
@@ -475,17 +479,18 @@ extern SOLAR48_RS485_RTU slave_rs485_rtu;
 
 static const struct slave_rs485_speed_t {
   uint32_t uart2_speed;
-  uint16_t tim3_adj;
+  uint16_t tim3_adj_transmit;
+  uint16_t tim3_adj_receive;
 } SLAVE_RS485_SPEED[] = {
-    {UART2_2_4_KBPS, 952}, //TODO adjust tim3_adj to = 2.5 frame, because 1 Idle frame + 2.5 frame = 3.5 frames
-    {UART2_9_6_KBPS, 476},
-    {UART2_19_2_KBPS, 336},
-    {UART2_57_6_KBPS, 194},
-    {UART2_115_2_KBPS, 137},
-    {UART2_230_769_KBPS, 97},
-    {UART2_461_538_KBPS, 68},
-    {UART2_923_076_KBPS, 47},
-    {UART2_2250_KBPS, 31}
+    {UART2_2_4_KBPS, 952, 908},
+    {UART2_9_6_KBPS, 476, 454},
+    {UART2_19_2_KBPS, 336, 321},
+    {UART2_57_6_KBPS, 194, 185},
+    {UART2_115_2_KBPS, 137, 131},
+    {UART2_230_769_KBPS, 97}, 92,
+    {UART2_461_538_KBPS, 68, 65},
+    {UART2_923_076_KBPS, 47, 46},
+    {UART2_2250_KBPS, 31, 29}
 };
 
 #endif
@@ -619,13 +624,18 @@ void init_slave_rs485(enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mo
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART2_CR1 = (
                  ((uint32_t)mode)|
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
                  TE // Transmit enable
+#else
+                 //RE| // Receive enable in RS 485 Slave mode
+                 IDLEIE // Idle interrupt enabled
+#endif
                );
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   TIM3_CR1 = OPM; // One Pulse Mode activated for TIMER3 page 404
   TIM3_CNT = 0; // Reset counter page 418
-  uint16_t tim3_adj = SLAVE_RS485_SPEED[speed].tim3_adj;
+  uint16_t tim3_adj = SLAVE_RS485_SPEED[speed].tim3_adj_receive; // Load receive
   TIM3_PSC = tim3_adj;
   TIM3_ARR = tim3_adj - 1;
   TIM3_SR &= ~(UIF); // Reset overflow flag
@@ -675,12 +685,14 @@ enum uart2_status_t uart2_receive(
     DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
     DMA1_CCR7 &= ~(DMA1_CCR7_EN);  // Disable DMA1_Channel7
 
-    USART2_CR2 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
+    //USART2_CR1 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
+    USART2_CR3 &= ~(EIE); // Disable UART2 interrupt enable before cleaning status register and data
     // Clear any status register
     (void)USART2_SR;
     (void)USART2_DR;
 
-    USART2_CR1 |= (RXNEIE); // Enable UART2 RX not empty (data to be read) interrupt enable after cleaning status register and data
+    USART2_CR3 |= (EIE); // Enable UART2 RX interrupt enable after cleaning status register and data
+    //USART2_CR1 |= (RXNEIE); // Enable UART2 RX not empty (data to be read) interrupt enable after cleaning status register and data
 
     // Clear Channel 6 global interrupts status registers
     DMA1_IFCR = (CTEIF6|CHTIF6|CTCIF6|CGIF6);
@@ -726,7 +738,8 @@ enum uart2_status_t uart2_transmit(
   DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6 (receive)
   USART2_CR1 &= ~(RE);  // Ensure Receive is disable (receive)
 
-  USART2_CR1 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
+  //USART2_CR1 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
+  USART2_CR3 &= ~(EIE); // Disable UART2 interrupt enable before cleaning status register and data
   // Clear any status register
   (void)USART2_SR;
   (void)USART2_DR;
@@ -801,7 +814,8 @@ process_uart2_time_event_finish:
           DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
           USART2_CR1 &= ~(RE);  // Ensure Receive is disable
 
-          USART2_CR1 &= ~(RXNEIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data
+          //USART2_CR1 &= ~(RXNEIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data
+          USART2_CR3 &= ~(EIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data
 
           // Clear interrupts and status registers
           (void)USART2_SR;

@@ -36,7 +36,7 @@ void setup()
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
   init_uart1(UART1_DEFAULT_SPEED, PARITY_DISABLE);
 #else
-  init_master_rs485(speed_230_769_kbps, PARITY_DISABLE);
+  init_master_rs485(speed_115_2_kbps, UART_PARITY_MODE_EVEN);
 #endif
 
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
