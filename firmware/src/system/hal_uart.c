@@ -562,7 +562,7 @@ void DMA1_Channel7_IRQHandler()
 void USART2_IRQHandler()
 {
   // Clear any status register
-#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   uint32_t uart2_has_error = (USART2_SR & (ORE|NE|FE|PE));
   (void)USART2_DR;
 #else
