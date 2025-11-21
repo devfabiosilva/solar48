@@ -493,6 +493,9 @@ static const struct slave_rs485_speed_t {
     {UART2_2250_KBPS, 31, 29}
 };
 
+static uint16_t tim3_adj_transmit;
+static uint16_t tim3_adj_receive;
+
 #endif
 
 // DMA1 for UART2 Rx events IRQ
@@ -530,14 +533,27 @@ void DMA1_Channel7_IRQHandler()
 
   // DMA1 error on transfer
   if (dma1_ch7_sr & TEIF7) {
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+    SLAVE_RS485_DRIVER_RECEIVE_MODE // If error on transmit disables immediatelly transmit mode (high impedance bus)
+#endif
     __atomic_store_n(&uart2_control.status_register, E_UART2_DMA1_CH7_TRANSMIT_ERROR, __ATOMIC_RELEASE);
     return;
   }
 
   // Transfer complete
   if (dma1_ch7_sr & TCIF7) {
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 
-   __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+    TIM3_PSC = tim3_adj_transmit;
+    TIM3_ARR = tim3_adj_transmit - 1;
+
+    TIM3_SR &= ~(UIF); // Disable overflow flag
+    TIM3_CNT = 0;
+    TIM3_CR1 |= CEN; // Enable Timer 3
+
+#else
+    __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+#endif
 
   }
 }
@@ -546,14 +562,47 @@ void DMA1_Channel7_IRQHandler()
 void USART2_IRQHandler()
 {
   // Clear any status register
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   uint32_t uart2_has_error = (USART2_SR & (ORE|NE|FE|PE));
   (void)USART2_DR;
+#else
+  uint32_t status = USART2_SR;
+  (void)USART2_DR;
+
+  uint32_t uart2_has_error = (status & (ORE|NE|FE|PE));
+#endif
 
   if (uart2_has_error) {
     USART2_CR1 &= ~(RE);  // Ensure Receive is disable
     DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
     __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+    return;
+#endif
   }
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+
+  if (status & IDLE) {
+
+    TIM3_PSC = tim3_adj_receive;
+    TIM3_ARR = tim3_adj_receive - 1;
+
+    TIM3_SR &= ~(UIF); // Disable overflow flag
+    TIM3_CNT = 0;
+    TIM3_CR1 |= CEN; // Enable Timer 3
+
+    __atomic_store_n(&uart2_control.status_register, UART2_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
+
+    return;
+  }
+
+  __atomic_store_n(&uart2_control.status_register, E_RS485_SLAVE_UART2_IRQ_ERROR, __ATOMIC_RELEASE);
+
+#endif
 }
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
@@ -563,7 +612,23 @@ void TIM3_IRQHandler()
 
     TIM3_SR &= ~(UIF);
 
-    //TODO implement this
+    if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == UART2_RECEIVE_COMPLETE) {
+      // TODO implement Slave RS485 receive and process data and call transmit
+      return;
+    }
+
+    if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == 0) {
+      SLAVE_RS485_DRIVER_RECEIVE_MODE;
+      __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+      return;
+    }
+
+    SLAVE_RS485_DRIVER_RECEIVE_MODE;
+    DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+    DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Disable DMA1_Channel7
+    USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+    USART2_CR1 &= ~(TE) // Ensure Disable Transmi
+    __atomic_store_n(&uart2_control.status_register, E_RS485_SLAVE_TIM3_IRQ_ERROR, __ATOMIC_RELEASE);
   }
 }
 #endif
@@ -635,9 +700,12 @@ void init_slave_rs485(enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mo
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   TIM3_CR1 = OPM; // One Pulse Mode activated for TIMER3 page 404
   TIM3_CNT = 0; // Reset counter page 418
-  uint16_t tim3_adj = SLAVE_RS485_SPEED[speed].tim3_adj_receive; // Load receive
-  TIM3_PSC = tim3_adj;
-  TIM3_ARR = tim3_adj - 1;
+
+  tim3_adj_transmit = SLAVE_RS485_SPEED[speed].tim3_adj_transmit; // Load transmit;
+  tim3_adj_receive = SLAVE_RS485_SPEED[speed].tim3_adj_receive; // Load receive
+
+  TIM3_PSC = tim3_adj_receive;
+  TIM3_ARR = tim3_adj_receive - 1;
   TIM3_SR &= ~(UIF); // Reset overflow flag
   TIM3_DIER = UIE; // Timer 3 interrupt enable
 #endif
@@ -714,13 +782,19 @@ enum uart2_status_t uart2_receive(
   return UART2_OK;
 }
 
-enum uart2_status_t uart2_transmit(
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
+enum uart2_status_t
+#else
+void
+#endif
+uart2_transmit(
   uint8_t *data, size_t data_size,
   uart_callback_func transmit_uart_callback,
   uint32_t timeout
 )
 {
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   if ((data == NULL) || (data_size == 0))
     return UART2_OK;
 
@@ -730,9 +804,16 @@ enum uart2_status_t uart2_transmit(
   TIMEOUT_MS timeout_ms;
   if (!sys_try_lock(&uart2_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
     return UART2_LOCKED;
-
+#else
+   SLAVE_RS485_DRIVER_TRANSMIT_MODE
+#endif
    // We need to use __atomic here because process_uart1_time_event is always running
    __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE);
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  //27.6.4 Control register 1 (USART_CR1) Page: 821
+  USART2_CR1 &= ~(TE) // Disable Transmit disable
+#endif
 
   DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Disable DMA1_Channel7 (transmit)
   DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6 (receive)
@@ -758,9 +839,16 @@ enum uart2_status_t uart2_transmit(
   // We need to use __atomic here because process_uart2_time_event is always running
   __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 7
 
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  //27.6.4 Control register 1 (USART_CR1) Page: 821
+  USART2_CR1 |= TE // Enable Transmit
+#endif
+
   DMA1_CCR7 |= DMA1_CCR7_EN; // Enable DMA1 Channel 7 transmit
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   return UART2_OK;
+#endif
 }
 
 /**
@@ -789,14 +877,16 @@ void process_uart2_time_event()
 
          if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
            goto process_uart2_time_event_timeout_error;
-        // If RS485 slave: Do nothing. Timer3 ISR will resolve UART2_TRANSFER_COMPLETE event or execute error on timeout
         break;
       case UART2_RECEIVE_COMPLETE:
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
           if (USART2_SR & RXNE)
             goto process_uart2_time_event_finish;
 
           if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
             goto process_uart2_time_event_timeout_error;
+#endif
+        // If RS485 slave: Do nothing. Timer3 ISR will resolve UART2_TRANSFER_COMPLETE event or execute error on timeout
         break;
       default:
 
@@ -813,6 +903,10 @@ process_uart2_time_event_finish:
           DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
           DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
           USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+          //27.6.4 Control register 1 (USART_CR1) Page: 821
+          USART2_CR1 &= ~(TE) // Ensure Disable Transmit
+#endif
 
           //USART2_CR1 &= ~(RXNEIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data
           USART2_CR3 &= ~(EIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data

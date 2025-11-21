@@ -213,8 +213,10 @@ int master_send_req(
 
 #endif
 
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 #define SLAVE_RS485_DRIVER_TRANSMIT_MODE GPIOA_ODR |= (1<<ODR1);
 #define SLAVE_RS485_DRIVER_RECEIVE_MODE GPIOA_ODR &= ~(1<<ODR1);
+#endif
 
 #endif
 

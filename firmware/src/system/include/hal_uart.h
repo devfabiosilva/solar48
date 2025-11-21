@@ -195,11 +195,13 @@ enum uart2_status_t uart2_receive(
   uint32_t
 );
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 enum uart2_status_t uart2_transmit(
   uint8_t *, size_t,
   uart_callback_func,
   uint32_t
 );
+#endif
 
 #endif
 

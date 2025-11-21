@@ -174,6 +174,12 @@ _Static_assert(E_UART2_DMA1_CH6_RECEIVE_ERROR > E_UART2_RECEIVE_ERROR_BASE_LIMIT
 
 ///////////////////////////////////
 
+// SLAVE RS485 ERRORS
+#define E_RS485_SLAVE_UART2_IRQ_ERROR 500
+#define E_RS485_SLAVE_TIM3_IRQ_ERROR 501
+
+///////////////////////////////////
+
 #define E_NOT_IMPLEMENTED -1
 
 void error_handler(int);
