@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <hal_uart.h>
 
-#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 // Page 5
 //The size of the MODBUS PDU is limited by the size constraint inherited from the first
 //MODBUS implementation on Serial Line network (max. RS485 ADU = 256 bytes).
@@ -15,7 +14,6 @@
 //bytes) = 253 bytes.
 #define MODBUS_ADU_MAX_SIZE 256U
 #define MODBUS_PDU_MAX_SIZE (MODBUS_ADU_MAX_SIZE - 3)
-
 
 // Modbus_Application_Protocol_V1_1b.pdf 
 // 5.1 Public Function Code Definition Page 11
@@ -171,6 +169,7 @@ typedef union pdu_u {
   struct pdu_read_write_exception_t pdu_read_write_exception;
 } PDU_FRAME;
 
+// MASTER MODE
 typedef struct solar48_rs485rtu_t {
   volatile bool lock;
   uint8_t address;
@@ -211,12 +210,22 @@ int master_send_req(
 #define MASTER_RS485_DRIVER_TRANSMIT_MODE GPIOA_ODR |= (1<<ODR8);
 #define MASTER_RS485_DRIVER_RECEIVE_MODE GPIOA_ODR &= ~(1<<ODR8);
 
-#endif
-
-#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 #define SLAVE_RS485_DRIVER_TRANSMIT_MODE GPIOA_ODR |= (1<<ODR1);
 #define SLAVE_RS485_DRIVER_RECEIVE_MODE GPIOA_ODR &= ~(1<<ODR1);
-#endif
+
+typedef void (*mb_slave_recv_callback)(int, MB_FUNCTION);
+
+// SLAVE MODE
+typedef struct solar48_rs485rtu_slave_t {
+  volatile bool lock;
+  uint8_t slave_address;
+  MB_FUNCTION function;
+  uint16_t mem_address; // AKA Starting Address
+  uint16_t write_start_address; // AKA Write Starting Address for Read/Write Multiple registers function
+  uint16_t n_data_or_discrete;
+  uint16_t write_byte_count; // AKA Write Byte Count for Read/Write Multiple registers function
+  mb_slave_recv_callback callback;
+} SOLAR48_RS485_RTU_SLAVE;
 
 #endif
 

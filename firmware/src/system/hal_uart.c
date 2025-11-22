@@ -472,10 +472,9 @@ volatile struct uart_control_t uart2_control = {0};
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 
 #include <rs485.h>
-#include <memory.h>
 
 extern uint8_t modbus_slave_buffer;
-extern SOLAR48_RS485_RTU slave_rs485_rtu;
+extern SOLAR48_RS485_RTU_SLAVE slave_rs485_rtu;
 
 static const struct slave_rs485_speed_t {
   uint32_t uart2_speed;
@@ -637,7 +636,7 @@ void TIM3_IRQHandler()
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
 #else
-void init_slave_rs485(enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode)
+int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode)
 #endif
 {
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
@@ -722,6 +721,19 @@ void init_slave_rs485(enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mo
 
   __nvic_set_priority(USART2_IRQn, UART2_PRIO);
   __nvic_enable_irq(USART2_IRQn);
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+  int err = 0;
+
+  if (slave_address < 1 || slave_address > 247) {
+    err = E_RS485_INVALID_SLAVE_ADDRESS_SET_TO_ONE;
+    slave_address = 1;
+  }
+
+  slave_rs485_rtu.slave_address = slave_address;
+
+  return err;
+#endif
 }
 
 inline bool uart2_is_busy()

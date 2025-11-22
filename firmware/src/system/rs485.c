@@ -12,34 +12,11 @@
 #include <registers.h>
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-/*
-struct rs485_memory_input_register {
-  // MPPT Photovoltaic input
-  uint16_t mppt_pv_voltage; // In Volts
-  uint16_t mppt_pv_current; // In Ampères
-  uint16_t mppt_pv_power;   // In Watts
-  uint16_t mppt_pv_energy;  // In kWh
-
-  // Battery bank
-  uint16_t mppt_bat_type;
-  uint16_t mppt_bat_voltage; // In volts
-  uint16_t mppt_bat_current; // In Ampères
-  uint16_t mppt_bat_temp;
-};
-*/
-
-// 4.1 Protocol description (Page 5)
-#define RS485_PDU_MAX_SIZE 256
 
 // master mode
-uint8_t modbus_master_buffer[RS485_PDU_MAX_SIZE];
+uint8_t modbus_master_buffer[MODBUS_ADU_MAX_SIZE];
 SOLAR48_RS485_RTU master_rs485_rtu = {0};
 static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
-
-// slave mode
-uint8_t modbus_slave_buffer[RS485_PDU_MAX_SIZE + 1]; // +1 is about DMA1 receive mode (error overflow receive detect)
-SOLAR48_RS485_RTU slave_rs485_rtu = {0};
-static SOLAR48_MEM modbus_slave_buffer_receive_dynamic = {0};
 
 extern void app_panic(const char *);
 
@@ -676,5 +653,119 @@ int master_send_req(
 
   return err;
 }
-//__builtin_popcount()
+
 #endif
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+
+#define SLAVE_READ_HOLDING_REGISTER_START_ADDRESS 0x4000
+
+uint16_t mppt_pv_voltage; // In Volts
+uint16_t mppt_pv_current; // In Ampères
+uint16_t mppt_pv_power;   // In Watts
+uint16_t mppt_pv_energy;  // In kWh
+
+  // Battery bank
+uint16_t mppt_bat_type;
+uint16_t mppt_bat_voltage; // In volts
+uint16_t mppt_bat_current; // In Ampères
+uint16_t mppt_bat_temp;
+
+uint16_t *slave_holding_register_list[] = {
+  &mppt_pv_voltage,
+  &mppt_pv_current,
+  &mppt_pv_power,
+  &mppt_pv_energy,
+
+  &mppt_bat_type,
+  &mppt_bat_voltage,
+  &mppt_bat_current,
+  &mppt_bat_temp
+};
+
+#define SLAVE_HOLDING_REGISTER_LIST_SIZE (sizeof(slave_holding_register_list) / sizeof(slave_holding_register_list[0]))
+#define SLAVE_READ_HOLDING_REGISTER_START_ADDRESS_LIMIT (SLAVE_READ_HOLDING_REGISTER_START_ADDRESS + SLAVE_HOLDING_REGISTER_LIST_SIZE - 1)
+
+// slave mode
+uint8_t modbus_slave_buffer[MODBUS_ADU_MAX_SIZE + 1]; // +1 is about DMA1 receive mode (error overflow receive detect)
+SOLAR48_RS485_RTU_SLAVE slave_rs485_rtu = {0};
+
+static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_size, PDU_FRAME *pdu_frame, uint8_t function_code, uint8_t exception_code)
+{
+#define SLAVE_PDU_ERROR_EXCEPTION_SIZE (uint16_t)(sizeof(pdu_frame->pdu_read_error_exception) + 1)
+
+  move_uint8_safe(&pdu_frame->pdu_read_error_exception.function_code, 0x80 | function_code);
+  move_uint8_safe(&pdu_frame->pdu_read_error_exception.error_or_exception_code, exception_code);
+
+  uint16_t crc16_check = crc16(&modbus_slave_buffer[0], SLAVE_PDU_ERROR_EXCEPTION_SIZE);
+
+  memcpy(&pdu_frame->pdu_read_error_exception[1], &crc16_check, sizeof(crc16_check));
+
+  *data = &modbus_slave_buffer[0];
+  *data_size = (size_t)(SLAVE_PDU_ERROR_EXCEPTION_SIZE) + sizeof(crc16_check);
+
+#undef SLAVE_PDU_ERROR_EXCEPTION_SIZE
+}
+
+int slave_send_req(uint8_t **data, size_t *data_size)
+{
+  *data = NULL;
+
+  if (slave_rs485_rtu[0] != slave_rs485_rtu.slave_address)
+    return E_RS485_SLAVE_DOES_NOT_MATCH;
+
+  PDU_FRAME *pdu_frame = &modbus_slave_buffer[1];
+
+  // 6.3 03 (0x03) Read Holding Registers (Page 15)
+  uint16_t crc16_check;
+
+  memcpy(crc16_check, &pdu_frame->pdu_read_req[1], sizeof(crc16));
+
+  if (crc16_check == crc16(&modbus_slave_buffer[0], (uint16_t)(sizeof(pdu_frame->pdu_read_req) + 1))) {
+
+    uint8_t function_code = read_uint8((void *)&pdu_frame->pdu_read_req.function_code);
+
+    if (function_code != READ_HOLDING_REGISTERS) {
+      _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 1);
+      return E_RS485_SLAVE_FUNCTION_CODE_NOT_SUPPORTED;
+    }
+
+    uint16_t number_of_registers = read_and_swap_uint16_safe((void *)&pdu_frame->pdu_read_req.number_of_registers);
+
+    if (number_of_registers > 125 || number_of_registers < 1) {
+      _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 3);
+      return E_RS485_SLAVE_QTY_OF_REGISTER_OUT_OF_BOUNDS;
+    }
+
+    uint16_t starting_address = read_and_swap_uint16_safe((void *)&pdu_frame->pdu_read_req.starting_address);
+
+    if (((size_t)starting_address < SLAVE_READ_HOLDING_REGISTER_START_ADDRESS) ||
+      (((size_t)starting_address + (size_t)number_of_registers) >= SLAVE_READ_HOLDING_REGISTER_START_ADDRESS_LIMIT))
+    {
+      _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 2);
+      return E_RS485_SLAVE_MEMORY_OUT_OF_BOUNDS;
+    }
+
+    uint8_t byte_count = (uint8_t)(number_of_registers << 1);
+    uint16_t *u16_ptr_unaligned = &pdu_frame->pdu_read_req.status[0];
+
+    while (number_of_registers > 0) {
+
+      if (__atomic_load_n(&slave_rs485_rtu.lock, __ATOMIC_SEQ_CST)) {
+        _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 4);
+        return E_RS485_SLAVE_MEMORY_FORBIDDEN;
+      }
+
+      // TODO implement logic here
+      ++u16_ptr_unaligned;
+      --number_of_registers;
+    }
+
+    return 0;
+  }
+
+  return E_RS485_SLAVE_INVALID_CRC16;
+}
+
+#endif
+
