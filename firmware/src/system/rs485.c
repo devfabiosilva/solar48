@@ -694,7 +694,7 @@ static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_siz
 {
 #define SLAVE_PDU_ERROR_EXCEPTION_SIZE (uint16_t)(sizeof(pdu_frame->pdu_read_error_exception) + 1)
 
-  move_uint8_safe(&pdu_frame->pdu_read_error_exception.function_code, 0x80 | function_code);
+  move_uint8_safe(&pdu_frame->pdu_read_error_exception.function_code, 0x80 + function_code);
   move_uint8_safe(&pdu_frame->pdu_read_error_exception.error_or_exception_code, exception_code);
 
   uint16_t crc16_check = crc16(&modbus_slave_buffer[0], SLAVE_PDU_ERROR_EXCEPTION_SIZE);
@@ -707,7 +707,7 @@ static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_siz
 #undef SLAVE_PDU_ERROR_EXCEPTION_SIZE
 }
 
-int slave_send_req(uint8_t **data, size_t *data_size)
+int slave_send_resp(uint8_t **data, size_t *data_size)
 {
   *data = NULL;
 
@@ -740,26 +740,41 @@ int slave_send_req(uint8_t **data, size_t *data_size)
     uint16_t starting_address = read_and_swap_uint16_safe((void *)&pdu_frame->pdu_read_req.starting_address);
 
     if (((size_t)starting_address < SLAVE_READ_HOLDING_REGISTER_START_ADDRESS) ||
-      (((size_t)starting_address + (size_t)number_of_registers) >= SLAVE_READ_HOLDING_REGISTER_START_ADDRESS_LIMIT))
+      (((size_t)starting_address + (size_t)number_of_registers) > (SLAVE_READ_HOLDING_REGISTER_START_ADDRESS + SLAVE_HOLDING_REGISTER_LIST_SIZE)))
     {
       _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 2);
       return E_RS485_SLAVE_MEMORY_OUT_OF_BOUNDS;
     }
 
-    uint8_t byte_count = (uint8_t)(number_of_registers << 1);
     uint16_t *u16_ptr_unaligned = &pdu_frame->pdu_read_req.status[0];
+    uint16_t *mem_address_ptr = &slave_holding_register_list[(size_t)(starting_address - SLAVE_READ_HOLDING_REGISTER_START_ADDRESS)];
+    uint16_t *mem_address_ptr_overload = &mem_address_ptr[(size_t)number_of_registers];
 
-    while (number_of_registers > 0) {
-
+    do
       if (__atomic_load_n(&slave_rs485_rtu.lock, __ATOMIC_SEQ_CST)) {
         _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 4);
         return E_RS485_SLAVE_MEMORY_FORBIDDEN;
       }
 
-      // TODO implement logic here
-      ++u16_ptr_unaligned;
-      --number_of_registers;
-    }
+      swap_and_move_uint16_safe(u16_ptr_unaligned++, *mem_address_ptr);
+
+    } while (++mem_address_ptr < mem_address_ptr_overload);
+
+    uint16_t byte_count = (number_of_registers << 1);
+
+    move_uint8_safe(&frame->pdu_read_resp.byte_count, (uint8_t)byte_count);
+
+    #define SLAVE_PDU_READ_RESP_SIZE (1 + &((struct pdu_read_resp_t *)NULL)->status[0])
+    byte_count += SLAVE_READ_HOLDING_REGISTERS_RESPONSE_SIZE;
+    #undef SLAVE_PDU_READ_RESP_SIZE
+
+    *data = &modbus_slave_buffer[0];
+
+    crc16_check = crc16(*data, byte_count);
+
+    memcpy(&modbus_slave_buffer[byte_count], &crc16_check, sizeof(crc16_check));
+
+    *data_size = byte_count + sizeof(crc16_check);
 
     return 0;
   }
