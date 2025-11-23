@@ -160,8 +160,23 @@ enum uart2_mode_e {
 
 void init_uart2(enum uart2_speed_e, enum uart2_mode_e);
 
+bool uart2_is_busy();
+
+enum uart2_status_t uart2_receive(
+  uint8_t *, size_t,
+  uart_callback_func,
+  uint32_t
+);
+
+enum uart2_status_t uart2_transmit(
+  uint8_t *, size_t,
+  uart_callback_func,
+  uint32_t
+);
+
 #else
 
+#define RS485_SLAVE_WAIT_RESTART 3
 enum rs485_slave_speed_e {
   speed2_2_4_kbps = 0,
   speed2_9_6_kbps,
@@ -183,24 +198,8 @@ enum rs485_slave_mode_e {
 
  #define RS485_SLAVE_DEFAULT_SPEED speed2_115_2_kbps
 
-int init_slave_rs485(uint8_t, enum rs485_slave_speed_e, enum rs485_slave_mode_e);
+int init_slave_rs485(uint8_t, enum rs485_slave_speed_e, enum rs485_slave_mode_e, uint32_t, bool);
 
-#endif
-
-bool uart2_is_busy();
-
-enum uart2_status_t uart2_receive(
-  uint8_t *, size_t,
-  uart_callback_func,
-  uint32_t
-);
-
-#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
-enum uart2_status_t uart2_transmit(
-  uint8_t *, size_t,
-  uart_callback_func,
-  uint32_t
-);
 #endif
 
 #endif

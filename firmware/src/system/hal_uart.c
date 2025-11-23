@@ -467,14 +467,32 @@ process_uart1_time_event_finish:
 
 /////////////UART2/RS485 slave implementation
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 volatile struct uart_control_t uart2_control = {0};
 
-#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+#else
 
 #include <rs485.h>
 
-extern uint8_t modbus_slave_buffer;
+struct uart2_control_t {
+  volatile bool start_monitore;               // UART start timeout monitore event
+  volatile TIMEOUT_MS timeout;                // UART timeout
+  volatile uint32_t status_register;          // UART status register
+  uart_callback_func uart_callback;           // Uart transmit/receive callback event
+};
+
+volatile struct uart2_control_t uart2_control = {0};
+
+extern uint8_t modbus_slave_buffer[];
 extern SOLAR48_RS485_RTU_SLAVE slave_rs485_rtu;
+extern int slave_send_resp(uint8_t **, size_t *);
+extern void rs485_slave_transmit_error_callback(int);
+extern void rs485_slave_receive_error_callback(int);
+
+void uart2_receive(uint8_t *, size_t, uart_callback_func);
+static void uart2_transmit(uint8_t *, size_t, uart_callback_func);
+
+#define _RS485_SLAVE_START_LISTEN uart2_receive(&modbus_slave_buffer[0], MODBUS_SLAVE_BUFFER_SIZE, rs485_slave_receive_error_callback);
 
 static const struct slave_rs485_speed_t {
   uint32_t uart2_speed;
@@ -486,7 +504,7 @@ static const struct slave_rs485_speed_t {
     {UART2_19_2_KBPS, 336, 321},
     {UART2_57_6_KBPS, 194, 185},
     {UART2_115_2_KBPS, 137, 131},
-    {UART2_230_769_KBPS, 97}, 92,
+    {UART2_230_769_KBPS, 97, 92},
     {UART2_461_538_KBPS, 68, 65},
     {UART2_923_076_KBPS, 47, 46},
     {UART2_2250_KBPS, 31, 29}
@@ -515,8 +533,11 @@ void DMA1_Channel6_IRQHandler()
 
   // Receive complete
   if (dma1_ch6_sr & TCIF6) {
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
     __atomic_store_n(&uart2_control.status_register, UART2_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
-
+#else
+    __atomic_store_n(&uart2_control.status_register, E_RS485_SLAVE_DMA6_BUFFER_OVERFLOW, __ATOMIC_RELEASE);
+#endif
   }
 }
 
@@ -612,13 +633,23 @@ void TIM3_IRQHandler()
     TIM3_SR &= ~(UIF);
 
     if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == UART2_RECEIVE_COMPLETE) {
-      // TODO implement Slave RS485 receive and process data and call transmit
+      uint8_t *data;
+      size_t data_size;
+      int result = slave_send_resp(&data, &data_size);
+
+      if (data)
+        uart2_transmit(data, data_size, rs485_slave_transmit_error_callback);
+      else
+        _RS485_SLAVE_START_LISTEN
+
+      if (__atomic_load_n(&slave_rs485_rtu.enable_listening_debug, __ATOMIC_SEQ_CST))
+        __atomic_store_n(&uart2_control.status_register, result, __ATOMIC_RELEASE);
+
       return;
     }
 
-    if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == 0) {
-      SLAVE_RS485_DRIVER_RECEIVE_MODE;
-      __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
+    if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == UART2_TRANSFER_COMPLETE) {
+      _RS485_SLAVE_START_LISTEN
       return;
     }
 
@@ -626,7 +657,7 @@ void TIM3_IRQHandler()
     DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
     DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Disable DMA1_Channel7
     USART2_CR1 &= ~(RE);  // Ensure Receive is disable
-    USART2_CR1 &= ~(TE) // Ensure Disable Transmi
+    USART2_CR1 &= ~(TE); // Ensure Disable Transmi
     __atomic_store_n(&uart2_control.status_register, E_RS485_SLAVE_TIM3_IRQ_ERROR, __ATOMIC_RELEASE);
   }
 }
@@ -636,7 +667,7 @@ void TIM3_IRQHandler()
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 void init_uart2(enum uart2_speed_e speed, enum uart2_mode_e mode)
 #else
-int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode)
+int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode, uint32_t timeout_on_error, bool enable_listening_debug)
 #endif
 {
   // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
@@ -674,7 +705,7 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
   // Set UART 2 Speed
   //See page 798: 27.3.4 Fractional baud rate generation
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
-  USART2_BRR = SLAVE_RS485_SPEED[speed].uart2_speed
+  USART2_BRR = SLAVE_RS485_SPEED[speed].uart2_speed;
 #else
   USART2_BRR = (uint32_t)speed;
 #endif
@@ -731,11 +762,14 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
   }
 
   slave_rs485_rtu.slave_address = slave_address;
+  slave_rs485_rtu.timeout_ms = timeout_on_error;
+  slave_rs485_rtu.enable_listening_debug = enable_listening_debug;
 
   return err;
 #endif
 }
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 inline bool uart2_is_busy()
 {
   return (((DMA1_CCR7 & DMA1_CCR7_EN) != 0) || ((USART2_CR1 & RE) != 0));
@@ -746,8 +780,15 @@ enum uart2_status_t uart2_receive(
   uart_callback_func receive_uart_callback,
   uint32_t timeout
 )
+#else
+void uart2_receive(
+  uint8_t *data, size_t data_size,
+  uart_callback_func receive_uart_callback
+)
+#endif
 {
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   if ((data != NULL) && (data_size > 0)) {
 
     if (uart2_is_busy())
@@ -756,10 +797,16 @@ enum uart2_status_t uart2_receive(
     TIMEOUT_MS timeout_ms;
     if (!sys_try_lock(&uart2_control.locked, &timeout_ms, 1, NULL)) // 1 milliseconds to wait
       return UART2_LOCKED;
-
+#else
+    SLAVE_RS485_DRIVER_RECEIVE_MODE
+#endif
     // We need to use __atomic here because process_uart2_time_event is always running
     __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE);
 
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+    //27.6.4 Control register 1 (USART_CR1) Page: 821
+    USART2_CR1 &= ~(TE); // Disable Transmit disable
+#endif
 
     USART2_CR1 &= ~(RE);           // Ensure Receive is disable
     DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
@@ -783,27 +830,39 @@ enum uart2_status_t uart2_receive(
     uart2_control.status_register = 0;
     uart2_control.uart_callback = receive_uart_callback;
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
     init_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout, timeout);
+#endif
     // We need to use __atomic here because process_uart2_time_event is always running
     __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 6 and UART2
 
     DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 receive
     USART2_CR1 |= RE;  // Ensure Receive is enable
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   }
 
   return UART2_OK;
+#endif
 }
 
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
-enum uart2_status_t
-#else
-void
-#endif
-uart2_transmit(
+enum uart2_status_t uart2_transmit(
   uint8_t *data, size_t data_size,
   uart_callback_func transmit_uart_callback,
   uint32_t timeout
 )
+#else
+
+inline void rs485_slave_start_listen()
+{
+  _RS485_SLAVE_START_LISTEN
+}
+
+static void uart2_transmit(
+  uint8_t *data, size_t data_size,
+  uart_callback_func transmit_uart_callback
+)
+#endif
 {
 
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
@@ -824,7 +883,7 @@ uart2_transmit(
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   //27.6.4 Control register 1 (USART_CR1) Page: 821
-  USART2_CR1 &= ~(TE) // Disable Transmit disable
+  USART2_CR1 &= ~(TE); // Disable Transmit disable
 #endif
 
   DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Disable DMA1_Channel7 (transmit)
@@ -846,14 +905,17 @@ uart2_transmit(
   DMA1_CMAR7 = (uint32_t)data; // Memory address Page 288
   DMA1_CNDTR7 = (uint16_t)data_size;
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   //uart2_control.timeout = timeout;
   init_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout, timeout);
+#endif
+
   // We need to use __atomic here because process_uart2_time_event is always running
   __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 7
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   //27.6.4 Control register 1 (USART_CR1) Page: 821
-  USART2_CR1 |= TE // Enable Transmit
+  USART2_CR1 |= TE; // Enable Transmit
 #endif
 
   DMA1_CCR7 |= DMA1_CCR7_EN; // Enable DMA1 Channel 7 transmit
@@ -883,13 +945,20 @@ void process_uart2_time_event()
     uint32_t status_register = (uint32_t)__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST);
 
     switch (status_register) {
+      // 0: idle mode (monitoring, transmit complete or receive complete it will do nothing for RS485 Slave mode)
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
+      case 0:
+#endif
       case UART2_TRANSFER_COMPLETE:
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
          if (USART2_SR & TC)
            goto process_uart2_time_event_finish;
 
          if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
            goto process_uart2_time_event_timeout_error;
+        // If RS485 slave: Do nothing. Timer3 ISR will resolve UART2_TRANSFER_COMPLETE event
         break;
+#endif
       case UART2_RECEIVE_COMPLETE:
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
           if (USART2_SR & RXNE)
@@ -898,10 +967,19 @@ void process_uart2_time_event()
           if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout))
             goto process_uart2_time_event_timeout_error;
 #endif
-        // If RS485 slave: Do nothing. Timer3 ISR will resolve UART2_TRANSFER_COMPLETE event or execute error on timeout
+        // If RS485 slave: Do nothing. Timer3 ISR will resolve UART2_RECEIVE_COMPLETE event
         break;
-      default:
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+      case RS485_SLAVE_WAIT_RESTART:
+        if (is_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout)) {
+          __atomic_store_n(&uart2_control.status_register, 0, __ATOMIC_RELEASE);
+          _RS485_SLAVE_START_LISTEN
+        }
 
+        break;
+#endif
+      default:
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
         if (status_register) // Unknown error
           goto process_uart2_time_event_finish;
 
@@ -911,13 +989,19 @@ process_uart2_time_event_timeout_error:
           status_register = E_UART2_TIMEOUT;
 
 process_uart2_time_event_finish:
+#else
+          SLAVE_RS485_DRIVER_RECEIVE_MODE
+          TIM3_CR1 &= ~(CEN); // Disable Timer 3
+          TIM3_SR &= ~(UIF); // Disable overflow flag
+          TIM3_CNT = 0;
+#endif
 
           DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
           DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
           USART2_CR1 &= ~(RE);  // Ensure Receive is disable
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
           //27.6.4 Control register 1 (USART_CR1) Page: 821
-          USART2_CR1 &= ~(TE) // Ensure Disable Transmit
+          USART2_CR1 &= ~(TE); // Ensure Disable Transmit
 #endif
 
           //USART2_CR1 &= ~(RXNEIE); // Ensure Disable UART2 interrupt enable before cleaning status register and data
@@ -927,12 +1011,19 @@ process_uart2_time_event_finish:
           (void)USART2_SR;
           (void)USART2_DR;
 
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
           __atomic_store_n(&uart2_control.status_register, 0, __ATOMIC_RELEASE);
           __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE); // Stop monitoring
           __atomic_store_n(&uart2_control.locked, false, __ATOMIC_RELEASE); // Same as sys_unlock
+#else
+          init_timeout_ms((TIMEOUT_MS *)&uart2_control.timeout, slave_rs485_rtu.timeout_ms);
+          __atomic_store_n(&uart2_control.status_register, RS485_SLAVE_WAIT_RESTART, __ATOMIC_RELEASE);
+#endif
 
           uart2_control.uart_callback(status_register);
+#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
         }
+#endif
     }
   }
 }

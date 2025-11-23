@@ -15,6 +15,9 @@
 #define MODBUS_ADU_MAX_SIZE 256U
 #define MODBUS_PDU_MAX_SIZE (MODBUS_ADU_MAX_SIZE - 3)
 
+// +1 is about DMA1 receive mode (error overflow receive detect)
+#define MODBUS_SLAVE_BUFFER_SIZE (MODBUS_ADU_MAX_SIZE + 1)
+
 // Modbus_Application_Protocol_V1_1b.pdf 
 // 5.1 Public Function Code Definition Page 11
 typedef enum solar48_functions_rs485_e {
@@ -218,13 +221,9 @@ typedef void (*mb_slave_recv_callback)(int, MB_FUNCTION);
 // SLAVE MODE
 typedef struct solar48_rs485rtu_slave_t {
   volatile bool lock;
+  volatile bool enable_listening_debug;
   uint8_t slave_address;
-  MB_FUNCTION function;
-  uint16_t mem_address; // AKA Starting Address
-  uint16_t write_start_address; // AKA Write Starting Address for Read/Write Multiple registers function
-  uint16_t n_data_or_discrete;
-  uint16_t write_byte_count; // AKA Write Byte Count for Read/Write Multiple registers function
-  mb_slave_recv_callback callback;
+  uint32_t timeout_ms;
 } SOLAR48_RS485_RTU_SLAVE;
 
 #endif

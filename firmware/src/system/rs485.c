@@ -687,7 +687,7 @@ uint16_t *slave_holding_register_list[] = {
 #define SLAVE_READ_HOLDING_REGISTER_START_ADDRESS_LIMIT (SLAVE_READ_HOLDING_REGISTER_START_ADDRESS + SLAVE_HOLDING_REGISTER_LIST_SIZE - 1)
 
 // slave mode
-uint8_t modbus_slave_buffer[MODBUS_ADU_MAX_SIZE + 1]; // +1 is about DMA1 receive mode (error overflow receive detect)
+uint8_t modbus_slave_buffer[MODBUS_SLAVE_BUFFER_SIZE];
 SOLAR48_RS485_RTU_SLAVE slave_rs485_rtu = {0};
 
 static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_size, PDU_FRAME *pdu_frame, uint8_t function_code, uint8_t exception_code)
@@ -699,7 +699,7 @@ static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_siz
 
   uint16_t crc16_check = crc16(&modbus_slave_buffer[0], SLAVE_PDU_ERROR_EXCEPTION_SIZE);
 
-  memcpy(&pdu_frame->pdu_read_error_exception[1], &crc16_check, sizeof(crc16_check));
+  memcpy(&(&pdu_frame->pdu_read_error_exception)[1], &crc16_check, sizeof(crc16_check));
 
   *data = &modbus_slave_buffer[0];
   *data_size = (size_t)(SLAVE_PDU_ERROR_EXCEPTION_SIZE) + sizeof(crc16_check);
@@ -711,15 +711,15 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
 {
   *data = NULL;
 
-  if (slave_rs485_rtu[0] != slave_rs485_rtu.slave_address)
+  if (modbus_slave_buffer[0] != slave_rs485_rtu.slave_address)
     return E_RS485_SLAVE_DOES_NOT_MATCH;
 
-  PDU_FRAME *pdu_frame = &modbus_slave_buffer[1];
+  PDU_FRAME *pdu_frame = (PDU_FRAME *)&modbus_slave_buffer[1];
 
   // 6.3 03 (0x03) Read Holding Registers (Page 15)
   uint16_t crc16_check;
 
-  memcpy(crc16_check, &pdu_frame->pdu_read_req[1], sizeof(crc16));
+  memcpy(&crc16_check, &(&pdu_frame->pdu_read_req)[1], sizeof(crc16_check));
 
   if (crc16_check == crc16(&modbus_slave_buffer[0], (uint16_t)(sizeof(pdu_frame->pdu_read_req) + 1))) {
 
@@ -746,26 +746,28 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
       return E_RS485_SLAVE_MEMORY_OUT_OF_BOUNDS;
     }
 
-    uint16_t *u16_ptr_unaligned = &pdu_frame->pdu_read_req.status[0];
-    uint16_t *mem_address_ptr = &slave_holding_register_list[(size_t)(starting_address - SLAVE_READ_HOLDING_REGISTER_START_ADDRESS)];
-    uint16_t *mem_address_ptr_overload = &mem_address_ptr[(size_t)number_of_registers];
+    void *u16_ptr_unaligned = (void *)(&pdu_frame->pdu_read_resp.status[0]);
+    uint16_t **mem_address_ptr = &slave_holding_register_list[(size_t)(starting_address - SLAVE_READ_HOLDING_REGISTER_START_ADDRESS)];
+    uint16_t **mem_address_ptr_overload = &mem_address_ptr[(size_t)number_of_registers];
 
-    do
+    do {
       if (__atomic_load_n(&slave_rs485_rtu.lock, __ATOMIC_SEQ_CST)) {
         _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 4);
         return E_RS485_SLAVE_MEMORY_FORBIDDEN;
       }
 
-      swap_and_move_uint16_safe(u16_ptr_unaligned++, *mem_address_ptr);
+      swap_and_move_uint16_safe(u16_ptr_unaligned, *(*mem_address_ptr));
+
+      u16_ptr_unaligned += sizeof(uint16_t);
 
     } while (++mem_address_ptr < mem_address_ptr_overload);
 
     uint16_t byte_count = (number_of_registers << 1);
 
-    move_uint8_safe(&frame->pdu_read_resp.byte_count, (uint8_t)byte_count);
+    move_uint8_safe(&pdu_frame->pdu_read_resp.byte_count, (uint8_t)byte_count);
 
-    #define SLAVE_PDU_READ_RESP_SIZE (1 + &((struct pdu_read_resp_t *)NULL)->status[0])
-    byte_count += SLAVE_READ_HOLDING_REGISTERS_RESPONSE_SIZE;
+    #define SLAVE_PDU_READ_RESP_SIZE (size_t)(1 + &((struct pdu_read_resp_t *)NULL)->status[0])
+    byte_count += (uint16_t)SLAVE_PDU_READ_RESP_SIZE;
     #undef SLAVE_PDU_READ_RESP_SIZE
 
     *data = &modbus_slave_buffer[0];
@@ -780,6 +782,16 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
   }
 
   return E_RS485_SLAVE_INVALID_CRC16;
+}
+
+void rs485_slave_transmit_error_callback(int error)
+{
+  //TODO implement log handler
+}
+
+void rs485_slave_receive_error_callback(int error)
+{
+  //TODO implement log handler
 }
 
 #endif
