@@ -226,6 +226,25 @@ inline void swap_and_move_uint16_safe(void *dest, uint16_t src)
   memcpy(dest, (void *)&y, sizeof(src)); // Copy 2 bytes (uint16_t)
 }
 
+inline void swap_and_move_uint16_from_unaligned_to_unaligned_safe(void *dest, uint16_t *src)
+{
+  uint32_t y;
+
+  memcpy(&y, src, sizeof(uint16_t)); //Copy 2 bytes from src
+
+  __asm__("rev16 %0, %0" : "+r"(y));
+
+  memcpy(dest, (void *)&y, sizeof(uint16_t)); // Copy 2 bytes (uint16_t)
+}
+
+inline void swap_and_move_two_uint16_at_once_safe(void *dest, uint32_t src)
+{
+  uint32_t y = src;
+  __asm__("rev16 %0, %0" : "+r"(y));
+
+  memcpy(dest, (void *)&y, sizeof(y)); // Copy 4 bytes (2 x uint16_t at once)
+}
+
 inline uint16_t read_and_swap_uint16_safe(void *src)
 {
   uint32_t y;

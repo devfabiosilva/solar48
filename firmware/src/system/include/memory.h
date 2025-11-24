@@ -38,6 +38,8 @@ void swap16_array_fast(uint16_t *, size_t);
 void swap16_array_fast_safe(void *, size_t);
 void move_uint8_safe(void *, uint8_t);
 void swap_and_move_uint16_safe(void *, uint16_t);
+void swap_and_move_two_uint16_at_once_safe(void *, uint32_t);
+void swap_and_move_uint16_from_unaligned_to_unaligned_safe(void *, uint16_t *);
 uint16_t read_and_swap_uint16_safe(void *src);
 bool swap_and_compare_uint16(void *, uint16_t);
 uint8_t read_uint8(void *);

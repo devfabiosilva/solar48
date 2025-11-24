@@ -659,32 +659,7 @@ int master_send_req(
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 
 #define SLAVE_READ_HOLDING_REGISTER_START_ADDRESS 0x4000
-
-uint16_t mppt_pv_voltage; // In Volts
-uint16_t mppt_pv_current; // In Ampères
-uint16_t mppt_pv_power;   // In Watts
-uint16_t mppt_pv_energy;  // In kWh
-
-  // Battery bank
-uint16_t mppt_bat_type;
-uint16_t mppt_bat_voltage; // In volts
-uint16_t mppt_bat_current; // In Ampères
-uint16_t mppt_bat_temp;
-
-uint16_t *slave_holding_register_list[] = {
-  &mppt_pv_voltage,
-  &mppt_pv_current,
-  &mppt_pv_power,
-  &mppt_pv_energy,
-
-  &mppt_bat_type,
-  &mppt_bat_voltage,
-  &mppt_bat_current,
-  &mppt_bat_temp
-};
-
-#define SLAVE_HOLDING_REGISTER_LIST_SIZE (sizeof(slave_holding_register_list) / sizeof(slave_holding_register_list[0]))
-#define SLAVE_READ_HOLDING_REGISTER_START_ADDRESS_LIMIT (SLAVE_READ_HOLDING_REGISTER_START_ADDRESS + SLAVE_HOLDING_REGISTER_LIST_SIZE - 1)
+_Static_assert(((SLAVE_READ_HOLDING_REGISTER_START_ADDRESS & 1) == 0), "SLAVE_READ_HOLDING_REGISTER_START_ADDRESS must be odd");
 
 // slave mode
 uint8_t modbus_slave_buffer[MODBUS_SLAVE_BUFFER_SIZE];
@@ -706,6 +681,41 @@ static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_siz
 
 #undef SLAVE_PDU_ERROR_EXCEPTION_SIZE
 }
+
+// For LITTLE ENDIAN ONLY
+typedef union rs485_memory_sector_u {
+  uint16_t lo;
+  uint16_t hi;
+  uint32_t block;
+} RS485_MEMORY_SECTOR;
+
+typedef struct rs485_slave_holding_register_memory_area_t {
+  //uint16_t mppt_pv_voltage; //lo: In Volts
+  //uint16_t mppt_pv_current; //hi: In Ampères  RS485_MEMORY_SECTOR sector000;
+  RS485_MEMORY_SECTOR sector000;
+
+  //uint16_t mppt_pv_power;   //lo: In Watts
+  //uint16_t mppt_pv_energy;  //hi: In kWh //  RS485_MEMORY_SECTOR sector001;
+  RS485_MEMORY_SECTOR sector001;
+
+  // Battery bank
+  //uint16_t mppt_bat_type;// lo: type
+  //uint16_t mppt_bat_voltage; // In volts
+  RS485_MEMORY_SECTOR sector003;
+
+  //uint16_t mppt_bat_current; //lo: In Ampères
+  //uint16_t mppt_bat_temp; // hi: in degrees or fahrenheit
+  RS485_MEMORY_SECTOR sector004;
+
+} RS485_HOLDING_REGISTERS_MEMORY_AREA;
+
+RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area = {0};
+
+_Static_assert(4*sizeof(uint32_t) == sizeof(RS485_HOLDING_REGISTERS_MEMORY_AREA), "Refactor RS485_HOLDING_REGISTERS_MEMORY_AREA. Must be multiple of 4");
+
+// List is 2 times greater than sectorXXX because one sector holds 2 RS485 memory address
+#define RS485_HOLDING_REGISTERS_MEMORY_AREA_SIZE (sizeof(rs485_slave_holding_register_memory_area) / sizeof(uint16_t))
+
 
 int slave_send_resp(uint8_t **data, size_t *data_size)
 {
@@ -740,29 +750,44 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
     uint16_t starting_address = read_and_swap_uint16_safe((void *)&pdu_frame->pdu_read_req.starting_address);
 
     if (((size_t)starting_address < SLAVE_READ_HOLDING_REGISTER_START_ADDRESS) ||
-      (((size_t)starting_address + (size_t)number_of_registers) > (SLAVE_READ_HOLDING_REGISTER_START_ADDRESS + SLAVE_HOLDING_REGISTER_LIST_SIZE)))
+      (((size_t)starting_address + (size_t)number_of_registers) > (SLAVE_READ_HOLDING_REGISTER_START_ADDRESS + RS485_HOLDING_REGISTERS_MEMORY_AREA_SIZE)))
     {
       _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 2);
       return E_RS485_SLAVE_MEMORY_OUT_OF_BOUNDS;
     }
 
-    void *u16_ptr_unaligned = (void *)(&pdu_frame->pdu_read_resp.status[0]);
-    uint16_t **mem_address_ptr = &slave_holding_register_list[(size_t)(starting_address - SLAVE_READ_HOLDING_REGISTER_START_ADDRESS)];
-    uint16_t **mem_address_ptr_overload = &mem_address_ptr[(size_t)number_of_registers];
+    uint16_t byte_count = (number_of_registers << 1);
 
-    do {
-      if (__atomic_load_n(&slave_rs485_rtu.lock, __ATOMIC_SEQ_CST)) {
-        _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 4);
-        return E_RS485_SLAVE_MEMORY_FORBIDDEN;
+    uint8_t *u16_ptr_unaligned = (uint8_t *)(&pdu_frame->pdu_read_resp.status[0]);
+    uint8_t *mem_address_ptr = 
+      (uint8_t *)&((uint16_t *)&rs485_slave_holding_register_memory_area.sector000)[(size_t)(starting_address - SLAVE_READ_HOLDING_REGISTER_START_ADDRESS)];
+
+#define CHECK_MEMORY_AREA_BUSY \
+      if (__atomic_load_n(&slave_rs485_rtu.lock, __ATOMIC_SEQ_CST)) { \
+        _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 4); \
+        return E_RS485_SLAVE_MEMORY_BUSY; \
       }
 
-      swap_and_move_uint16_safe(u16_ptr_unaligned, *(*mem_address_ptr));
+    if (starting_address & 1) {
+      CHECK_MEMORY_AREA_BUSY
+      // check if starting_address is even
+      swap_and_move_uint16_from_unaligned_to_unaligned_safe(u16_ptr_unaligned, (uint16_t *)mem_address_ptr);
+      mem_address_ptr += sizeof(uint16_t); // Now mem_address_ptr is multiple of 4. Waiting to receive next byte(s) (if available)
+      --number_of_registers; // One position were copied into u16_ptr_unaligned and swapped
+    }
 
-      u16_ptr_unaligned += sizeof(uint16_t);
+    while (number_of_registers > 1) {
+      CHECK_MEMORY_AREA_BUSY
 
-    } while (++mem_address_ptr < mem_address_ptr_overload);
+      swap_and_move_two_uint16_at_once_safe((void *)u16_ptr_unaligned, *((uint32_t *)mem_address_ptr));
 
-    uint16_t byte_count = (number_of_registers << 1);
+      mem_address_ptr += 4; // Advances 4 bytes (2 x uint16_t)
+      number_of_registers -= 2;
+    }
+
+    // Last uint16_t left (if exists)
+    if (number_of_registers == 1)
+      swap_and_move_uint16_safe(u16_ptr_unaligned, *((uint16_t *)mem_address_ptr));
 
     move_uint8_safe(&pdu_frame->pdu_read_resp.byte_count, (uint8_t)byte_count);
 
@@ -782,6 +807,7 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
   }
 
   return E_RS485_SLAVE_INVALID_CRC16;
+#undef CHECK_MEMORY_AREA_BUSY
 }
 
 void rs485_slave_transmit_error_callback(int error)
