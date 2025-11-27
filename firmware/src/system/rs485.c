@@ -710,11 +710,11 @@ typedef struct rs485_slave_holding_register_memory_area_t {
 } RS485_HOLDING_REGISTERS_MEMORY_AREA;
 
 RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area = {0};
-
 _Static_assert(4*sizeof(uint32_t) == sizeof(RS485_HOLDING_REGISTERS_MEMORY_AREA), "Refactor RS485_HOLDING_REGISTERS_MEMORY_AREA. Must be multiple of 4");
-
 // List is 2 times greater than sectorXXX because one sector holds 2 RS485 memory address
-#define RS485_HOLDING_REGISTERS_MEMORY_AREA_SIZE (sizeof(rs485_slave_holding_register_memory_area) / sizeof(uint16_t))
+#define RS485_HOLDING_REGISTERS_MEMORY_AREA_SIZE (sizeof(RS485_HOLDING_REGISTERS_MEMORY_AREA) / sizeof(uint16_t))
+
+RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area_read_only;
 
 
 int slave_send_resp(uint8_t **data, size_t *data_size)
@@ -759,17 +759,25 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
     uint16_t byte_count = (number_of_registers << 1);
 
     uint8_t *u16_ptr_unaligned = (uint8_t *)(&pdu_frame->pdu_read_resp.status[0]);
-    uint8_t *mem_address_ptr = 
-      (uint8_t *)&((uint16_t *)&rs485_slave_holding_register_memory_area.sector000)[(size_t)(starting_address - SLAVE_READ_HOLDING_REGISTER_START_ADDRESS)];
 
-#define CHECK_MEMORY_AREA_BUSY \
-      if (__atomic_load_n(&slave_rs485_rtu.lock, __ATOMIC_SEQ_CST)) { \
-        _set_slave_pdu_read_error_exception(data, data_size, pdu_frame, function_code, 4); \
-        return E_RS485_SLAVE_MEMORY_BUSY; \
-      }
+    starting_address -= SLAVE_READ_HOLDING_REGISTER_START_ADDRESS;
+
+    uint8_t *mem_address_ptr = 
+      (uint8_t *)&((uint16_t *)&rs485_slave_holding_register_memory_area_read_only.sector000)[(size_t)(starting_address)];
+
+    TIMEOUT_MS timeout_ms;
+    if (!sys_try_lock(&slave_rs485_rtu.lock, &timeout_ms, SLAVE_RS485_HOLDING_MEMORY_COPY_TIMEOUT_MS, NULL))
+      return E_RS485_SLAVE_COPY_MEMORY_HOLDING_ADDRESS_TIMEOUT;
+
+    memcpy(
+      (void *)mem_address_ptr,
+      (void *)&((uint16_t *)&rs485_slave_holding_register_memory_area.sector000)[(size_t)(starting_address)],
+      (size_t)byte_count
+    );
+
+    sys_unlock(&slave_rs485_rtu.lock);
 
     if (starting_address & 1) {
-      CHECK_MEMORY_AREA_BUSY
       // check if starting_address is even
       swap_and_move_uint16_from_unaligned_to_unaligned_safe(u16_ptr_unaligned, (uint16_t *)mem_address_ptr);
       mem_address_ptr += sizeof(uint16_t); // Now mem_address_ptr is multiple of 4. Waiting to receive next byte(s) (if available)
@@ -777,8 +785,6 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
     }
 
     while (number_of_registers > 1) {
-      CHECK_MEMORY_AREA_BUSY
-
       swap_and_move_two_uint16_at_once_safe((void *)u16_ptr_unaligned, *((uint32_t *)mem_address_ptr));
 
       mem_address_ptr += 4; // Advances 4 bytes (2 x uint16_t)
@@ -807,7 +813,7 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
   }
 
   return E_RS485_SLAVE_INVALID_CRC16;
-#undef CHECK_MEMORY_AREA_BUSY
+
 }
 
 void rs485_slave_transmit_error_callback(int error)

@@ -91,12 +91,19 @@ _Static_assert(SYS_QUEUE_DEINIT_TIMEOUT_MS > SYS_QUEUE_DESTROY_TIMEOUT_MS, "SYS_
 
 // ****   MASTER RS485 RTU CONFIG       ****
 #define IMPLEMENT_RS485_MASTER_OVER_UART1
-#define IMPLEMENT_RS485_SLAVE_OVER_UART2
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
  #define MASTER_RS485_TIMEOUT_MS 50
 #endif
 
+// *****************************************
+
+// ****   MASTER RS485 RTU CONFIG       ****
+#define IMPLEMENT_RS485_SLAVE_OVER_UART2
+
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+ #define SLAVE_RS485_HOLDING_MEMORY_COPY_TIMEOUT_MS 1
+#endif
 // *****************************************
 
 // ****      ERROR LOG ERRORS           ****
