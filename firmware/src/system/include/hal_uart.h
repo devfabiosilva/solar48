@@ -186,8 +186,7 @@ enum rs485_slave_speed_e {
   speed2_230_769_kbps,
   speed2_461_538_kbps,
   speed2_923_076_kbps,
-  speed2_2250_kbps,
-  speed2_4500_kbps
+  speed2_2250_kbps
 };
 
 enum rs485_slave_mode_e {
@@ -199,6 +198,8 @@ enum rs485_slave_mode_e {
  #define RS485_SLAVE_DEFAULT_SPEED speed2_115_2_kbps
 
 int init_slave_rs485(uint8_t, enum rs485_slave_speed_e, enum rs485_slave_mode_e, uint32_t, bool);
+
+void rs485_slave_start_listen();
 
 #endif
 

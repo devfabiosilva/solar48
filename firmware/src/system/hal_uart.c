@@ -592,9 +592,11 @@ void USART2_IRQHandler()
   uint32_t uart2_has_error = (status & (ORE|NE|FE|PE));
 #endif
 
+  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+
   if (uart2_has_error) {
-    USART2_CR1 &= ~(RE);  // Ensure Receive is disable
-    DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+
     __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
@@ -603,8 +605,6 @@ void USART2_IRQHandler()
   }
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
-  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
-  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
 
   if (status & IDLE) {
 
@@ -642,7 +642,7 @@ void TIM3_IRQHandler()
       else
         _RS485_SLAVE_START_LISTEN
 
-      if (__atomic_load_n(&slave_rs485_rtu.enable_listening_debug, __ATOMIC_SEQ_CST))
+      if (result != 0 && __atomic_load_n(&slave_rs485_rtu.enable_listening_debug, __ATOMIC_SEQ_CST))
         __atomic_store_n(&uart2_control.status_register, result, __ATOMIC_RELEASE);
 
       return;
