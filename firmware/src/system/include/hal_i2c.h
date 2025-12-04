@@ -4,11 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#ifdef USE_OLD
-enum i2c1_err_e hal_i2c1_write(uint8_t, uint8_t, uint8_t *data, uint16_t, uint64_t);
-#else
 enum i2c1_err_e hal_i2c1_write(uint8_t, uint8_t, uint8_t *data, uint16_t, uint32_t);
-#endif
 
 void hal_i2c1_init();
 

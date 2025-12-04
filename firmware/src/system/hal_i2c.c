@@ -6,13 +6,8 @@
 #include <hal_i2c.h>
 #include <stdbool.h>
 #include <solar48_config.h>
+#include <time.h>
 
-
-#ifdef USE_OLD
-extern volatile uint64_t milliseconds();
-#else
-  #include <time.h>
-#endif
 volatile bool i2c1_lock;
 
 void hal_i2c1_init()
@@ -49,120 +44,10 @@ void hal_i2c1_init()
 
   //26.6.2 I2C Control register 2 (I2C_CR2) page 774
   I2C1_CR2 = PCLK1_FREQ_IN_MHZ;
-  //I2C1_CR2 = ITBUFEN|ITEVTEN|ITERREN|PCLK1_FREQ_IN_MHZ; // TODO improve event handlers
-  //I2C1_CR2 = ITEVTEN|ITERREN|PCLK1_FREQ_IN_MHZ;
-/*
-  //TODO Enable interrupts when implement event handlers
-  __nvic_set_priority(I2C1_EV_IRQn, I2C1_EV_PRIO);
-  __nvic_enable_irq(I2C1_EV_IRQn);
-  __nvic_set_priority(I2C1_ER_IRQn, I2C1_ER_PRIO);
-  __nvic_enable_irq(I2C1_ER_IRQn);
-*/
+
   I2C1_CR1 |= PE;
 
 }
-
-#ifdef USE_OLD
-
-#define CHECK_I2C_NACK_OR_TIMEOUT(fn, errorCode) \
-  if (I2C1_SR1 & AF) {\
-    err = errorCode##_NACK;\
-    goto fn##_finish;\
-  }\
-\
-  if (timing <= milliseconds()) {\
-    err = errorCode##_TIMEOUT;\
-    goto fn##_finish;\
-  }
-
-//760 Page master transmitting
-enum i2c1_err_e hal_i2c1_write(uint8_t dev_address, uint8_t mem_address, uint8_t *data, uint16_t data_size, uint64_t timeout)
-{
-
-  if (data_size == 0 || data == NULL)
-    return I2C1_SUCCESS;
-
-  if (i2c1_lock)
-    return I2C1_PORT_BUSY;
-
-  i2c1_lock = true;
-
-  enum i2c1_err_e err = I2C1_SUCCESS;
-  uint64_t timing = milliseconds() + timeout;
-
-  // Check if bus is busy
-  while ((I2C1_SR2 & BUSY) && (timing > milliseconds()));
-
-  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_BUSY_BUS)
-
-  I2C1_SR1 &= ~AF; // Clear ACK Failure bit
-  I2C1_SR1 &= ~(POS); // Clear POS
-
-  // Generating start
-  I2C1_CR1 |= START;
-  while ((!(I2C1_SR1 & SB)) && (timing > milliseconds()));
-
-  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_START_BUS)
-
-  // Begin address send
-  (void)I2C1_SR1;  // Clear bit SB
-  I2C1_DR = (dev_address << 1);  // Write bit (R/W = 0)
-
-  while ((!(I2C1_SR1 & ADDR)) && (timing > milliseconds()));
-  //This bit is cleared by software reading SR1 register followed reading SR2, or by hardware when PE=0. page: 780
-  (void)I2C1_SR1;
-  (void)I2C1_SR2;
-
-  CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_ADDRESS_BUS)
-
-  I2C1_DR = (uint8_t)mem_address; // Add memory address
-  //while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
-
-  //CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
-
-  while (data_size > 0) {
-    while ((!(I2C1_SR1 & TxE)) && (timing > milliseconds())); // Waiting for ACK or timeout
-
-    CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_MEMORY_ADDRESS_BUS)
-
-    I2C1_DR = (uint8_t)*data;
-
-    --data_size;
-    ++data;
-
-    if ((I2C1_SR1 & BTF) && (data_size > 0)) {
-      I2C1_DR = (uint8_t)*data;
-
-      --data_size;
-      ++data;
-    }
-
-    while ((!(I2C1_SR1 & BTF)) && (timing > milliseconds()));
-
-    CHECK_I2C_NACK_OR_TIMEOUT(hal_i2c1_write, I2C1_ERR_DEV_STOP_BUS);
-  }
-
-hal_i2c1_write_finish:
-
-  if (err != I2C1_SUCCESS) {
-    if (I2C1_SR1 & AF) {
-      I2C1_SR1 &= ~AF;
-      I2C1_CR1 |= STOP;
-    }
-
-    i2c1_lock = false;
-
-    return err;
-  }
-
-  I2C1_CR1 |= STOP; //// Generating stop
-
-  i2c1_lock = false;
-
-  return I2C1_SUCCESS;
-}
-
-#else
 
 #define CHECK_I2C_NACK_OR_TIMEOUT(fn, errorCode) \
   if (I2C1_SR1 & AF) {\
@@ -265,39 +150,3 @@ hal_i2c1_write_finish:
   return I2C1_SUCCESS;
 }
 
-#endif
-
-//https://freertos.org/Documentation/02-Kernel/04-API-references/05-Direct-to-task-notifications/08-xTaskNotifyWait
-/*
-void I2C1_EV_IRQHandler()
-{
-  uint16_t sr = I2C1_SR1;
-
-  if (sr & SB) {
-    //EV5
-    I2C1_DR = i2c1_addr;
-  } else if (sr & ADDR) {
-    //EV6
-    I2C1_DR = i2c1_mem_address;
-  } else if (i2c1_data_size > 0) {
-    //EV8_1
-    if (sr & TxE) {
-       I2C1_DR = *(i2c1_data++);
-      --i2c1_data_size;
-    }
-  } else if (sr & TxE) {
-    //EV8_2
-    if (sr & BTF)
-      I2C1_CR1 |= STOP;
-  }
-}
-
-
-void I2C1_ER_IRQHandler()
-{
-  i2c1_error = I2C1_SR1;
-
-  I2C1_CR1 |= STOP;
-//TODO implement error handlers callback here
-}
-*/
