@@ -6,8 +6,22 @@
 #include <solar48_config.h>
 
 //#define UART_TEST
-#define RS485_TEST
+//#define RS485_TEST
 //#define UART2_TEST
+
+#define TEST_RS485_SLAVE_AND_MASTER
+
+#ifdef TEST_RS485_SLAVE_AND_MASTER
+ #include <rs485.h>
+ #include <peripheral/ssd1306/oled_utils.h>
+
+extern RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area;
+
+#define SLAVE_ADDRESS 10
+#define HLD_REG_ADDR 0x4000
+
+#endif
+
 
 #ifdef RS485_TEST
  #include <rs485.h>
@@ -77,6 +91,37 @@ void rs485_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t dat
 }
 #endif
 
+#ifdef TEST_RS485_SLAVE_AND_MASTER
+
+static void populate_and_init_uart_test()
+{
+
+  uint32_t x = 0x00020001;
+  size_t index = 0;
+  uint32_t *ptr = (uint32_t *)&rs485_slave_holding_register_memory_area.sector000;
+
+  while (index < sizeof(rs485_slave_holding_register_memory_area)/sizeof(uint32_t)) {
+    *(ptr++) = x;
+    ++index;
+    x += 0x00020002;
+  }
+
+  rs485_slave_start_listen();
+}
+
+void rs485_master_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+{
+  switch (status) {
+    case MASTER_TRANSFER_SUCCESS:
+      oled_cursor_printf(0, 50, "OK");
+      break;
+    default:
+      oled_cursor_printf(0, 50, "Fail %d", status);
+  }
+}
+
+#endif
+
 static void led_blink_task(void *params)
 {
   (void)params;
@@ -97,6 +142,11 @@ static void led_blink_task(void *params)
   MB_FUNCTION fc = WRITE_MULTIPLE_REGISTERS;
   uint16_t mem_address = 0x0102;
   uint16_t n = (uint16_t)sizeof(data);
+#endif
+
+#ifdef TEST_RS485_SLAVE_AND_MASTER
+  int status;
+  populate_and_init_uart_test();
 #endif
 
   BaseType_t uxHighWaterMark, uxHighWaterMark_max = 0;
@@ -139,6 +189,15 @@ static void led_blink_task(void *params)
     else
       oled_cursor_printf(0, 40, "RS485 error %d", (int)status);
 #endif
+
+#ifdef TEST_RS485_SLAVE_AND_MASTER
+    status = MASTER_READ_HOLDING_REGISTERS(SLAVE_ADDRESS, HLD_REG_ADDR, 8, 10, rs485_master_receive);
+    if (status == RS485_OK)
+      oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
+    else
+      oled_cursor_printf(0, 40, "RS485 error %d", (int)status);
+#endif
+
   }
 }
 

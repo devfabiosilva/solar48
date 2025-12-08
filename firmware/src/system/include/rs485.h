@@ -226,5 +226,35 @@ typedef struct solar48_rs485rtu_slave_t {
   uint32_t timeout_ms;
 } SOLAR48_RS485_RTU_SLAVE;
 
+// For LITTLE ENDIAN ONLY
+typedef union rs485_memory_sector_u {
+  uint16_t lo;
+  uint16_t hi;
+  uint32_t block;
+} RS485_MEMORY_SECTOR;
+
+typedef struct rs485_slave_holding_register_memory_area_t {
+  //uint16_t mppt_pv_voltage; //lo: In Volts
+  //uint16_t mppt_pv_current; //hi: In Ampères  RS485_MEMORY_SECTOR sector000;
+  RS485_MEMORY_SECTOR sector000;
+
+  //uint16_t mppt_pv_power;   //lo: In Watts
+  //uint16_t mppt_pv_energy;  //hi: In kWh //  RS485_MEMORY_SECTOR sector001;
+  RS485_MEMORY_SECTOR sector001;
+
+  // Battery bank
+  //uint16_t mppt_bat_type;// lo: type
+  //uint16_t mppt_bat_voltage; // In volts
+  RS485_MEMORY_SECTOR sector002;
+
+  //uint16_t mppt_bat_current; //lo: In Ampères
+  //uint16_t mppt_bat_temp; // hi: in degrees or fahrenheit
+  RS485_MEMORY_SECTOR sector003;
+
+} RS485_HOLDING_REGISTERS_MEMORY_AREA;
+
+#define MASTER_READ_HOLDING_REGISTERS(_slave_address, _start_address, _number_of_registers, _timeout, _callback) \
+master_send_req(_slave_address, READ_HOLDING_REGISTERS, _start_address, _number_of_registers, 0, 0, NULL, _timeout, _callback)
+
 #endif
 

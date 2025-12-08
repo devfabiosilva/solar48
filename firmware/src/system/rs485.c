@@ -724,40 +724,12 @@ static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_siz
 #undef SLAVE_PDU_ERROR_EXCEPTION_SIZE
 }
 
-// For LITTLE ENDIAN ONLY
-typedef union rs485_memory_sector_u {
-  uint16_t lo;
-  uint16_t hi;
-  uint32_t block;
-} RS485_MEMORY_SECTOR;
-
-typedef struct rs485_slave_holding_register_memory_area_t {
-  //uint16_t mppt_pv_voltage; //lo: In Volts
-  //uint16_t mppt_pv_current; //hi: In Ampères  RS485_MEMORY_SECTOR sector000;
-  RS485_MEMORY_SECTOR sector000;
-
-  //uint16_t mppt_pv_power;   //lo: In Watts
-  //uint16_t mppt_pv_energy;  //hi: In kWh //  RS485_MEMORY_SECTOR sector001;
-  RS485_MEMORY_SECTOR sector001;
-
-  // Battery bank
-  //uint16_t mppt_bat_type;// lo: type
-  //uint16_t mppt_bat_voltage; // In volts
-  RS485_MEMORY_SECTOR sector003;
-
-  //uint16_t mppt_bat_current; //lo: In Ampères
-  //uint16_t mppt_bat_temp; // hi: in degrees or fahrenheit
-  RS485_MEMORY_SECTOR sector004;
-
-} RS485_HOLDING_REGISTERS_MEMORY_AREA;
-
 RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area = {0};
 _Static_assert(4*sizeof(uint32_t) == sizeof(RS485_HOLDING_REGISTERS_MEMORY_AREA), "Refactor RS485_HOLDING_REGISTERS_MEMORY_AREA. Must be multiple of 4");
 // List is 2 times greater than sectorXXX because one sector holds 2 RS485 memory address
 #define RS485_HOLDING_REGISTERS_MEMORY_AREA_SIZE (sizeof(RS485_HOLDING_REGISTERS_MEMORY_AREA) / sizeof(uint16_t))
 
-RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area_read_only;
-
+static RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_area_read_only;
 
 int slave_send_resp(uint8_t **data, size_t *data_size)
 {
