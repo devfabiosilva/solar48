@@ -830,12 +830,12 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
 
 }
 
-void rs485_slave_transmit_error_callback(int error)
+void rs485_slave_transmit_callback(int error)
 {
   error_handler(error);
 }
 
-void rs485_slave_receive_error_callback(int error)
+void rs485_slave_receive_callback(int error)
 {
   error_handler(error);
 }

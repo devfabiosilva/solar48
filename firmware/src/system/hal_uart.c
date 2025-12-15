@@ -5,7 +5,7 @@
 #include <time.h>
 #include <system.h>
 #include <hal_uart.h>
-
+//TODO understand this behaviour https://community.st.com/t5/stm32-mcus-products/overrun-error-in-lpuart-when-using-hardware-flow-control/td-p/61086
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 
 #include <rs485.h>
@@ -220,6 +220,9 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
   USART1_BRR = (uint32_t)speed;
 #endif
 //  USART_GTPR =  GT(16)|0b00001; // Divide source clock by 62 * GT(val)
+
+//TODO TEST IT
+//USART1_CR2 |= STOP_val(0b10);
 
   USART1_CR3 = (
                   DMAT | // DMA enable transmitter
@@ -486,13 +489,16 @@ volatile struct uart2_control_t uart2_control = {0};
 extern uint8_t modbus_slave_buffer[];
 extern SOLAR48_RS485_RTU_SLAVE slave_rs485_rtu;
 extern int slave_send_resp(uint8_t **, size_t *);
-extern void rs485_slave_transmit_error_callback(int);
-extern void rs485_slave_receive_error_callback(int);
+extern void rs485_slave_transmit_callback(int);
+extern void rs485_slave_receive_callback(int);
 
 void uart2_receive(uint8_t *, size_t, uart_callback_func);
 static void uart2_transmit(uint8_t *, size_t, uart_callback_func);
 
-#define _RS485_SLAVE_START_LISTEN uart2_receive(&modbus_slave_buffer[0], MODBUS_SLAVE_BUFFER_SIZE, rs485_slave_receive_error_callback);
+//#define _RS485_SLAVE_START_LISTEN uart2_receive(&modbus_slave_buffer[0], MODBUS_SLAVE_BUFFER_SIZE, rs485_slave_receive_callback);
+//TODO TESTING remove macro below
+static uint8_t mbuf[2];
+#define _RS485_SLAVE_START_LISTEN uart2_receive(&mbuf[0], sizeof(mbuf), rs485_slave_receive_callback);
 
 static const struct slave_rs485_speed_t {
   uint32_t uart2_speed;
@@ -592,8 +598,8 @@ void USART2_IRQHandler()
   uint32_t uart2_has_error = (status & (ORE|NE|FE|PE));
 #endif
 
-  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
-  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+//  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+//  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
 
   if (uart2_has_error) {
 
@@ -605,6 +611,7 @@ void USART2_IRQHandler()
   }
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
+// READ Continuous communication using DMA Page 812
 
   if (status & IDLE) {
 
@@ -638,7 +645,7 @@ void TIM3_IRQHandler()
       int result = slave_send_resp(&data, &data_size);
 
       if (data)
-        uart2_transmit(data, data_size, rs485_slave_transmit_error_callback);
+        uart2_transmit(data, data_size, rs485_slave_transmit_callback);
       else
         _RS485_SLAVE_START_LISTEN
 
@@ -702,6 +709,8 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
   GPIOA_CRL &= ~(GPIOA_MODE3_VAL(0b11) | GPIOA_CNF3_VAL(0b11));
   GPIOA_CRL |= GPIOA_MODE3_VAL(0b00) | GPIOA_CNF3_VAL(0b01); // Floating input mode (reset state)
 
+//  USART2_CR1 |= UE;      // Enable UART2
+
   // Set UART 2 Speed
   //See page 798: 27.3.4 Fractional baud rate generation
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
@@ -709,6 +718,9 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
 #else
   USART2_BRR = (uint32_t)speed;
 #endif
+
+//TODO test it
+//USART2_CR2 |= STOP_val(0b10);
 
   USART2_CR3 = (
                   DMAT | // DMA enable transmitter
@@ -723,6 +735,7 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
                  TE // Transmit enable
 #else
                  //RE| // Receive enable in RS 485 Slave mode
+//                 RXNEIE|
                  IDLEIE // Idle interrupt enabled
 #endif
                );
@@ -809,8 +822,8 @@ void uart2_receive(
 #endif
 
     USART2_CR1 &= ~(RE);           // Ensure Receive is disable
-    DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
-    DMA1_CCR7 &= ~(DMA1_CCR7_EN);  // Disable DMA1_Channel7
+//    DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
+//    DMA1_CCR7 &= ~(DMA1_CCR7_EN);  // Disable DMA1_Channel7
 
     //USART2_CR1 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
     USART2_CR3 &= ~(EIE); // Disable UART2 interrupt enable before cleaning status register and data
@@ -836,7 +849,7 @@ void uart2_receive(
     // We need to use __atomic here because process_uart2_time_event is always running
     __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 6 and UART2
 
-    DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 receive
+    //DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 receive
     USART2_CR1 |= RE;  // Ensure Receive is enable
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   }
@@ -946,7 +959,7 @@ void process_uart2_time_event()
 
     switch (status_register) {
       // 0: idle mode (monitoring, transmit complete or receive complete it will do nothing for RS485 Slave mode)
-#ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
+#ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
       case 0:
 #endif
       case UART2_TRANSFER_COMPLETE:
@@ -996,8 +1009,8 @@ process_uart2_time_event_finish:
           TIM3_CNT = 0;
 #endif
 
-          DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
-          DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
+          //DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
+          //DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
           USART2_CR1 &= ~(RE);  // Ensure Receive is disable
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
           //27.6.4 Control register 1 (USART_CR1) Page: 821

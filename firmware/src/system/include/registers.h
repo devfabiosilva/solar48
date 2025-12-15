@@ -340,6 +340,7 @@ void __nvic_disable_irq(IRQn_Type);
 #define USART1_CR2 (*(volatile uint32_t *)(USART1_BASE + 0x10))
  #define LBCL (1<<8)
  #define CLKEN (1<<11)
+ #define STOP_val(val) (val << 12)
 
 // 27.6.5 Control register 2 (USART_CR2) page 823
 #define USART2_CR2 (*(volatile uint32_t *)(USART2_BASE + 0x10)) //Note: Control bits is same as USART1_CR2
@@ -402,6 +403,8 @@ void __nvic_disable_irq(IRQn_Type);
   #define DMA1_CCR6_EN (1<<0)
   #define DMA1_TCIE6 (1<<1)
   #define DMA1_TEIE6 (1<<3)
+  #define DMA1_CCR6_CIRC (1<<5)
+  #define DMA1_PINC6 (1<<6)
   #define DMA1_MINC6 (1<<7)
   #define DMA1_PL6_SEL(val) (val<<12)
 

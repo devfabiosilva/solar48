@@ -36,13 +36,13 @@ void setup()
 #ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
   init_uart1(UART1_DEFAULT_SPEED, PARITY_DISABLE);
 #else
-  init_master_rs485(speed_115_2_kbps, PARITY_DISABLE);
+  init_master_rs485(speed_115_2_kbps, PARITY_ODD2);
 #endif
 
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   init_uart2(UART2_DEFAULT_SPEED, PARITY_DISABLE2);
 #else
-  init_slave_rs485(10, speed_115_2_kbps, PARITY_DISABLE2, 100, false);
+  init_slave_rs485(10, speed2_115_2_kbps, PARITY_ODD2, 150, true);
 #endif
   hal_i2c1_init();
   init_rtc(realtime);
