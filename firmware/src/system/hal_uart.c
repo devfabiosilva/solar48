@@ -593,17 +593,18 @@ void USART2_IRQHandler()
   (void)USART2_DR;
 #else
   uint32_t status = USART2_SR;
-  (void)USART2_DR;
+  //(void)USART2_DR;
+  char ch = (char)USART2_DR;
 
   uint32_t uart2_has_error = (status & (ORE|NE|FE|PE));
 #endif
-
-//  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
-//  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
-
+/*
+  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+*/
   if (uart2_has_error) {
 
-    __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
+  //  __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
     return;
@@ -613,8 +614,13 @@ void USART2_IRQHandler()
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 // READ Continuous communication using DMA Page 812
 
-  if (status & IDLE) {
+//TODO REMOVE if block below
+  if (status & RXNE) {
+    return; // TODO ch data comes successfully if DMA1 Channel 6 is disabled
+  }
 
+  if (status & IDLE) {
+/*
     TIM3_PSC = tim3_adj_receive;
     TIM3_ARR = tim3_adj_receive - 1;
 
@@ -623,7 +629,7 @@ void USART2_IRQHandler()
     TIM3_CR1 |= CEN; // Enable Timer 3
 
     __atomic_store_n(&uart2_control.status_register, UART2_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
-
+*/
     return;
   }
 
@@ -723,8 +729,8 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
 //USART2_CR2 |= STOP_val(0b10);
 
   USART2_CR3 = (
-                  DMAT | // DMA enable transmitter
-                  DMAR | // DMA enable receiver
+//                  DMAT | // DMA enable transmitter
+//                  DMAR | // DMA enable receiver
                   EIE    // Error interrupt enable
                );
 
@@ -735,7 +741,7 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
                  TE // Transmit enable
 #else
                  //RE| // Receive enable in RS 485 Slave mode
-//                 RXNEIE|
+                 RXNEIE|
                  IDLEIE // Idle interrupt enabled
 #endif
                );
@@ -754,10 +760,10 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
 #endif
 
   USART2_CR1 |= UE;      // Enable UART2
-
+/*
   dma1_channel6_init((void *)&USART2_DR);
   dma1_channel7_init((void *)&USART2_DR);
-
+*/
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   __nvic_set_priority(TIM3_IRQn, TIM3_PRIO); // Set timer 3 priority
   __nvic_enable_irq(TIM3_IRQn); // Enable IRQ for TIMER3
@@ -822,8 +828,8 @@ void uart2_receive(
 #endif
 
     USART2_CR1 &= ~(RE);           // Ensure Receive is disable
-//    DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
-//    DMA1_CCR7 &= ~(DMA1_CCR7_EN);  // Disable DMA1_Channel7
+    DMA1_CCR6 &= ~(DMA1_CCR6_EN);  // Disable DMA1_Channel6
+    DMA1_CCR7 &= ~(DMA1_CCR7_EN);  // Disable DMA1_Channel7
 
     //USART2_CR1 &= ~(RXNEIE); // Disable UART2 interrupt enable before cleaning status register and data
     USART2_CR3 &= ~(EIE); // Disable UART2 interrupt enable before cleaning status register and data
@@ -849,7 +855,7 @@ void uart2_receive(
     // We need to use __atomic here because process_uart2_time_event is always running
     __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 6 and UART2
 
-    //DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 receive
+    DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 receive
     USART2_CR1 |= RE;  // Ensure Receive is enable
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   }
@@ -1009,8 +1015,8 @@ process_uart2_time_event_finish:
           TIM3_CNT = 0;
 #endif
 
-          //DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
-          //DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
+          DMA1_CCR7 &= ~(DMA1_CCR7_EN); // Ensure Disable DMA1_Channel7
+          DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
           USART2_CR1 &= ~(RE);  // Ensure Receive is disable
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
           //27.6.4 Control register 1 (USART_CR1) Page: 821

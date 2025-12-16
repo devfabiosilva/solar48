@@ -50,14 +50,11 @@ void dma1_channel6_init(void *peripheral_address)
   DMA1_CPAR6 = (uint32_t)peripheral_address; // Peripheral address Page 288
 
   DMA1_CCR6 |= (
-  DMA1_CCR6_CIRC|
                  DMA1_PL6_SEL(0b01) | // Priority MEDIUM
                  DMA1_MINC6 |         // Memory increment mode
                  DMA1_TCIE6 |         // Transfer complete interrupt enable
                  DMA1_TEIE6           // DMA error interrupt enable
                );
-
-DMA1_CCR6 |= DMA1_CCR6_EN;
 
   __nvic_set_priority(DMA1_Channel6_IRQn, DMA1_CH6_PRIO); // Set DMA1 Channel 6 interrupt Priority
   __nvic_enable_irq(DMA1_Channel6_IRQn); // Enable DMA1 Channel 6 interrupt
