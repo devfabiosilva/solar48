@@ -7,8 +7,10 @@ ENTRY(_solar48_entrypoint)
 /* Hardware definition for GCC compiler */
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 128K
-  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
+  /* FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 128K */
+  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 256K
+  /* RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 20K */
+  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* Top of stack */

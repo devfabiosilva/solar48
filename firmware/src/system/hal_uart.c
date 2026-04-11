@@ -598,13 +598,13 @@ void USART2_IRQHandler()
 
   uint32_t uart2_has_error = (status & (ORE|NE|FE|PE));
 #endif
-/*
-  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
-  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
-*/
+
+//  USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+//  DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Disable DMA1_Channel6
+
   if (uart2_has_error) {
 
-  //  __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
+    __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
     return;
@@ -615,12 +615,12 @@ void USART2_IRQHandler()
 // READ Continuous communication using DMA Page 812
 
 //TODO REMOVE if block below
-  if (status & RXNE) {
-    return; // TODO ch data comes successfully if DMA1 Channel 6 is disabled
-  }
+//  if (status & RXNE) {
+//    return; // TODO ch data comes successfully if DMA1 Channel 6 is disabled
+//  }
 
   if (status & IDLE) {
-/*
+/*  
     TIM3_PSC = tim3_adj_receive;
     TIM3_ARR = tim3_adj_receive - 1;
 
@@ -633,7 +633,7 @@ void USART2_IRQHandler()
     return;
   }
 
-  __atomic_store_n(&uart2_control.status_register, E_RS485_SLAVE_UART2_IRQ_ERROR, __ATOMIC_RELEASE);
+  //__atomic_store_n(&uart2_control.status_register, E_RS485_SLAVE_UART2_IRQ_ERROR, __ATOMIC_RELEASE);
 
 #endif
 }
@@ -729,8 +729,8 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
 //USART2_CR2 |= STOP_val(0b10);
 
   USART2_CR3 = (
-//                  DMAT | // DMA enable transmitter
-//                  DMAR | // DMA enable receiver
+                  DMAT | // DMA enable transmitter
+                  DMAR | // DMA enable receiver
                   EIE    // Error interrupt enable
                );
 
@@ -741,7 +741,7 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
                  TE // Transmit enable
 #else
                  //RE| // Receive enable in RS 485 Slave mode
-                 RXNEIE|
+                 //RXNEIE|
                  IDLEIE // Idle interrupt enabled
 #endif
                );
@@ -760,10 +760,10 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
 #endif
 
   USART2_CR1 |= UE;      // Enable UART2
-/*
+
   dma1_channel6_init((void *)&USART2_DR);
   dma1_channel7_init((void *)&USART2_DR);
-*/
+
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   __nvic_set_priority(TIM3_IRQn, TIM3_PRIO); // Set timer 3 priority
   __nvic_enable_irq(TIM3_IRQn); // Enable IRQ for TIMER3
