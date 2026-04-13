@@ -43,6 +43,7 @@ void setup()
   init_uart2(UART2_DEFAULT_SPEED, PARITY_DISABLE2);
 #else
   init_slave_rs485(10, speed2_115_2_kbps, PARITY_DISABLE2, 150, true);
+  //init_slave_rs485_test(10, speed2_115_2_kbps, PARITY_DISABLE2); //TODO remove after test
 #endif
   hal_i2c1_init();
   init_rtc(realtime);

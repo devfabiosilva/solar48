@@ -88,7 +88,7 @@
 #define IOPBEN (1<<3)
 #define IOPAEN (1<<2)
 #define AFIOEN (1<<0)
-#define ADC1EN (1<<9)
+//#define ADC1EN (1<<9)
 //END Clock->RCC_APB2ENR
 
 //BEGIN Clock->RCC_APB1ENR (Page 115)
@@ -351,7 +351,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define NACK (1<<4)
   #define SCEN (1<<5)
   #define DMAT (1<<7)
-  #define DMAR (1<<8)
+  #define DMAR (1<<6) // BUG FOUND. Was marked as 8 but correct value is 6
 
 //27.6.6 Control register 3 (USART_CR3) page 824
 #define USART2_CR3 (*(volatile uint32_t *)(USART2_BASE + 0x14)) // NOTE: Control bits are same as USART1_CR3
@@ -406,6 +406,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define DMA1_CCR6_CIRC (1<<5)
   #define DMA1_PINC6 (1<<6)
   #define DMA1_MINC6 (1<<7)
+  #define DMA1_CCR6_PSIZE(val) (val<<8)
   #define DMA1_PL6_SEL(val) (val<<12)
 
 #define DMA1_CPAR6 DMA1_CPARx(6)

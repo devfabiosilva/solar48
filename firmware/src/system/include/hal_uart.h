@@ -198,6 +198,7 @@ enum rs485_slave_mode_e {
  #define RS485_SLAVE_DEFAULT_SPEED speed2_115_2_kbps
 
 int init_slave_rs485(uint8_t, enum rs485_slave_speed_e, enum rs485_slave_mode_e, uint32_t, bool);
+//int init_slave_rs485_test(uint8_t slave_address, enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode); // TODO remove. Test mode only
 
 void rs485_slave_start_listen();
 

@@ -11,8 +11,8 @@
  #define RTC_PRIO      6              // Internal interrupt has more priority than external interrupt
  #define DMA1_CH4_PRIO 7              // Used in UART1 TX for ModBus Master
  #define DMA1_CH5_PRIO DMA1_CH4_PRIO  // Used in UART1 RX for ModBus Master
- #define DMA1_CH6_PRIO 8              // Used in UART1 RX for ModBus Slave
- #define DMA1_CH7_PRIO DMA1_CH6_PRIO  // Used in UART1 TX for ModBus Slave
+ #define DMA1_CH6_PRIO 8              // Used in UART2 RX for ModBus Slave
+ #define DMA1_CH7_PRIO DMA1_CH6_PRIO  // Used in UART2 TX for ModBus Slave
  #define UART1_PRIO    9
  #define UART2_PRIO    10
  #define USB_PRIO      11
