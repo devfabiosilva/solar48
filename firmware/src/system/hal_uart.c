@@ -84,6 +84,7 @@ void DMA1_Channel4_IRQHandler()
   }
 }
 
+/*
 // DMA1 for UART1 Rx events IRQ
 void DMA1_Channel5_IRQHandler()
 {
@@ -145,8 +146,36 @@ void DMA1_Channel5_IRQHandler()
   }
 
 }
+*/
+// DMA1 for UART1 Rx events IRQ
+void DMA1_Channel5_IRQHandler()
+{
+  uint32_t dma1_ch5_sr = DMA1_ISR;
+
+  // Clear Channel 4 global interrupts status registers
+  DMA1_IFCR = (CTEIF5|CHTIF5|CTCIF5|CGIF5);
+
+  DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+
+  // DMA1 error on receive
+  if (dma1_ch5_sr & TEIF5) {
+    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH5_RECEIVE_ERROR, __ATOMIC_RELEASE);
+    return;
+  }
+
+  // Receive complete
+  if (dma1_ch5_sr & TCIF5) {
+#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+    __atomic_store_n(&uart1_control.status_register, E_RS485_MASTER_DMA5_BUFFER_OVERFLOW, __ATOMIC_RELEASE);
+#else
+    __atomic_store_n(&uart1_control.status_register, UART1_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
+#endif
+  }
+
+}
 
 //Table 196. USART interrupt requests page 816
+/*
 void USART1_IRQHandler()
 {
   // Clear any status register
@@ -159,8 +188,26 @@ void USART1_IRQHandler()
     __atomic_store_n(&uart1_control.status_register, E_UART1_RECEIVE_ERROR_BASE | uart1_has_error, __ATOMIC_RELEASE);
   }
 }
+*/
+void USART1_IRQHandler()
+{
+  // Clear any status register
+  uint32_t status = USART1_SR;
+  (void)USART1_DR;
+  uint32_t uart1_has_error = (status & (ORE|NE|FE|PE));
+
+  if (uart1_has_error) {
+    USART1_CR1 &= ~(RE);  // Ensure Receive is disable
+    DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+    __atomic_store_n(&uart1_control.status_register, E_UART1_RECEIVE_ERROR_BASE | uart1_has_error, __ATOMIC_RELEASE);
+  }
+
+  if (status & IDLE)
+    __atomic_store_n(&uart1_control.status_register, UART1_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
+}
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
+/*
 void TIM2_IRQHandler()
 {
   if (TIM2_SR & UIF) {
@@ -168,6 +215,17 @@ void TIM2_IRQHandler()
     TIM2_SR &= ~(UIF);
 
     uart1_receive(modbus_master_buffer, (size_t)master_rs485_rtu.first_pass_len, _master_receive, master_rs485_rtu.timeout_ms);
+  }
+}
+*/
+
+void TIM2_IRQHandler()
+{
+  if (TIM2_SR & UIF) {
+
+    TIM2_SR &= ~(UIF);
+
+    uart1_receive(modbus_master_buffer, (size_t)MODBUS_MASTER_BUFFER_SIZE, _master_receive, master_rs485_rtu.timeout_ms);
   }
 }
 #endif
@@ -221,8 +279,6 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
 #endif
 //  USART_GTPR =  GT(16)|0b00001; // Divide source clock by 62 * GT(val)
 
-//TODO TEST IT
-//USART1_CR2 |= STOP_val(0b10);
 
   USART1_CR3 = (
                   DMAT | // DMA enable transmitter
@@ -237,6 +293,7 @@ void init_master_rs485(enum rs485_master_speed_e speed, enum rs485_master_mode_e
                  /*PCE|M|*/  //Parit control enable and stop bit + 9 bit
                  /*RE|*/
                  /*PEIE|*/ // Parity error interrupt enabled
+                 IDLEIE|
                  TE // Transmit enable
                );
 
@@ -496,11 +553,6 @@ void uart2_receive(uint8_t *, size_t, uart_callback_func);
 static void uart2_transmit(uint8_t *, size_t, uart_callback_func);
 
 #define _RS485_SLAVE_START_LISTEN uart2_receive(&modbus_slave_buffer[0], MODBUS_SLAVE_BUFFER_SIZE, rs485_slave_receive_callback);
-//TODO TESTING remove macro below
-//static uint8_t mbuf[8] = {0}; // Test
-// TODO test only. Remove _RS485_SLAVE_START_LISTEN below
-//#define _RS485_SLAVE_START_LISTEN
-//#define _RS485_SLAVE_START_LISTEN uart2_receive(&mbuf[0], sizeof(mbuf), rs485_slave_receive_callback);
 
 static const struct slave_rs485_speed_t {
   uint32_t uart2_speed;
@@ -595,8 +647,7 @@ void USART2_IRQHandler()
   (void)USART2_DR;
 #else
   uint32_t status = USART2_SR;
-  //(void)USART2_DR;
-  char ch = 0;//(char)USART2_DR;
+  (void)USART2_DR;
 
   uint32_t uart2_has_error = (status & (ORE|NE|FE|PE));
 #endif
@@ -612,11 +663,6 @@ void USART2_IRQHandler()
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
 // READ Continuous communication using DMA Page 812
-
-//TODO REMOVE if block below
-//  if (status & RXNE) {
-//    return; // TODO ch data comes successfully if DMA1 Channel 6 is disabled
-//  }
 
   if (status & IDLE) {
   
@@ -724,9 +770,6 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
   USART2_BRR = (uint32_t)speed;
 #endif
 
-//TODO test it
-//USART2_CR2 |= STOP_val(0b10);
-
   USART2_CR3 = (
                   DMAT | // DMA enable transmitter
                   DMAR | // DMA enable receiver
@@ -786,89 +829,6 @@ int init_slave_rs485(uint8_t slave_address, enum rs485_slave_speed_e speed, enum
   return err;
 #endif
 }
-
-///
-//TODO REMOVE. For test only
-/*
-int init_slave_rs485_test(uint8_t slave_address, enum rs485_slave_speed_e speed, enum rs485_slave_mode_e mode)
-{
-  // 7.3.7 - APB2 peripheral clock enable register (RCC_APB2ENR) Page 112
-  RCC_APB2ENR |= (IOPAEN|AFIOEN);   // Enables GPIOA. Page 113
-  RCC_APB1ENR |= USART2EN; // Enables USART2. Page 115
-
-__asm("nop"); __asm("nop");
-
-  // 7.3.6 AHB peripheral clock enable register (RCC_AHBENR) Page 111
-  RCC_AHBENR |= DMA1EN;
-
-  __nvic_set_priority(DMA1_Channel6_IRQn, DMA1_CH6_PRIO); // Set DMA1 Channel 6 interrupt Priority
-  __nvic_enable_irq(DMA1_Channel6_IRQn); // Enable DMA1 Channel 6 interrupt
-
-  __nvic_set_priority(USART2_IRQn, UART2_PRIO);
-  __nvic_enable_irq(USART2_IRQn);
-
-  // ---- Configure GPIOA TX ----
-  // PA2 = TX (AF push-pull), PA3 = RX (input floating)
-  //9.2.1 Port configuration register low (GPIOx_CRL) (x=A..G) Page 171
-  GPIOA_CRL &= ~(GPIOA_MODE2_VAL(0b11) | GPIOA_CNF2_VAL(0b11));
-  GPIOA_CRL |= GPIOA_MODE2_VAL(0b11) | GPIOA_CNF2_VAL(0b10); // Output mode, max speed 50 MHz and Alternate function output Push-pull
-
-  // ---- Configure GPIOA RX ----
-  // PA2 = TX (AF push-pull), PA3 = RX (input floating)
-  //9.2.1 Port configuration register low (GPIOx_CRL) (x=A..G) Page 171
-  GPIOA_CRL &= ~(GPIOA_MODE3_VAL(0b11) | GPIOA_CNF3_VAL(0b11));
-  GPIOA_CRL |= GPIOA_MODE3_VAL(0b00) | GPIOA_CNF3_VAL(0b01); // Floating input mode (reset state)
-
-USART2_CR1 &= ~(UE | RE);
-DMA1_CCR6 &= ~DMA1_CCR6_EN;
-
-DMA1_IFCR = (CTEIF6|CHTIF6|CTCIF6|CGIF6);
-
-
-  // Set UART 2 Speed
-  //See page 798: 27.3.4 Fractional baud rate generation
-  USART2_BRR = SLAVE_RS485_SPEED[speed].uart2_speed;
-
-  USART2_CR3 |= (
-                  //DMAT | // DMA enable transmitter
-                  DMAR | // DMA enable receiver
-                  EIE    // Error interrupt enable
-               );
-
-  //27.6.4 Control register 1 (USART_CR1) Page: 821f
-  USART2_CR1 |= (
-                 ((uint32_t)mode)
-                 //RE | // Receive enable in RS 485 Slave mode
-                 //RXNEIE|
-                 //IDLEIE // Idle interrupt enabled
-               );
-
-  //DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Before configure. Disable DMA1 Page 286
-  DMA1_CPAR6 = (uint32_t)&USART2_DR; // Peripheral address Page 288
-  DMA1_CMAR6 = (uint32_t)&mbuf[0]; // Memory address Page 288
-  DMA1_CNDTR6 = (uint16_t)sizeof(mbuf); // Memory size
-  DMA1_CCR6 |= DMA1_PL6_SEL(0b01);
-  DMA1_CCR6 |= (
-                 DMA1_MINC6 |         // Memory increment mode
-                 //DMA1_PINC6 |// Test
-                 //DMA1_CCR6_CIRC | // TEST
-                 //DMA1_CCR6_PSIZE(0b10)| // TEST
-                 DMA1_TCIE6 |         // Transfer complete interrupt enable
-                 DMA1_TEIE6           // DMA error interrupt enable
-               );
-
-  (void)USART2_SR;
-  (void)USART2_DR;
-
-  DMA1_CCR6 |= DMA1_CCR6_EN; // Enable DMA1 Channel 6 for UART2
-
-  USART2_CR1 |= UE;      // Enable UART2
-  USART2_CR1 |= RE;
-
-  return 0;
-}
-*/
-///
 
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
 inline bool uart2_is_busy()

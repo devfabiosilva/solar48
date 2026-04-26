@@ -14,7 +14,7 @@
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 
 // master mode
-uint8_t modbus_master_buffer[MODBUS_ADU_MAX_SIZE];
+uint8_t modbus_master_buffer[MODBUS_MASTER_BUFFER_SIZE];
 SOLAR48_RS485_RTU master_rs485_rtu = {0};
 static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
 
@@ -149,11 +149,13 @@ static int master_prepare_to_send(
 
 master_prepare_to_send_write:
 
+//TODO TO BE REMOVED DEPRECATED REMOVE
   master_rs485_rtu.first_pass = &frame->pdu_write_resp.function_code;
   master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
   master_rs485_rtu.second_pass = (uint8_t *)&frame->pdu_write_resp.starting_address;
   master_rs485_rtu.second_pass_len = 4; // 2 bytes + 2 bytes
   master_rs485_rtu.transfer_left_data_limit = 0; // Disable. Receive is only size of first_pass_len + second_pass_len or error packed size
+//TODO TO BE REMOVED DEPRECATED REMOVE
 
   move_uint8_safe(&frame->pdu_write_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_write_req.starting_address, mem_address); // Big endian
@@ -704,7 +706,7 @@ int master_send_req(
 _Static_assert(((SLAVE_READ_HOLDING_REGISTER_START_ADDRESS & 1) == 0), "SLAVE_READ_HOLDING_REGISTER_START_ADDRESS must be odd");
 
 // slave mode
-uint8_t modbus_slave_buffer[MODBUS_SLAVE_BUFFER_SIZE];
+uint8_t modbus_slave_buffer[MODBUS_SLAVE_BUFFER_SIZE] = {0};
 SOLAR48_RS485_RTU_SLAVE slave_rs485_rtu = {0};
 
 static void _set_slave_pdu_read_error_exception(uint8_t **data, size_t *data_size, PDU_FRAME *pdu_frame, uint8_t function_code, uint8_t exception_code)
@@ -733,6 +735,13 @@ static RS485_HOLDING_REGISTERS_MEMORY_AREA rs485_slave_holding_register_memory_a
 
 int slave_send_resp(uint8_t **data, size_t *data_size)
 {
+
+//TODO TEST ONLY. REMOVE
+  rs485_slave_holding_register_memory_area.sector000.block = 0x00010203;
+  rs485_slave_holding_register_memory_area.sector001.block = 0x04050607;
+  rs485_slave_holding_register_memory_area.sector002.block = 0x08090a0b;
+  rs485_slave_holding_register_memory_area.sector003.block = 0x0c0d0e0f;
+//TODO END TEST. REMOVE
   *data = NULL;
 
   if (modbus_slave_buffer[0] != slave_rs485_rtu.slave_address)
@@ -795,6 +804,7 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
       // check if starting_address is even
       swap_and_move_uint16_from_unaligned_to_unaligned_safe(u16_ptr_unaligned, (uint16_t *)mem_address_ptr);
       mem_address_ptr += sizeof(uint16_t); // Now mem_address_ptr is multiple of 4. Waiting to receive next byte(s) (if available)
+      u16_ptr_unaligned += sizeof(uint16_t); // Now u16_ptr_unaligned is multiple of 4. Waiting to receive next byte(s) (if available)
       --number_of_registers; // One position were copied into u16_ptr_unaligned and swapped
     }
 
@@ -802,6 +812,7 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
       swap_and_move_two_uint16_at_once_safe((void *)u16_ptr_unaligned, *((uint32_t *)mem_address_ptr));
 
       mem_address_ptr += 4; // Advances 4 bytes (2 x uint16_t)
+      u16_ptr_unaligned += 4; // Advances 4 bytes (2 x uint16_t)
       number_of_registers -= 2;
     }
 
@@ -811,9 +822,10 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
 
     move_uint8_safe(&pdu_frame->pdu_read_resp.byte_count, (uint8_t)byte_count);
 
-    #define SLAVE_PDU_READ_RESP_SIZE (size_t)(1 + &((struct pdu_read_resp_t *)NULL)->status[0])
-    byte_count += (uint16_t)SLAVE_PDU_READ_RESP_SIZE;
-    #undef SLAVE_PDU_READ_RESP_SIZE
+    //#define SLAVE_PDU_READ_RESP_SIZE (size_t)(1 + &((struct pdu_read_resp_t *)NULL)->status[0])
+    //byte_count += (uint16_t)SLAVE_PDU_READ_RESP_SIZE;
+    byte_count += 3; // Before check crc16 add 3 bytes (start address + function code + count)
+    //#undef SLAVE_PDU_READ_RESP_SIZE
 
     *data = &modbus_slave_buffer[0];
 

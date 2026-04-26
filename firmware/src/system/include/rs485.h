@@ -17,6 +17,7 @@
 
 // +1 is about DMA1 receive mode (error overflow receive detect)
 #define MODBUS_SLAVE_BUFFER_SIZE (MODBUS_ADU_MAX_SIZE + 1)
+#define MODBUS_MASTER_BUFFER_SIZE (MODBUS_ADU_MAX_SIZE + 1)
 
 // Modbus_Application_Protocol_V1_1b.pdf 
 // 5.1 Public Function Code Definition Page 11
@@ -227,10 +228,14 @@ typedef struct solar48_rs485rtu_slave_t {
 } SOLAR48_RS485_RTU_SLAVE;
 
 // For LITTLE ENDIAN ONLY
-typedef union rs485_memory_sector_u {
-  uint16_t lo;
-  uint16_t hi;
-  uint32_t block;
+typedef struct rs485_memory_sector_u {
+  union {
+    uint32_t block;
+    struct {
+      uint16_t lo;
+      uint16_t hi;
+    };
+  };
 } RS485_MEMORY_SECTOR;
 
 typedef struct rs485_slave_holding_register_memory_area_t {
