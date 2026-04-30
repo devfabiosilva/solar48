@@ -631,9 +631,8 @@ void DMA1_Channel7_IRQHandler()
     TIM3_CNT = 0;
     TIM3_CR1 |= CEN; // Enable Timer 3
 
-#else
-    __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
 #endif
+    __atomic_store_n(&uart2_control.status_register, UART2_TRANSFER_COMPLETE, __ATOMIC_RELEASE);
 
   }
 }
@@ -654,6 +653,8 @@ void USART2_IRQHandler()
 
   if (uart2_has_error) {
 
+    DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
+    USART2_CR1 &= ~(RE);  // Ensure Receive is disable
     __atomic_store_n(&uart2_control.status_register, E_UART2_RECEIVE_ERROR_BASE | uart2_has_error, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
@@ -665,7 +666,10 @@ void USART2_IRQHandler()
 // READ Continuous communication using DMA Page 812
 
   if (status & IDLE) {
-  
+
+    DMA1_CCR6 &= ~(DMA1_CCR6_EN); // Ensure Disable DMA1_Channel6
+    USART2_CR1 &= ~(RE);  // Ensure Receive is disable
+
     TIM3_PSC = tim3_adj_receive;
     TIM3_ARR = tim3_adj_receive - 1;
 
@@ -690,23 +694,26 @@ void TIM3_IRQHandler()
 
     TIM3_SR &= ~(UIF);
 
-    if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == UART2_RECEIVE_COMPLETE) {
+    int status = __atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST);
+
+    if (status == UART2_RECEIVE_COMPLETE) {
       uint8_t *data;
       size_t data_size;
       int result = slave_send_resp(&data, &data_size);
 
       if (data)
         uart2_transmit(data, data_size, rs485_slave_transmit_callback);
+      else if (result == 0)
+        _RS485_SLAVE_START_LISTEN
+      else if (__atomic_load_n(&slave_rs485_rtu.enable_listening_debug, __ATOMIC_SEQ_CST))
+        __atomic_store_n(&uart2_control.status_register, result, __ATOMIC_RELEASE);
       else
         _RS485_SLAVE_START_LISTEN
-
-      if (result != 0 && __atomic_load_n(&slave_rs485_rtu.enable_listening_debug, __ATOMIC_SEQ_CST))
-        __atomic_store_n(&uart2_control.status_register, result, __ATOMIC_RELEASE);
 
       return;
     }
 
-    if (__atomic_load_n(&uart2_control.status_register, __ATOMIC_SEQ_CST) == UART2_TRANSFER_COMPLETE) {
+    if (status == UART2_TRANSFER_COMPLETE) {
       _RS485_SLAVE_START_LISTEN
       return;
     }
@@ -974,12 +981,13 @@ static void uart2_transmit(
   // We need to use __atomic here because process_uart2_time_event is always running
   __atomic_store_n(&uart2_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 7
 
+
+  DMA1_CCR7 |= DMA1_CCR7_EN; // Enable DMA1 Channel 7 transmit
+
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2
   //27.6.4 Control register 1 (USART_CR1) Page: 821
   USART2_CR1 |= TE; // Enable Transmit
 #endif
-
-  DMA1_CCR7 |= DMA1_CCR7_EN; // Enable DMA1 Channel 7 transmit
 
 #ifndef IMPLEMENT_RS485_SLAVE_OVER_UART2
   return UART2_OK;
