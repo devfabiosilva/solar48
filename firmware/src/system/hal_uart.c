@@ -200,6 +200,7 @@ void USART1_IRQHandler()
     USART1_CR1 &= ~(RE);  // Ensure Receive is disable
     DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
     __atomic_store_n(&uart1_control.status_register, E_UART1_RECEIVE_ERROR_BASE | uart1_has_error, __ATOMIC_RELEASE);
+    return;
   }
 
   if (status & IDLE)
@@ -477,6 +478,7 @@ void process_uart1_time_event()
            goto process_uart1_time_event_timeout_error;
         // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event or execute error on timeout
         break;
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
       case UART1_RECEIVE_COMPLETE:
           if (USART1_SR & RXNE)
             goto process_uart1_time_event_finish;
@@ -484,6 +486,7 @@ void process_uart1_time_event()
           if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
             goto process_uart1_time_event_timeout_error;
         break;
+#endif
       default:
 
         if (status_register) // Unknown error
