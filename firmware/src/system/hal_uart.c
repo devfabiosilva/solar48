@@ -946,7 +946,7 @@ static void uart2_transmit(
 #else
    SLAVE_RS485_DRIVER_TRANSMIT_MODE
 #endif
-   // We need to use __atomic here because process_uart1_time_event is always running
+   // We need to use __atomic here because process_uart2_time_event is always running
    __atomic_store_n(&uart2_control.start_monitore, false, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_SLAVE_OVER_UART2

@@ -149,14 +149,6 @@ static int master_prepare_to_send(
 
 master_prepare_to_send_write:
 
-//TODO TO BE REMOVED DEPRECATED REMOVE
-  master_rs485_rtu.first_pass = &frame->pdu_write_resp.function_code;
-  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
-  master_rs485_rtu.second_pass = (uint8_t *)&frame->pdu_write_resp.starting_address;
-  master_rs485_rtu.second_pass_len = 4; // 2 bytes + 2 bytes
-  master_rs485_rtu.transfer_left_data_limit = 0; // Disable. Receive is only size of first_pass_len + second_pass_len or error packed size
-//TODO TO BE REMOVED DEPRECATED REMOVE
-
   move_uint8_safe(&frame->pdu_write_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_write_req.starting_address, mem_address); // Big endian
   swap_and_move_uint16_safe(&frame->pdu_write_req.number_of_registers, n); // Big endian
@@ -180,12 +172,6 @@ master_prepare_to_send_write:
 
 master_prepare_to_send_write_discrete:
 
-  master_rs485_rtu.first_pass = &frame->pdu_write_discrete_resp.function_code;
-  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
-  master_rs485_rtu.second_pass = (uint8_t *)&frame->pdu_write_discrete_resp.output_address_or_register_address;
-  master_rs485_rtu.second_pass_len = 4; // 2 bytes + 2 bytes
-  master_rs485_rtu.transfer_left_data_limit = 0; // Disable. Receive is only size of first_pass_len + second_pass_len or error packed size
-
   move_uint8_safe(&frame->pdu_write_discrete_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_write_discrete_req.output_address_or_register_address, mem_address); // Big endian
   swap_and_move_uint16_safe(&frame->pdu_write_discrete_req.output_value_or_register_value, n); // Big endian
@@ -202,12 +188,6 @@ master_prepare_to_send_read_register:
 
   if (n < 1 || n > 125)
     return error_on_invalid_n;
-
-  master_rs485_rtu.first_pass = &frame->pdu_read_resp.function_code;
-  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
-  master_rs485_rtu.second_pass = &frame->pdu_read_resp.byte_count;
-  master_rs485_rtu.second_pass_len = 1; // 1 byte count
-  master_rs485_rtu.transfer_left_data_limit = 250; // 250 + 3 + 2 (crc) = 255. Guard: Don't trust, verify
 
   move_uint8_safe(&frame->pdu_read_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_read_req.starting_address, mem_address); // Big endian
@@ -229,12 +209,6 @@ master_prepare_to_send_read_discrete:
   m = n >> 3; // Divide by 8
   if (n & 7) // Remainder
     ++m;
-
-  master_rs485_rtu.first_pass = &frame->pdu_read_discrete_resp.function_code;
-  master_rs485_rtu.first_pass_len = 2; // 1 (addr) + 1 (response code)
-  master_rs485_rtu.second_pass = &frame->pdu_read_discrete_resp.byte_count;
-  master_rs485_rtu.second_pass_len = 1; // 1 byte count
-  master_rs485_rtu.transfer_left_data_limit = 250; // 250 + 3 + 2 (crc) = 255. Guard: Don't trust, verify
 
   move_uint8_safe(&frame->pdu_read_discrete_req.function_code, function);
   swap_and_move_uint16_safe(&frame->pdu_read_discrete_req.starting_address, mem_address); // Big endian
