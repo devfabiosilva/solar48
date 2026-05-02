@@ -334,7 +334,7 @@ void __nvic_disable_irq(IRQn_Type);
   #define M (1<<12)
   #define UE (1<<13)
 
-#define USART2_CR1 (*(volatile uint32_t *)(USART2_BASE + 0x0C)) //27.6.4 Control register 1 (USART_CR1) page 821. Note. Control bits are same as USART1_CR1
+#define USART2_CR1 (*(volatile uint32_t *)(USART2_BASE + 0x0C)) //27.6.4 Control register 1 (USART_CR1) page 821. Note. Control bits are same as USART2_CR1
 
 // 27.6.5 Control register 2 (USART_CR2) page 823
 #define USART1_CR2 (*(volatile uint32_t *)(USART1_BASE + 0x10))

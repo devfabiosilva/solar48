@@ -62,7 +62,7 @@ void DMA1_Channel4_IRQHandler()
   // Clear Channel 4 global interrupts status registers
   DMA1_IFCR = (CTEIF4|CHTIF4|CTCIF4|CGIF4);
 
-  DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
+  //DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4
 
   // DMA1 error on transfer
   if (dma1_ch4_sr & TEIF4) {
@@ -84,78 +84,15 @@ void DMA1_Channel4_IRQHandler()
   }
 }
 
-/*
 // DMA1 for UART1 Rx events IRQ
 void DMA1_Channel5_IRQHandler()
 {
   uint32_t dma1_ch5_sr = DMA1_ISR;
 
-  // Clear Channel 4 global interrupts status registers
+  // Clear Channel 5 global interrupts status registers
   DMA1_IFCR = (CTEIF5|CHTIF5|CTCIF5|CGIF5);
 
-  DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
-
-  // DMA1 error on receive
-  if (dma1_ch5_sr & TEIF5) {
-    __atomic_store_n(&uart1_control.status_register, E_UART1_DMA1_CH5_RECEIVE_ERROR, __ATOMIC_RELEASE);
-    return;
-  }
-
-  // Receive complete
-  if (dma1_ch5_sr & TCIF5) {
-#ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-    if (master_rs485_rtu.first_pass) {
-
-      DMA1_CMAR5 = (uint32_t)master_rs485_rtu.second_pass; // Memory address Page 288
-
-      if (read_uint8(master_rs485_rtu.first_pass) < 0x81) {
-
-        DMA1_CNDTR5 = (uint16_t)master_rs485_rtu.second_pass_len; // Memory size
-
-        if (master_rs485_rtu.transfer_left_data_limit == 0)
-          master_rs485_rtu.second_pass = NULL;
-
-      } else {
-
-        DMA1_CNDTR5 = 3; // 1 (exception code) +  2 (crc)
-        master_rs485_rtu.second_pass = NULL;
-
-      }
-
-      master_rs485_rtu.first_pass = NULL;
-      DMA1_CCR5 |= (DMA1_CCR5_EN); // Enable again to second pass or exception
-
-    } else if (master_rs485_rtu.second_pass) {
-
-      DMA1_CMAR5 = (uint32_t)&master_rs485_rtu.second_pass[1]; // Memory address Page 288
-
-      uint8_t data_sz = read_uint8(master_rs485_rtu.second_pass);
-
-      if (data_sz > master_rs485_rtu.transfer_left_data_limit)
-        data_sz = master_rs485_rtu.transfer_left_data_limit; // Guard: Security
-
-      DMA1_CNDTR5 = (uint16_t)(data_sz + 2); // rest of the data plus crc (2 bytes)
-
-      master_rs485_rtu.second_pass = NULL;
-      DMA1_CCR5 |= (DMA1_CCR5_EN); // Enable again to second pass or exception
-
-    } else
-#endif
-    __atomic_store_n(&uart1_control.status_register, UART1_RECEIVE_COMPLETE, __ATOMIC_RELEASE);
-
-  }
-
-}
-*/
-// DMA1 for UART1 Rx events IRQ
-void DMA1_Channel5_IRQHandler()
-{
-  uint32_t dma1_ch5_sr = DMA1_ISR;
-
-  // Clear Channel 4 global interrupts status registers
-  DMA1_IFCR = (CTEIF5|CHTIF5|CTCIF5|CGIF5);
-
-  DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+  //DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
 
   // DMA1 error on receive
   if (dma1_ch5_sr & TEIF5) {
@@ -175,20 +112,6 @@ void DMA1_Channel5_IRQHandler()
 }
 
 //Table 196. USART interrupt requests page 816
-/*
-void USART1_IRQHandler()
-{
-  // Clear any status register
-  uint32_t uart1_has_error = (USART1_SR & (ORE|NE|FE|PE));
-  (void)USART1_DR;
-
-  if (uart1_has_error) {
-    USART1_CR1 &= ~(RE);  // Ensure Receive is disable
-    DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
-    __atomic_store_n(&uart1_control.status_register, E_UART1_RECEIVE_ERROR_BASE | uart1_has_error, __ATOMIC_RELEASE);
-  }
-}
-*/
 void USART1_IRQHandler()
 {
   // Clear any status register
@@ -197,8 +120,8 @@ void USART1_IRQHandler()
   uint32_t uart1_has_error = (status & (ORE|NE|FE|PE));
 
   if (uart1_has_error) {
-    USART1_CR1 &= ~(RE);  // Ensure Receive is disable
-    DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
+    //USART1_CR1 &= ~(RE);  // Ensure Receive is disable
+    //DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5
     __atomic_store_n(&uart1_control.status_register, E_UART1_RECEIVE_ERROR_BASE | uart1_has_error, __ATOMIC_RELEASE);
     return;
   }
@@ -208,17 +131,6 @@ void USART1_IRQHandler()
 }
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-/*
-void TIM2_IRQHandler()
-{
-  if (TIM2_SR & UIF) {
-
-    TIM2_SR &= ~(UIF);
-
-    uart1_receive(modbus_master_buffer, (size_t)master_rs485_rtu.first_pass_len, _master_receive, master_rs485_rtu.timeout_ms);
-  }
-}
-*/
 
 void TIM2_IRQHandler()
 {
@@ -358,6 +270,7 @@ uart1_receive(
     MASTER_RS485_DRIVER_RECEIVE_MODE
 #endif
 
+//    USART1_CR1 &= ~(TE);
     USART1_CR1 &= ~(RE);           // Ensure Receive is disable
     DMA1_CCR5 &= ~(DMA1_CCR5_EN);  // Disable DMA1_Channel5
     DMA1_CCR4 &= ~(DMA1_CCR4_EN);  // Disable DMA1_Channel4
@@ -414,14 +327,15 @@ enum uart1_status_t uart1_transmit(
    __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE);
 
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
-//  USART1_CR1 &= ~(TCIE);
   // Prepare MAX485 driver transmit mode
   MASTER_RS485_DRIVER_TRANSMIT_MODE
 #endif
 
+  //USART1_CR1 &= ~(TE);
+  USART1_CR1 &= ~(RE);           // Ensure Receive is disable
   DMA1_CCR4 &= ~(DMA1_CCR4_EN); // Disable DMA1_Channel4 (transmit)
   DMA1_CCR5 &= ~(DMA1_CCR5_EN); // Disable DMA1_Channel5 (receive)
-  USART1_CR1 &= ~(RE);  // Ensure Receive is disable (receive)
+  //USART1_CR1 &= ~(RE);  // Ensure Receive is disable (receive)
 
   //USART1_CR1 &= ~(RXNEIE); // Disable UART1 interrupt enable before cleaning status register and data
   USART1_CR3 &= ~(EIE); //// Disable UART1 interrupt enable before cleaning status register and data
@@ -445,6 +359,7 @@ enum uart1_status_t uart1_transmit(
   __atomic_store_n(&uart1_control.start_monitore, true, __ATOMIC_RELEASE); // Starts monitoring before enable DMA 4
 
   DMA1_CCR4 |= DMA1_CCR4_EN; // Enable DMA1 Channel 4 transmit
+  //USART1_CR1 |= (TE);
 
   return UART_OK;
 }
@@ -478,14 +393,20 @@ void process_uart1_time_event()
            goto process_uart1_time_event_timeout_error;
         // If RS485 master: Do nothing. Timer2 ISR will resolve UART1_TRANSFER_COMPLETE event or execute error on timeout
         break;
-#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
       case UART1_RECEIVE_COMPLETE:
+#ifndef IMPLEMENT_RS485_MASTER_OVER_UART1
           if (USART1_SR & RXNE)
             goto process_uart1_time_event_finish;
 
           if (is_timeout_ms((TIMEOUT_MS *)&uart1_control.timeout))
             goto process_uart1_time_event_timeout_error;
-        break;
+
+          break;
+#else
+
+        uart1_control.uart_callback(UART1_RECEIVE_COMPLETE);
+        status_register = RS485_MASTER_RECEIVE_AND_PROCESS_DATA_COMPLETE;
+        goto process_uart1_time_event_finish;
 #endif
       default:
 

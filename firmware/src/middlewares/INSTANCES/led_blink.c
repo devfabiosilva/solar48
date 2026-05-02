@@ -113,7 +113,7 @@ void rs485_master_receive(int status, MB_FUNCTION function, uint8_t *data, uint1
 {
   switch (status) {
     case MASTER_TRANSFER_SUCCESS:
-      oled_cursor_printf(0, 50, "OK");
+      oled_cursor_printf(0, 50, "OK %d", status);
       break;
     default:
       oled_cursor_printf(0, 50, "Fail %d", status);
