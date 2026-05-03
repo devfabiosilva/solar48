@@ -109,13 +109,50 @@ static void populate_and_init_uart_test()
   rs485_slave_start_listen();
 }
 
+volatile static int resp = 0;
+
 void rs485_master_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
 {
   switch (status) {
     case MASTER_TRANSFER_SUCCESS:
+    //case UART1_RECEIVE_AND_PROCESS_DATA_COMPLETE:
+      resp = 0;
+      if (data_size != 8)
+        resp = -10;
+      else if (data == NULL)
+        resp = -11;
+      else {
+        uint16_t *u16 = (uint16_t *)data;
+        if (*(u16++) != 0x0203)
+          resp = -12;
+          
+        if ((resp == 0) && *(u16++) != 0x0001)
+          resp = -13;
+          
+        if ((resp == 0) && *(u16++) != 0x0607)
+          resp = -14;
+
+        if ((resp == 0) && *(u16++) != 0x0405)
+          resp = -15;
+
+        if ((resp == 0) && *(u16++) != 0x0a0b)
+          resp = -16;
+
+        if ((resp == 0) && *(u16++) != 0x0809)
+          resp = -17;
+
+        if ((resp == 0) && *(u16++) != 0x0e0f)
+          resp = -18;
+
+        if ((resp == 0) && *(u16++) != 0x0c0d)
+          resp = -19;
+      }
+
       oled_cursor_printf(0, 50, "OK %d", status);
       break;
     default:
+      if (status != 3)
+        resp = status;
       oled_cursor_printf(0, 50, "Fail %d", status);
   }
 }
@@ -149,7 +186,7 @@ static void led_blink_task(void *params)
   populate_and_init_uart_test();
 #endif
 
-  BaseType_t uxHighWaterMark, uxHighWaterMark_max = 0;
+  //BaseType_t uxHighWaterMark, uxHighWaterMark_max = 0;
 
   while (1) {
     iwd_refresh();
@@ -178,23 +215,27 @@ static void led_blink_task(void *params)
     ++cnt2;
 #endif
 
+/*
   uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL)*sizeof(StackType_t); 
   if (uxHighWaterMark > uxHighWaterMark_max)
     uxHighWaterMark_max = uxHighWaterMark;
+*/
 #ifdef RS485_TEST
 
     status = master_send_req(slv_addr, fc, mem_address, n, 0, 0, (void *)&data[0], 40, rs485_receive);
-    if (status == RS485_OK)
-      oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
-    else
+    if (status == RS485_OK) {
+      //oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
+      oled_cursor_printf(0, 40, "RS485 resp=%d", resp);
+    } else
       oled_cursor_printf(0, 40, "RS485 error %d", (int)status);
 #endif
 
 #ifdef TEST_RS485_SLAVE_AND_MASTER
     status = MASTER_READ_HOLDING_REGISTERS(SLAVE_ADDRESS, HLD_REG_ADDR, 8, 10, rs485_master_receive);
-    if (status == RS485_OK)
-      oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
-    else
+    if (status == RS485_OK) {
+      //oled_cursor_printf(0, 40, "RS485 %d|%d", (int)uxHighWaterMark, (int)uxHighWaterMark_max);
+      oled_cursor_printf(0, 40, "RS485 resp=%d", resp);
+    } else
       oled_cursor_printf(0, 40, "RS485 error %d", (int)status);
 #endif
 
