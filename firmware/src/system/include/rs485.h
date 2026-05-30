@@ -252,5 +252,11 @@ typedef struct rs485_slave_holding_register_memory_area_t {
 #define MASTER_READ_HOLDING_REGISTERS(_slave_address, _start_address, _number_of_registers, _timeout, _callback) \
 master_send_req(_slave_address, READ_HOLDING_REGISTERS, _start_address, _number_of_registers, 0, 0, NULL, _timeout, _callback)
 
+#define MASTER_READ_INPUT_REGISTERS(_slave_address, _start_address, _number_of_registers, _timeout, _callback) \
+master_send_req(_slave_address, READ_INPUT_REGISTERS, _start_address, _number_of_registers, 0, 0, NULL, _timeout, _callback)
+
+#define MASTER_READ_DISCRETE_INPUTS(_slave_address, _start_address, _number_of_registers, _timeout, _callback) \
+master_send_req(_slave_address, DISCRETE_INPUTS, _start_address, _number_of_registers, 0, 0, NULL, _timeout, _callback)
+
 #endif
 

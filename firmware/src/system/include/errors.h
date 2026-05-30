@@ -190,6 +190,18 @@ _Static_assert(E_UART2_DMA1_CH6_RECEIVE_ERROR > E_UART2_RECEIVE_ERROR_BASE_LIMIT
 
 ///////////////////////////////////
 
+///////////////////////////////////
+
+// SLAVE RS485 ERRORS
+#define E_EP_IP2000_READ_SENSORS_BUSY 600
+#define E_EP_IP2000_READ_SENSORS_ELEM_NOT_MATCH 601
+#define E_EP_IP2000_READ_STATUS_BUSY 602
+#define E_EP_IP2000_READ_STATUS_ELEM_NOT_MATCH 603
+#define E_EP_IP2000_READ_OVER_TEMPERATURE_BUSY 604
+#define E_EP_IP2000_READ_OVERTEMP_ELEM_NOT_MATCH 605
+
+///////////////////////////////////
+
 #define E_NOT_IMPLEMENTED -1
 
 void error_handler(int);
