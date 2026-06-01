@@ -258,5 +258,12 @@ master_send_req(_slave_address, READ_INPUT_REGISTERS, _start_address, _number_of
 #define MASTER_READ_DISCRETE_INPUTS(_slave_address, _start_address, _number_of_registers, _timeout, _callback) \
 master_send_req(_slave_address, DISCRETE_INPUTS, _start_address, _number_of_registers, 0, 0, NULL, _timeout, _callback)
 
+#define MASTER_READ_COILS(_slave_address, _start_address, _number_of_registers, _timeout, _callback) \
+master_send_req(_slave_address, READ_COILS, _start_address, _number_of_registers, 0, 0, NULL, _timeout, _callback)
+
+#define MASTER_WRITE_SINGLE_COIL(_slave_address, _start_address, _data, _timeout, _callback) \
+master_send_req(_slave_address, WRITE_SINGLE_COIL, _start_address, _data, 0, 0, NULL, _timeout, _callback)
+
+
 #endif
 

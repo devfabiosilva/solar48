@@ -90,10 +90,24 @@ _Static_assert(EP_IP2000_ELEM_SIZE == 11, "Number of elements in EP_IP2000 must 
 typedef void (*ep_ip2000cb)(int *, EP_IP2000 *);
 typedef void (*ep_ip2000status_cb)(int *, uint16_t *);
 typedef void (*ep_ip2000device_over_temp_cb)(int *, uint16_t *);
+typedef void (*ep_ip2000coils_read_write_cb)(int *, uint16_t *);
 
 int read_ep2000(ep_ip2000cb, uint32_t);
 int read_ep2000_status(ep_ip2000status_cb, uint32_t);
 int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb, uint32_t);
+
+//read coils
+#define read_ep2000_clear_faults(callback, timeout) read_ep2000_read_coil(CLEAR_THE_FAULTS, callback, timeout)
+#define read_ep2000_local_or_remote(callback, timeout) read_ep2000_read_coil(LOCAL_OR_REMOTE, callback, timeout)
+#define read_ep2000_inverter_on_off(callback, timeout) read_ep2000_read_coil(INVERTER_ON_OFF, callback, timeout)
+#define read_ep2000_pwr_saving_mode_enabled(callback, timeout) read_ep2000_read_coil(POWER_SAVING_MODE_ENABLE, callback, timeout)
+
+//write coils
+#define write_ep2000_clear_faults(val, callback, timeout) read_ep2000_write_coil(CLEAR_THE_FAULTS, val, callback, timeout)
+#define write_ep2000_local_or_remote(val, callback, timeout) read_ep2000_write_coil(LOCAL_OR_REMOTE, val, callback, timeout)
+#define write_ep2000_inverter_on_off(val, callback, timeout) read_ep2000_write_coil(INVERTER_ON_OFF, val, callback, timeout)
+#define write_ep2000_pwr_saving_mode_enabled(val, callback, timeout) read_ep2000_write_coil(POWER_SAVING_MODE_ENABLE, val, callback, timeout)
+
 
 #endif
 
