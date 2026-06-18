@@ -77,7 +77,7 @@ int rs485_epever_tracer6415an_read_rated_datum(epever_tracer6415an_read_rated_da
 }
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(dest) \
-  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_record->dest))
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record->dest))
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE_U16(dest, n) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, (sizeof(uint16_t)*(n)))
