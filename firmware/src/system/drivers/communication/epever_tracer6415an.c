@@ -114,7 +114,7 @@ static void rs485_epever_tracer6415an_real_time_data_receive(int status, MB_FUNC
   }
 
   tracer6415an_real_time_data_cb(&epever_tracer6415an_err, &epever_tracer6415an_real_time_data_record);
-  tracer6415an_real_time_data_cb_cb = NULL;
+  tracer6415an_real_time_data_cb = NULL;
   sys_unlock(&epever_tracer6415an_lock);
 }
 
