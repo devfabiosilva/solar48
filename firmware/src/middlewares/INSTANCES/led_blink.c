@@ -151,9 +151,11 @@ void rs485_master_receive(int status, MB_FUNCTION function, uint8_t *data, uint1
       oled_cursor_printf(0, 50, "OK %d", status);
       break;
     default:
-      if (status != 3)
+      if (status != 3) {
         resp = status;
-      oled_cursor_printf(0, 50, "Fail %d", status);
+        oled_cursor_printf(0, 50, "Fail %d", status);
+      } else
+        oled_cursor_printf(0, 50, "OK '0'");
   }
 }
 

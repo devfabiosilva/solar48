@@ -21,7 +21,7 @@ static void rs485_ep_ip2000_receive(int status, MB_FUNCTION function, uint8_t *d
     case MASTER_TRANSFER_SUCCESS:
 
       if (EP_IP2000_ELEM_SIZE == data_size) // Is redundant. ModBus checker guarantees that element has same size
-        memcpy((void *)&ip2000_record, (void *)data, sizeof(ip2000_record));
+        memcpy((void *)&ip2000_record, (void *)data, sizeof(ip2000_record)); // TODO REFACTOR. Avoid unalign implementation
       else
         ep_ip2000err = E_EP_IP2000_READ_SENSORS_ELEM_NOT_MATCH;
 
@@ -40,7 +40,7 @@ static void rs485_ep_ip2000_receive_status(int status, MB_FUNCTION function, uin
     case MASTER_TRANSFER_SUCCESS:
 
       if (data_size == 1)// Is redundant. ModBus checker guarantees that element has same size
-        memcpy((void *)&ep_ip2000status, (void *)data, sizeof(ep_ip2000status));
+        memcpy((void *)&ep_ip2000status, (void *)data, sizeof(ep_ip2000status)); // TODO REFACTOR. Avoid unalign implementation
         
      else
         ep_ip2000err = E_EP_IP2000_READ_STATUS_ELEM_NOT_MATCH;
@@ -71,11 +71,11 @@ static void rs485_ep_ip2000_receive_over_temperature(int status, MB_FUNCTION fun
   }
 }
 
-int read_ep2000(ep_ip2000cb callback, uint32_t timeout)
+int read_ep2000(ep_ip2000cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
-  if (sys_try_lock(&ep2000_lock, &timeout_ms, EPEVER_IP2000_TIMEOUT, NULL)) {
+  if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
 
     ep_ip2000callback = callback;
     ep_ip2000err = MASTER_READ_INPUT_REGISTERS(EPEVER_IP2000_SLAVE_ADDRESS, LOAD_INPUT_VOLTAGE, EP_IP2000_ELEM_SIZE, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive); 
@@ -91,11 +91,11 @@ int read_ep2000(ep_ip2000cb callback, uint32_t timeout)
   return E_EP_IP2000_READ_SENSORS_BUSY;
 }
 
-int read_ep2000_status(ep_ip2000status_cb callback, uint32_t timeout)
+int read_ep2000_status(ep_ip2000status_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
-  if (sys_try_lock(&ep2000_lock, &timeout_ms, EPEVER_IP2000_TIMEOUT, NULL)) {
+  if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
     ep_ip2000status_callback = callback;
     ep_ip2000err = MASTER_READ_INPUT_REGISTERS(EPEVER_IP2000_SLAVE_ADDRESS, LOAD_STATUS, 1, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_status); 
 
@@ -110,11 +110,11 @@ int read_ep2000_status(ep_ip2000status_cb callback, uint32_t timeout)
   return E_EP_IP2000_READ_STATUS_BUSY;
 }
 
-int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb callback, uint32_t timeout)
+int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
-  if (sys_try_lock(&ep2000_lock, &timeout_ms, EPEVER_IP2000_TIMEOUT, NULL)) {
+  if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
     ep_ip2000device_over_temp_callback = callback;
     ep_ip2000err = MASTER_READ_DISCRETE_INPUTS(EPEVER_IP2000_SLAVE_ADDRESS, LOAD_STATUS, 1, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_over_temperature); 
 
@@ -151,11 +151,11 @@ static void rs485_ep_ip2000_receive_read_write_coils(int status, MB_FUNCTION fun
   }
 }
 
-int read_ep2000_read_coil(uint8_t func, ep_ip2000coils_read_write_cb callback, uint32_t timeout)
+int read_ep2000_read_coil(uint8_t func, ep_ip2000coils_read_write_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
-  if (sys_try_lock(&ep2000_lock, &timeout_ms, EPEVER_IP2000_TIMEOUT, NULL)) {
+  if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
     ep_ip2000coils_read_write_callback = callback;
     ep_ip2000err = MASTER_READ_COILS(EPEVER_IP2000_SLAVE_ADDRESS, func, 1, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_read_write_coils); 
 
@@ -170,11 +170,11 @@ int read_ep2000_read_coil(uint8_t func, ep_ip2000coils_read_write_cb callback, u
   return E_EP_IP2000_READ_COIL_BUSY;
 }
 
-int read_ep2000_write_coil(uint8_t func, uint16_t value, ep_ip2000coils_read_write_cb callback, uint32_t timeout)
+int read_ep2000_write_coil(uint8_t func, uint16_t value, ep_ip2000coils_read_write_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
-  if (sys_try_lock(&ep2000_lock, &timeout_ms, EPEVER_IP2000_TIMEOUT, NULL)) {
+  if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
     ep_ip2000coils_read_write_callback = callback;
     ep_ip2000err = MASTER_WRITE_SINGLE_COIL(EPEVER_IP2000_SLAVE_ADDRESS, func, value, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_read_write_coils); 
 
