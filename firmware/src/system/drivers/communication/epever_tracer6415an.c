@@ -77,7 +77,7 @@ int rs485_epever_tracer6415an_read_rated_datum(epever_tracer6415an_read_rated_da
 }
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(dest) \
-  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record->dest))
+  TRACER6415AN_COPY_AND_ADVANCE(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record->dest))
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE_U16(dest, n) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, (sizeof(uint16_t)*(n)))
@@ -126,7 +126,7 @@ int rs485_epever_tracer6415an_real_time_data(epever_tracer6415an_real_time_data_
   if (sys_try_lock(&epever_tracer6415an_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
 
     tracer6415an_real_time_data_cb = callback;
-    epever_tracer6415an_err = MASTER_READ_INPUT_REGISTERS(EPEVER_TRACER6414AN_SLAVE_ADDRESS, EP_TRACER6415AN_REAL_TIME_DATA_INITIAL_ADDRESS, EP_TRACER6415AN_REAL_TIME_DATA_ELEMENTS, EPEVER_TRACER6414AN_TIMEOUT, rs485_epever_tracer6415an_read_rated_datum_receive); 
+    epever_tracer6415an_err = MASTER_READ_INPUT_REGISTERS(EPEVER_TRACER6414AN_SLAVE_ADDRESS, EP_TRACER6415AN_REAL_TIME_DATA_INITIAL_ADDRESS, EP_TRACER6415AN_REAL_TIME_DATA_ELEMENTS, EPEVER_TRACER6414AN_TIMEOUT, rs485_epever_tracer6415an_real_time_data_receive); 
 
     if (epever_tracer6415an_err) {
       tracer6415an_real_time_data_cb = NULL;
@@ -135,6 +135,60 @@ int rs485_epever_tracer6415an_real_time_data(epever_tracer6415an_real_time_data_
 
   } else
     epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_REAL_TIME_DATA_BUSY;
+
+  return epever_tracer6415an_err;
+}
+
+static EP_TRACER6415AN_REAL_TIME_STATUS epever_tracer6415an_real_time_status_record =  {0};
+static epever_tracer6415an_real_time_status_cb tracer6415an_real_time_status_cb = NULL;
+
+#define TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE(dest) \
+  TRACER6415AN_COPY_AND_ADVANCE(epever_tracer6415an_real_time_status_record, dest, sizeof(epever_tracer6415an_real_time_data_record->dest))
+
+#define TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE_U16(dest, n) \
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_status_record, dest, (sizeof(uint16_t)*(n)))
+
+#define TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE_FINISH(dest) \
+  TRACER6415AN_COPY_AND_FINISH(epever_tracer6415an_real_time_status_record, dest)
+
+static void rs485_epever_tracer6415an_real_time_status_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+{
+  (void)function;
+
+  if ((epever_tracer6415an_err = status) == MASTER_TRANSFER_SUCCESS) {
+      if (EP_TRACER6415AN_REAL_TIME_STATUS_ELEMENTS == data_size) { // Is redundant. ModBus checker guarantees that element has same size
+
+        TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE(battery_status)
+        TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE(charging_equipment_status)
+        TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE_FINISH(discharging_equipment_status)
+
+        epever_tracer6415an_err = 0; // Success
+      } else
+        epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_REAL_TIME_STATUS_ELEM_NOT_MATCH;
+  }
+
+  tracer6415an_real_time_status_cb(&epever_tracer6415an_err, &epever_tracer6415an_real_time_status_record);
+  tracer6415an_real_time_status_cb = NULL;
+  sys_unlock(&epever_tracer6415an_lock);
+}
+
+int rs485_epever_tracer6415an_real_time_status(epever_tracer6415an_real_time_status_cb callback, uint32_t wait_unlock_timeout)
+{
+  TIMEOUT_MS timeout_ms;
+
+  tracer6415an_real_time_status_cb = NULL;
+  if (sys_try_lock(&epever_tracer6415an_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
+
+    tracer6415an_real_time_status_cb = callback;
+    epever_tracer6415an_err = MASTER_READ_INPUT_REGISTERS(EPEVER_TRACER6414AN_SLAVE_ADDRESS, EP_TRACER6415AN_REAL_TIME_STATUS_INITIAL_ADDRESS, EP_TRACER6415AN_REAL_TIME_STATUS_ELEMENTS, EPEVER_TRACER6414AN_TIMEOUT, rs485_epever_tracer6415an_real_time_status_receive); 
+
+    if (epever_tracer6415an_err) {
+      tracer6415an_real_time_status_cb = NULL;
+      sys_unlock(&epever_tracer6415an_lock);
+    }
+
+  } else
+    epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_REAL_TIME_STATUS_BUSY;
 
   return epever_tracer6415an_err;
 }
