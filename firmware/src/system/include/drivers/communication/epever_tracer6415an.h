@@ -65,12 +65,27 @@ int rs485_epever_tracer6415an_real_time_status(epever_tracer6415an_real_time_sta
 
 //Statistical Parameters (Read Only)
 typedef struct ep_tracer6415an_statistical_parameters_t {
-// TODO
+  uint16_t maximum_pv_voltage_today;
+  uint16_t minimum_pv_voltage_today;
+  uint16_t maximum_battery_voltage_today;
+  uint16_t minimum_battery_voltage_today;
+  uint32_t consumed_energy_today;
+  uint32_t consumed_energy_this_month;
+  uint32_t consumed_energy_this_year;
+  uint32_t total_consumed_energy;
+  uint32_t generated_energy_today;
+  uint32_t generated_energy_this_month;
+  uint32_t generated_energy_this_year;
+  uint16_t battery_voltage;
+  uint32_t battery_current;
 } EP_TRACER6415AN_STATISTICAL_PARAMETERS;
 #define EP_TRACER6415AN_STATISTICAL_PARAMETERS_INITIAL_ADDRESS 0x3300
 #define EP_TRACER6415AN_STATISTICAL_PARAMETERS_END_ADDRESS 0x331C
 _Static_assert(EP_TRACER6415AN_STATISTICAL_PARAMETERS_END_ADDRESS > EP_TRACER6415AN_STATISTICAL_PARAMETERS_INITIAL_ADDRESS, "Wrong start/end STATISTICAL_PARAMETERS address range");
 #define EP_TRACER6415AN_STATISTICAL_PARAMETERS_ELEMENTS (EP_TRACER6415AN_STATISTICAL_PARAMETERS_END_ADDRESS - EP_TRACER6415AN_STATISTICAL_PARAMETERS_INITIAL_ADDRESS)
+
+typedef void (*epever_tracer6415an_statistical_parameters_cb)(int *, EP_TRACER6415AN_STATISTICAL_PARAMETERS *);
+int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statistical_parameters_cb, uint32_t);
 
 #endif
 

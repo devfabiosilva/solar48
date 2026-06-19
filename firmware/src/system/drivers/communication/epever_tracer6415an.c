@@ -193,3 +193,67 @@ int rs485_epever_tracer6415an_real_time_status(epever_tracer6415an_real_time_sta
   return epever_tracer6415an_err;
 }
 
+static EP_TRACER6415AN_STATISTICAL_PARAMETERS epever_tracer6415an_statistical_parameters_record =  {0};
+static epever_tracer6415an_statistical_parameters_cb tracer6415an_statistical_parameters_cb = NULL;
+
+#define TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(dest) \
+  TRACER6415AN_COPY_AND_ADVANCE(epever_tracer6415an_statistical_parameters_record, dest, sizeof(epever_tracer6415an_statistical_parameters_record->dest))
+
+#define TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE_U16(dest, n) \
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_statistical_parameters_record, dest, (sizeof(uint16_t)*(n)))
+
+#define TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE_FINISH(dest) \
+  TRACER6415AN_COPY_AND_FINISH(epever_tracer6415an_statistical_parameters_record, dest)
+
+static void rs485_epever_tracer6415an_statistical_parameters_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+{
+  (void)function;
+
+  if ((epever_tracer6415an_err = status) == MASTER_TRANSFER_SUCCESS) {
+      if (EP_TRACER6415AN_REAL_TIME_STATUS_ELEMENTS == data_size) { // Is redundant. ModBus checker guarantees that element has same size
+
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(maximum_pv_voltage_today)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(minimum_pv_voltage_today)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(maximum_battery_voltage_today)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(minimum_battery_voltage_today)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(consumed_energy_today)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(consumed_energy_this_month)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(consumed_energy_this_year)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(total_consumed_energy)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_today;
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_this_month)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_this_year)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE_U16(battery_voltage, 0x331A - 0x3313)
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE_FINISH(battery_current)
+
+        epever_tracer6415an_err = 0; // Success
+      } else
+        epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS_ELEM_NOT_MATCH;
+  }
+
+  tracer6415an_statistical_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_statistical_parameters_record);
+  tracer6415an_statistical_parameters_cb = NULL;
+  sys_unlock(&epever_tracer6415an_lock);
+}
+
+int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statistical_parameters_cb callback, uint32_t wait_unlock_timeout)
+{
+  TIMEOUT_MS timeout_ms;
+
+  tracer6415an_statistical_parameters_cb = NULL;
+  if (sys_try_lock(&epever_tracer6415an_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
+
+    tracer6415an_statistical_parameters_cb = callback;
+    epever_tracer6415an_err = MASTER_READ_INPUT_REGISTERS(EPEVER_TRACER6414AN_SLAVE_ADDRESS, EP_TRACER6415AN_STATISTICAL_PARAMETERS_INITIAL_ADDRESS, EP_TRACER6415AN_STATISTICAL_PARAMETERS_ELEMENTS, EPEVER_TRACER6414AN_TIMEOUT, rs485_epever_tracer6415an_statistical_parameters_receive); 
+
+    if (epever_tracer6415an_err) {
+      tracer6415an_statistical_parameters_cb = NULL;
+      sys_unlock(&epever_tracer6415an_lock);
+    }
+
+  } else
+    epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS_BUSY;
+
+  return epever_tracer6415an_err;
+}
+
