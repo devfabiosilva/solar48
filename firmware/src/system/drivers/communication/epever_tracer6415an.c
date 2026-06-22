@@ -4,26 +4,26 @@
 #include <time.h>
 #include <epever_tracer6415an.h>
 
-static EP_TRACER6415AN epever_tracer6415an_rated_datum_record = {0};
+static EP_TRACER6415AN_RATED_DATUM epever_tracer6415an_rated_datum_record = {0};
 static volatile bool epever_tracer6415an_lock = false;
 static int epever_tracer6415an_err = 0;
 static epever_tracer6415an_read_rated_datum_cb tracer6415an_read_rated_datum_cb = NULL;
 
-#define COPY_AND_FINISH(parent, dest) \
-  memcpy((void *)&parent->dest, (void *)data, sizeof(parent->dest));
+#define TRACER6415AN_COPY_AND_FINISH(parent, dest) \
+  memcpy((void *)&parent.dest, (void *)data, sizeof(parent.dest));
 
-#define COPY_AND_ADVANCE_N(parent, dest, n) \
+#define TRACER6415AN_COPY_AND_ADVANCE_N(parent, dest, n) \
   TRACER6415AN_COPY_AND_FINISH(parent, dest) \
   data += n;
 
 #define TRACER6415AN_RATED_DATUM_COPY_AND_ADVANCE(dest) \
-  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_record, dest, sizeof(epever_tracer6415an_record->dest))
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_rated_datum_record, dest, sizeof(epever_tracer6415an_rated_datum_record.dest))
 
 #define TRACER6415AN_RATED_DATUM_COPY_AND_ADVANCE_U16(dest, n) \
-  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_record, dest, (sizeof(uint16_t)*(n)))
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_rated_datum_record, dest, (sizeof(uint16_t)*(n)))
 
 #define TRACER6415AN_RATED_DATUM_COPY_AND_ADVANCE_FINISH(dest) \
-  TRACER6415AN_COPY_AND_FINISH(epever_tracer6415an_record, dest)
+  TRACER6415AN_COPY_AND_FINISH(epever_tracer6415an_rated_datum_record, dest)
 
 static void rs485_epever_tracer6415an_read_rated_datum_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
 {
@@ -77,7 +77,7 @@ int rs485_epever_tracer6415an_read_rated_datum(epever_tracer6415an_read_rated_da
 }
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(dest) \
-  TRACER6415AN_COPY_AND_ADVANCE(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record->dest))
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record.dest))
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE_U16(dest, n) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, (sizeof(uint16_t)*(n)))
@@ -143,7 +143,7 @@ static EP_TRACER6415AN_REAL_TIME_STATUS epever_tracer6415an_real_time_status_rec
 static epever_tracer6415an_real_time_status_cb tracer6415an_real_time_status_cb = NULL;
 
 #define TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE(dest) \
-  TRACER6415AN_COPY_AND_ADVANCE(epever_tracer6415an_real_time_status_record, dest, sizeof(epever_tracer6415an_real_time_data_record->dest))
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_status_record, dest, sizeof(epever_tracer6415an_real_time_status_record.dest))
 
 #define TRACER6415AN_REAL_TIME_STATUS_COPY_AND_ADVANCE_U16(dest, n) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_status_record, dest, (sizeof(uint16_t)*(n)))
@@ -197,7 +197,7 @@ static EP_TRACER6415AN_STATISTICAL_PARAMETERS epever_tracer6415an_statistical_pa
 static epever_tracer6415an_statistical_parameters_cb tracer6415an_statistical_parameters_cb = NULL;
 
 #define TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(dest) \
-  TRACER6415AN_COPY_AND_ADVANCE(epever_tracer6415an_statistical_parameters_record, dest, sizeof(epever_tracer6415an_statistical_parameters_record->dest))
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_statistical_parameters_record, dest, sizeof(epever_tracer6415an_statistical_parameters_record.dest))
 
 #define TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE_U16(dest, n) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_statistical_parameters_record, dest, (sizeof(uint16_t)*(n)))
@@ -220,7 +220,7 @@ static void rs485_epever_tracer6415an_statistical_parameters_receive(int status,
         TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(consumed_energy_this_month)
         TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(consumed_energy_this_year)
         TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(total_consumed_energy)
-        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_today;
+        TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_today);
         TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_this_month)
         TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE(generated_energy_this_year)
         TRACER6415AN_STATISTICAL_PARAMETERS_COPY_AND_ADVANCE_U16(battery_voltage, 0x331A - 0x3313)
@@ -257,3 +257,102 @@ int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statist
   return epever_tracer6415an_err;
 }
 
+static EP_TRACER6415AN_SETTING_PARAMETERS epever_tracer6415an_setting_parameters_record =  {0};
+static epever_tracer6415an_statistical_parameters_cb tracer6415an_setting_parameters_cb = NULL;
+
+#define TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(dest) \
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_setting_parameters_record, dest, sizeof(epever_tracer6415an_setting_parameters_record.dest))
+
+#define TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(dest, n) \
+  TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_setting_parameters_record, dest, (sizeof(uint16_t)*(n)))
+
+#define TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_FINISH(dest) \
+  TRACER6415AN_COPY_AND_FINISH(epever_tracer6415an_setting_parameters_record, dest)
+
+static void rs485_epever_tracer6415an_setting_parameters_receive(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+{
+  (void)function;
+
+  if ((epever_tracer6415an_err = status) == MASTER_TRANSFER_SUCCESS) {
+      if (EP_TRACER6415AN_SETTING_PARAMETERS_ELEMENTS == data_size) { // Is redundant. ModBus checker guarantees that element has same size
+
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battey_type)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battery_capacity)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(temperature_compensation_coeficient)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(high_volt_disconnect)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(changing_limit_voltage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(over_voltage_reconnect)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(equalization_voltage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(boost_voltage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(float_voltage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(boost_reconnect_voltage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(low_voltage_reconnect)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(under_voltage_warning)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(low_voltage_disconnect)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(dischanging_limit_voltage, 0x9013 - 0x900E)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(real_time_clock_A)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(real_time_clock_B)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battery_temperature_warning_upper_limit)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battery_temperature_warning_lower_limit)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(controller_inner_temperature_upper_limit)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(controller_inner_temperature_lower_limit)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(day_time_threshold_vold)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(light_signal_startup_night_delay_time)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(light_time_threshold_volt)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(light_signal_close_day_delay_time, 0x903D - 0x9021)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(load_controlling_nodes)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(working_time_lenght_1)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(working_time_lenght_2, 0x9042 - 0x903F)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_on_timer_1_A)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_on_timer_1_B)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_on_timer_1_C)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_off_timer_1_A)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_off_timer_1_B)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_off_timer_1_C)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_on_timer_2_A)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_on_timer_2_B)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_on_timer_2_C)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_off_timer_2_A)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(turn_off_timer_2_B)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(turn_off_timer_2_C, 0x9063 - 0x904D)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(backlight_time, 0x9065 - 0x9063)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(lenght_of_time)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(device_configure_of_main_power_supply)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE_U16(battery_rated_voltage_code, 0x906A - 0x9067)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(default_load_on_off_in_manual_mode)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(equalize_duration)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(boost_duration)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(discharge_percentage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(charging_percentage)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(management_modes_of_battery_charging_and_discharging)
+
+        epever_tracer6415an_err = 0; // Success
+      } else
+        epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS_ELEM_NOT_MATCH;
+  }
+
+  tracer6415an_setting_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_setting_parameters_record);
+  tracer6415an_setting_parameters_cb = NULL;
+  sys_unlock(&epever_tracer6415an_lock);
+}
+
+int rs485_epever_tracer6415an_setting_parameters(epever_tracer6415an_statistical_parameters_cb callback, uint32_t wait_unlock_timeout)
+{
+  TIMEOUT_MS timeout_ms;
+
+  tracer6415an_setting_parameters_cb = NULL;
+  if (sys_try_lock(&epever_tracer6415an_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
+
+    tracer6415an_setting_parameters_cb = callback;
+    epever_tracer6415an_err = MASTER_READ_INPUT_REGISTERS(EPEVER_TRACER6414AN_SLAVE_ADDRESS, EP_TRACER6415AN_SETTING_PARAMETERS_INITIAL_ADDRESS, EP_TRACER6415AN_SETTING_PARAMETERS_ELEMENTS, EPEVER_TRACER6414AN_TIMEOUT, rs485_epever_tracer6415an_setting_parameters_receive); 
+
+    if (epever_tracer6415an_err) {
+      tracer6415an_setting_parameters_cb = NULL;
+      sys_unlock(&epever_tracer6415an_lock);
+    }
+
+  } else
+    epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_SETTING_PARAMETERS_BUSY;
+
+  return epever_tracer6415an_err;
+}

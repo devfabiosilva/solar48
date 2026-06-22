@@ -87,5 +87,66 @@ _Static_assert(EP_TRACER6415AN_STATISTICAL_PARAMETERS_END_ADDRESS > EP_TRACER641
 typedef void (*epever_tracer6415an_statistical_parameters_cb)(int *, EP_TRACER6415AN_STATISTICAL_PARAMETERS *);
 int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statistical_parameters_cb, uint32_t);
 
+//Setting Parameter (Read and Write)
+//Read Holding Register (0x03) and Write Multiple Holding Register (0x10)
+typedef struct ep_tracer6415an_setting_parameters_t {
+  uint16_t battey_type;
+  uint16_t battery_capacity;
+  uint16_t temperature_compensation_coeficient;
+  uint16_t high_volt_disconnect;
+  uint16_t changing_limit_voltage;
+  uint16_t over_voltage_reconnect;
+  uint16_t equalization_voltage;
+  uint16_t boost_voltage;
+  uint16_t float_voltage;
+  uint16_t boost_reconnect_voltage;
+  uint16_t low_voltage_reconnect;
+  uint16_t under_voltage_warning;
+  uint16_t low_voltage_disconnect;
+  uint16_t dischanging_limit_voltage;
+  uint32_t real_time_clock_A;
+  uint32_t real_time_clock_B;
+  uint16_t battery_temperature_warning_upper_limit;
+  uint16_t battery_temperature_warning_lower_limit;
+  uint16_t controller_inner_temperature_upper_limit;
+  uint16_t controller_inner_temperature_lower_limit;
+  uint16_t day_time_threshold_vold;
+  uint16_t light_signal_startup_night_delay_time;
+  uint16_t light_time_threshold_volt;
+  uint16_t light_signal_close_day_delay_time;
+  uint16_t load_controlling_nodes;
+  uint16_t working_time_lenght_1;
+  uint16_t working_time_lenght_2;
+  uint16_t turn_on_timer_1_A;
+  uint16_t turn_on_timer_1_B;
+  uint16_t turn_on_timer_1_C;
+  uint16_t turn_off_timer_1_A;
+  uint16_t turn_off_timer_1_B;
+  uint16_t turn_off_timer_1_C;
+  uint16_t turn_on_timer_2_A;
+  uint16_t turn_on_timer_2_B;
+  uint16_t turn_on_timer_2_C;
+  uint16_t turn_off_timer_2_A;
+  uint16_t turn_off_timer_2_B;
+  uint16_t turn_off_timer_2_C;
+  uint16_t backlight_time;
+  uint16_t lenght_of_time;
+  uint16_t device_configure_of_main_power_supply;
+  uint16_t battery_rated_voltage_code;
+  uint16_t default_load_on_off_in_manual_mode;
+  uint16_t equalize_duration;
+  uint16_t boost_duration;
+  uint16_t discharge_percentage;
+  uint16_t charging_percentage;
+  uint16_t management_modes_of_battery_charging_and_discharging;
+} EP_TRACER6415AN_SETTING_PARAMETERS;
+#define EP_TRACER6415AN_SETTING_PARAMETERS_INITIAL_ADDRESS 0x9000
+#define EP_TRACER6415AN_SETTING_PARAMETERS_END_ADDRESS 0x9070
+_Static_assert(EP_TRACER6415AN_SETTING_PARAMETERS_END_ADDRESS > EP_TRACER6415AN_SETTING_PARAMETERS_INITIAL_ADDRESS, "Wrong start/end SETTING_PARAMETERS address range");
+#define EP_TRACER6415AN_SETTING_PARAMETERS_ELEMENTS (EP_TRACER6415AN_SETTING_PARAMETERS_END_ADDRESS - EP_TRACER6415AN_SETTING_PARAMETERS_INITIAL_ADDRESS)
+
+typedef void (*epever_tracer6415an_statistical_parameters_cb)(int *, EP_TRACER6415AN_SETTING_PARAMETERS *);
+int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statistical_parameters_cb, uint32_t);
+
 #endif
 
