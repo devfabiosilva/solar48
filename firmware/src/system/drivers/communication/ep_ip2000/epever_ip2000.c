@@ -1,8 +1,9 @@
 #include <rs485.h>
-#include <epever_ip2000.h>
+#include <drivers/communication/epever_ip2000.h>
 #include <stdbool.h>
 #include <system.h>
 #include <time.h>
+#include <string.h>
 
 static EP_IP2000 ip2000_record = {0};
 static volatile bool ep2000_lock = false;

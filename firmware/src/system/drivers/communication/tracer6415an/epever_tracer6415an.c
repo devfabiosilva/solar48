@@ -2,7 +2,8 @@
 #include <rs485.h>
 #include <system.h>
 #include <time.h>
-#include <epever_tracer6415an.h>
+#include <drivers/communication/epever_tracer6415an.h>
+#include <string.h>
 
 static EP_TRACER6415AN_RATED_DATUM epever_tracer6415an_rated_datum_record = {0};
 static volatile bool epever_tracer6415an_lock = false;
@@ -258,7 +259,8 @@ int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statist
 }
 
 static EP_TRACER6415AN_SETTING_PARAMETERS epever_tracer6415an_setting_parameters_record =  {0};
-static epever_tracer6415an_statistical_parameters_cb tracer6415an_setting_parameters_cb = NULL;
+//
+static epever_tracer6415an_setting_parameters_cb tracer6415an_setting_parameters_cb = NULL;
 
 #define TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(dest) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_setting_parameters_record, dest, sizeof(epever_tracer6415an_setting_parameters_record.dest))
@@ -328,7 +330,7 @@ static void rs485_epever_tracer6415an_setting_parameters_receive(int status, MB_
 
         epever_tracer6415an_err = 0; // Success
       } else
-        epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS_ELEM_NOT_MATCH;
+        epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_SETTING_PARAMETERS_ELEM_NOT_MATCH;
   }
 
   tracer6415an_setting_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_setting_parameters_record);
@@ -336,7 +338,7 @@ static void rs485_epever_tracer6415an_setting_parameters_receive(int status, MB_
   sys_unlock(&epever_tracer6415an_lock);
 }
 
-int rs485_epever_tracer6415an_setting_parameters(epever_tracer6415an_statistical_parameters_cb callback, uint32_t wait_unlock_timeout)
+int rs485_epever_tracer6415an_setting_parameters(epever_tracer6415an_setting_parameters_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 

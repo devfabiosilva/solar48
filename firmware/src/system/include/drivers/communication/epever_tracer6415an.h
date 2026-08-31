@@ -145,8 +145,10 @@ typedef struct ep_tracer6415an_setting_parameters_t {
 _Static_assert(EP_TRACER6415AN_SETTING_PARAMETERS_END_ADDRESS > EP_TRACER6415AN_SETTING_PARAMETERS_INITIAL_ADDRESS, "Wrong start/end SETTING_PARAMETERS address range");
 #define EP_TRACER6415AN_SETTING_PARAMETERS_ELEMENTS (EP_TRACER6415AN_SETTING_PARAMETERS_END_ADDRESS - EP_TRACER6415AN_SETTING_PARAMETERS_INITIAL_ADDRESS)
 
-typedef void (*epever_tracer6415an_statistical_parameters_cb)(int *, EP_TRACER6415AN_SETTING_PARAMETERS *);
+typedef void (*epever_tracer6415an_statistical_parameters_cb)(int *, EP_TRACER6415AN_STATISTICAL_PARAMETERS *);
 int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statistical_parameters_cb, uint32_t);
+
+typedef void (*epever_tracer6415an_setting_parameters_cb)(int *, EP_TRACER6415AN_SETTING_PARAMETERS *);
 
 #endif
 

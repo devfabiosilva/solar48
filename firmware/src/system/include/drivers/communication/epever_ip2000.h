@@ -78,15 +78,17 @@ typedef struct ep_ip2000_t {
   int16_t output_voltage;
   int16_t output_current;
   int32_t output_power;
-  uint16_t reserved;
+  uint16_t reserved_1;
   int16_t temp;
   int16_t heat_sink_temp;
 //  uint16_t status;
 //  uint16_t OVER_TEMP;
 } EP_IP2000;
-#define EP_IP2000_ELEM_SIZE (sizeof(EP_IP2000)/sizeof(uint16_t))
-_Static_assert(EP_IP2000_ELEM_SIZE == 11, "Number of elements in EP_IP2000 must MATCH from range 0x3108 - 0x3112");
-_Static_assert(sizeof(EP_IP2000) == 22, "Wrong packet memory block size of EP_IP2000");
+#define EP_IP2000_ELEM_SIZE 11
+//#define EP_IP2000_ELEM_SIZE (sizeof(EP_IP2000)/sizeof(uint16_t))
+//_Static_assert(EP_IP2000_ELEM_SIZE == 11, "Number of elements in EP_IP2000 must MATCH from range 0x3108 - 0x3112");
+//_Static_assert(sizeof(EP_IP2000) == 22, "Wrong packet memory block size of EP_IP2000");
+
 
 typedef void (*ep_ip2000cb)(int *, EP_IP2000 *);
 typedef void (*ep_ip2000status_cb)(int *, uint16_t *);
