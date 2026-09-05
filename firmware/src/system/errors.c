@@ -16,7 +16,7 @@ static int error_list[MAX_ERROR_LOGS_INSTANCES];
 
 static int *error_list_ptr = ERROR_LIST_BEGIN;
 
-int _error_handler(void *ctx)
+static int _error_handler(void *ctx)
 {
 
 #ifdef USE_USB_PRINTF_IN_ERROR_LOGS

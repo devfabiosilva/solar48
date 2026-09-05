@@ -98,7 +98,7 @@ static void rs485_epever_tracer6415an_real_time_data_receive(int status, MB_FUNC
 
         TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(pv_array_input_voltage)
         TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(pv_array_input_current)
-        TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE_U16(pv_array_input_power, 0x3106 - 3103)
+        TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE_U16(pv_array_input_power, 0x3106 - 0x3103)
         TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE_U16(battery_power, 0x310C - 0x3107)
         TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(load_voltage)
         TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(load_current)
