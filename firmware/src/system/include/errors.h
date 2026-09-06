@@ -218,6 +218,12 @@ _Static_assert(E_UART2_DMA1_CH6_RECEIVE_ERROR > E_UART2_RECEIVE_ERROR_BASE_LIMIT
 
 ///////////////////////////////////
 
+//NUMBER FORMAT TYPES ERROR
+#define E_REAL_U32_PREC_STRING_BUFFER_TOO_SHORT 700
+#define E_REAL_U32_PREC_STRING_FORMAT_ERROR 701
+
+///////////////////////////////////
+
 #define E_NOT_IMPLEMENTED -1
 
 void error_handler(int);

@@ -1,6 +1,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <types.h>
+#include <stdio.h>
+#include <errors.h>
 
 bool is_string_number(char *str)
 {
@@ -57,4 +59,36 @@ char *u64toa(char *str, size_t str_sz, uint64_t value)
   return U64TOA_OVERFLOW;
 }
 
+// BEGIN RS485 number types
+char *real_u32_prec(char *buf, size_t buf_sz, int *len, uint32_t value, uint32_t prec)
+{
+  int len_or_error;
+  if (prec > 1) {
+    prec = value % prec;
+    value /= prec;
+    len_or_error = snprintf(buf, buf_sz, "%lu.%lu", value, prec);
+  } else if (prec)
+    len_or_error = snprintf(buf, buf_sz, "%lu.0", value);
+  else
+    len_or_error = snprintf(buf, buf_sz, "%lu", value);
 
+  if ((size_t)len_or_error >= buf_sz) {
+    len_or_error = E_REAL_U32_PREC_STRING_BUFFER_TOO_SHORT;
+    goto real_u32_prec_error;
+  }
+
+  if (len_or_error < 0) {
+    len_or_error = E_REAL_U32_PREC_STRING_FORMAT_ERROR;
+real_u32_prec_error:
+    error_handler(len_or_error);
+    len_or_error = 0;
+  }
+
+  buf[len_or_error] = 0;
+
+  if (len)
+    *len = len_or_error;
+
+  return buf;
+}
+// END RS485 number types

@@ -98,6 +98,11 @@ int read_ep2000(ep_ip2000cb callback, uint32_t wait_unlock_timeout)
   return E_EP_IP2000_READ_SENSORS_BUSY;
 }
 
+char *ep2000_as_json(char *buf, size_t buf_sz, int *len)
+{
+  return "TODO";
+}
+
 int read_ep2000_status(ep_ip2000status_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
