@@ -16,6 +16,10 @@
 #include <watchdog.h>
 #include <hal_usb.h>
 
+#ifdef WITH_EPEVER_IP_2000
+#include <drivers/communication/epever_ip2000.h>
+#endif
+
 //dmesg -w
 //sudo modprobe usbmon
 //sudo cat /sys/kernel/debug/usb/usbmon/1u
@@ -193,12 +197,33 @@ _Static_assert(sizeof(HELP_USAGE03) < APP_TX_DATA_SIZE, "HELP_USAGE03 Help too l
 
 _Static_assert(sizeof(HELP_USAGE04) < APP_TX_DATA_SIZE, "HELP_USAGE04 Help too long");
 
+#ifdef WITH_EPEVER_IP_2000
+#define HELP_USAGE05    "readep2000                         -> Reads EPEVER 2000 inputs/outputs\n"
+
+_Static_assert(sizeof(HELP_USAGE05) < APP_TX_DATA_SIZE, "HELP_USAGE05 Help too long");
+
+ #define  WITH_EPEVER_IP_2000_COUNT 1
+
+#elif
+ #define  WITH_EPEVER_IP_2000_COUNT 0
+#endif
+
 CMD_BEGIN_NOARG(help)
 
-  const char *help_usage[] = {HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04, NULL};
-  size_t help_usage_len[] = {sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1};
+  const char *help_usage[] = {
+    HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04,
+#ifdef WITH_EPEVER_IP_2000
+    HELP_USAGE05,
+#endif
+    NULL};
+  size_t help_usage_len[] = {
+    sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1,
+#ifdef WITH_EPEVER_IP_2000
+    sizeof(HELP_USAGE05) - 1,
+#endif
+  };
 
-_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == 4, "print_help error parameters");
+_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == (4 + WITH_EPEVER_IP_2000_COUNT), "print_help error parameters");
   usb_send_chunk((uint8_t **)help_usage, help_usage_len);
 
 CMD_END
@@ -270,6 +295,27 @@ CMD_BEGIN_NOARG(cpuinfo)
   );
 CMD_END
 
+#ifdef WITH_EPEVER_IP_2000
+
+static void _readep2000_callback(int *err, EP_IP2000 *values)
+{
+  if (*err == 0) {
+    usb_printf("TODO _readep2000_callback SUCESS\n");
+  } else
+    usb_printf("_readep2000_callback error %d\n", *err);
+}
+
+CMD_BEGIN_NOARG(readep2000)
+
+  int err = read_ep2000(_readep2000_callback, EPEVER_IP2000_TIMEOUT);
+
+  if (err == 0)
+    usb_printf("Reading EPEVER 2000 ...\n");
+  else
+    usb_printf("read_ep2000 error %d\n", err);
+
+CMD_END
+#endif
 
 static uint16_t build_argc(char *argument)
 {

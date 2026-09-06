@@ -14,7 +14,8 @@
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1
 
 // master mode
-uint8_t modbus_master_buffer[MODBUS_MASTER_BUFFER_SIZE];
+uint8_t modbus_master_buffer[MODBUS_MASTER_BUFFER_SIZE] = {0};
+
 SOLAR48_RS485_RTU master_rs485_rtu = {0};
 static SOLAR48_MEM modbus_master_buffer_receive_dynamic = {0};
 
@@ -317,6 +318,9 @@ static int master_check_receive(MB_FUNCTION *function, uint8_t **data, uint16_t 
   *data_size = 0;
   *function = master_rs485_rtu.function;
 
+  if (*((uint32_t *)&modbus_master_buffer[0]) == 0)
+    return E_MASTER_TIMEOUT_OR_NOT_RESPONDNG_RECEIVE_SLAVE_ADDRESS;
+
   if (master_rs485_rtu.address != modbus_master_buffer[0])
     return E_MASTER_INVALID_RECEIVE_SLAVE_ADDRESS;
 
@@ -600,7 +604,7 @@ void _master_receive(int status)
   uint16_t data_size = 0;
   MB_FUNCTION func;
   switch (status) {
-    case UART1_RECEIVE_COMPLETE:
+    case RS485_MASTER_RECEIVE_AND_PROCESS_DATA_COMPLETE:
       status = master_check_receive(&func, &data, &data_size);
 
       // STATUS = 0 => receive is valid and data is available on buffer

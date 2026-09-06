@@ -9,7 +9,7 @@
 //#define RS485_TEST
 //#define UART2_TEST
 
-#define TEST_RS485_SLAVE_AND_MASTER
+//#define TEST_RS485_SLAVE_AND_MASTER
 
 #ifdef TEST_RS485_SLAVE_AND_MASTER
  #include <rs485.h>

@@ -1,3 +1,4 @@
+#include <solar48_config.h>
 #include <rs485.h>
 #include <drivers/communication/epever_ip2000.h>
 #include <stdbool.h>
@@ -21,13 +22,18 @@ static void rs485_ep_ip2000_receive(int status, MB_FUNCTION function, uint8_t *d
   switch (ep_ip2000err = status) {
     case MASTER_TRANSFER_SUCCESS:
 
+      //TODO: Check correct size, Must be reimplemented
       if (EP_IP2000_ELEM_SIZE == data_size) // Is redundant. ModBus checker guarantees that element has same size
         memcpy((void *)&ip2000_record, (void *)data, sizeof(ip2000_record)); // TODO REFACTOR. Avoid unalign implementation
       else
         ep_ip2000err = E_EP_IP2000_READ_SENSORS_ELEM_NOT_MATCH;
 
     default:
-      ep_ip2000callback(&ep_ip2000err, &ip2000_record);
+      if (ep_ip2000callback)
+        ep_ip2000callback(&ep_ip2000err, &ip2000_record);
+      else
+        error_handler(E_EP_ILLEGAL_IP2000_EP_IP2000_RECEIVE);
+
       ep_ip2000callback = NULL;
       sys_unlock(&ep2000_lock);
   }

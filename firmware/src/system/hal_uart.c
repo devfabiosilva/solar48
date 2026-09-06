@@ -15,6 +15,9 @@ extern SOLAR48_RS485_RTU master_rs485_rtu;
 extern uint8_t modbus_master_buffer[];
 extern void _master_receive(int);
 
+//reset address and function for master_check_receive function compare for next
+#define MODBUS_MASTER_BUF_INVALIDATE *((uint32_t *)&modbus_master_buffer[0]) = 0;
+
 static void uart1_receive(
   uint8_t *, size_t,
   uart_callback_func,
@@ -137,6 +140,7 @@ void TIM2_IRQHandler()
   if (TIM2_SR & UIF) {
 
     TIM2_SR &= ~(UIF);
+    MODBUS_MASTER_BUF_INVALIDATE
 
     uart1_receive(modbus_master_buffer, (size_t)MODBUS_MASTER_BUFFER_SIZE, _master_receive, master_rs485_rtu.timeout_ms);
   }
@@ -404,7 +408,7 @@ void process_uart1_time_event()
           break;
 #else
 
-        uart1_control.uart_callback(UART1_RECEIVE_COMPLETE);
+        //uart1_control.uart_callback(UART1_RECEIVE_COMPLETE);
         status_register = RS485_MASTER_RECEIVE_AND_PROCESS_DATA_COMPLETE;
         goto process_uart1_time_event_finish;
 #endif
@@ -436,7 +440,7 @@ process_uart1_time_event_finish:
           (void)USART1_SR;
           (void)USART1_DR;
 
-          __atomic_store_n(&uart1_control.status_register, 0, __ATOMIC_RELEASE);
+          //__atomic_store_n(&uart1_control.status_register, 0, __ATOMIC_RELEASE);
           __atomic_store_n(&uart1_control.start_monitore, false, __ATOMIC_RELEASE); // Stop monitoring
           __atomic_store_n(&uart1_control.locked, false, __ATOMIC_RELEASE); // Same as sys_unlock
 #ifdef IMPLEMENT_RS485_MASTER_OVER_UART1

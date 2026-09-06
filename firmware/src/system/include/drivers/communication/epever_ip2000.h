@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 #define EPEVER_IP2000_SLAVE_ADDRESS (uint8_t)3
-#define EPEVER_IP2000_TIMEOUT 4
 
 //Coil (Read|Write)
 #define CLEAR_THE_FAULTS 0x0013
@@ -71,6 +70,7 @@
 //Discrete register: ( Read only, function code0x02)
 #define DEVICE_OVER_TEMPERATURE 0x2000
 
+//Modbus Protocols for Inverter V1.0-EN-1.pdf PAGE 1
 typedef struct ep_ip2000_t {
   int16_t input_voltage;
   int16_t input_current;
