@@ -111,6 +111,6 @@ int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb, uint32_t);
 #define write_ep2000_inverter_on_off(val, callback, timeout) read_ep2000_write_coil(INVERTER_ON_OFF, val, callback, timeout)
 #define write_ep2000_pwr_saving_mode_enabled(val, callback, timeout) read_ep2000_write_coil(POWER_SAVING_MODE_ENABLE, val, callback, timeout)
 
-
+char *ep2000_as_json(char *, size_t, int *);
 #endif
 

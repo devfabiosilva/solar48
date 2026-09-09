@@ -5,6 +5,9 @@
 #include <system.h>
 #include <time.h>
 #include <string.h>
+#include <types.h>
+#include <stdio.h>
+#include <errors.h>
 
 static EP_IP2000 ip2000_record = {0};
 static volatile bool ep2000_lock = false;
@@ -100,7 +103,57 @@ int read_ep2000(ep_ip2000cb callback, uint32_t wait_unlock_timeout)
 
 char *ep2000_as_json(char *buf, size_t buf_sz, int *len)
 {
-  return "TODO";
+  #define _buf_len 8
+  char input_voltage[_buf_len];
+  char input_current[_buf_len];
+  char input_power[_buf_len];
+  char output_voltage[_buf_len];
+  char output_current[_buf_len];
+  char output_power[_buf_len];
+  char heat_sink_temp[_buf_len];
+
+  #define set_ep2000_as_json(val) real_u32_prec(val, sizeof(val), NULL, ip2000_record.val, 100)
+
+  int len_or_error = snprintf(buf, buf_sz,
+    "{\"InputVoltage\": %s,"\
+    "\"InputCurrent\": %s,"\
+    "\"InputPower\": %s,"\
+    "\"OutputVoltage\": %s,"\
+    "\"OutputCurrent\": %s,"\
+    "\"OutputPower\": %s,"\
+    "\"HeatSinkTemp\": %s"
+    "}",
+    set_ep2000_as_json(input_voltage),
+    set_ep2000_as_json(input_current),
+    set_ep2000_as_json(input_power),
+    set_ep2000_as_json(output_voltage),
+    set_ep2000_as_json(output_current),
+    set_ep2000_as_json(output_power),
+    set_ep2000_as_json(heat_sink_temp)
+  );
+
+  #undef set_ep2000_as_json
+  #undef _buf_len
+
+  if (len_or_error < 0) {
+    len_or_error = E_EP_IP2000_JSON_UNABLE_TO_PARSE;
+    goto ep2000_as_json_error;
+  }
+
+  if ((size_t)len_or_error >= buf_sz) {
+    len_or_error = E_EP_IP2000_JSON_BUF_OVERFLOW;
+
+ep2000_as_json_error:
+    error_handler(len_or_error);
+    len_or_error = 0;
+  }
+
+  buf[len_or_error] = 0;
+
+  if (len)
+    *len = len_or_error;
+
+  return buf;
 }
 
 int read_ep2000_status(ep_ip2000status_cb callback, uint32_t wait_unlock_timeout)

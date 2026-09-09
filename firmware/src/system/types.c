@@ -72,13 +72,13 @@ char *real_u32_prec(char *buf, size_t buf_sz, int *len, uint32_t value, uint32_t
   else
     len_or_error = snprintf(buf, buf_sz, "%lu", value);
 
-  if ((size_t)len_or_error >= buf_sz) {
-    len_or_error = E_REAL_U32_PREC_STRING_BUFFER_TOO_SHORT;
+  if (len_or_error < 0) {
+    len_or_error = E_REAL_U32_PREC_STRING_FORMAT_ERROR;
     goto real_u32_prec_error;
   }
 
-  if (len_or_error < 0) {
-    len_or_error = E_REAL_U32_PREC_STRING_FORMAT_ERROR;
+  if ((size_t)len_or_error >= buf_sz) {
+    len_or_error = E_REAL_U32_PREC_STRING_BUFFER_TOO_SHORT;
 real_u32_prec_error:
     error_handler(len_or_error);
     len_or_error = 0;

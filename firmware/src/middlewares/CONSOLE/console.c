@@ -300,7 +300,10 @@ CMD_END
 static void _readep2000_callback(int *err, EP_IP2000 *values)
 {
   if (*err == 0) {
-    usb_printf("TODO _readep2000_callback SUCESS\n");
+    char buffer[128];
+    int len;
+    char *p = ep2000_as_json(buffer, sizeof(buffer), &len);
+    usb_printf("%.*s", len, p);
   } else
     usb_printf("_readep2000_callback error %d\n", *err);
 }

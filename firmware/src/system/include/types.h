@@ -7,5 +7,5 @@
 
 bool is_string_number(char *);
 char *u64toa(char *, size_t, uint64_t);
-
+char *real_u32_prec(char *, size_t, int *, uint32_t, uint32_t);
 #endif
