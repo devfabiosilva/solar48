@@ -175,6 +175,107 @@ int read_ep2000_status(ep_ip2000status_cb callback, uint32_t wait_unlock_timeout
   return E_EP_IP2000_READ_STATUS_BUSY;
 }
 
+char *ep2000_status_as_json(char *buf, size_t buf_sz, int *len)
+{
+
+#define T "true"
+#define F "false"
+  char *input_voltage_status;
+  switch (ep_ip2000status >> 14) {
+    case 0:
+      input_voltage_status = "Normal input voltage";
+      break;
+    case 1:
+      input_voltage_status = "Low input voltage";
+      break;
+    case 2:
+      input_voltage_status = "High input voltage";
+      break;
+    default:
+      input_voltage_status = "No connect to the input power";
+  }
+
+  char *output_power_status;
+  switch ((ep_ip2000status >> 12) & 3) {
+    case 0:
+      output_power_status = "Light load";
+      break;
+    case 1:
+      output_power_status = "Medium load";
+      break;
+    case 2:
+      output_power_status = "Nominal laod";
+      break;
+    default:
+      output_power_status = "Overload";
+  }
+
+  char *state = (ep_ip2000status & (1<<0))?"Run":"StandBy";
+
+  char *status = (ep_ip2000status & (1<<1))?"Faults":"Normal";
+
+  char *output_fail = (ep_ip2000status & (1<<5))?T:F;
+
+  char *high_voltage_side_short_circuit = (ep_ip2000status & (1<<6))?T:F;
+
+  char *input_over_current = (ep_ip2000status & (1<<7))?T:F;
+
+  char *abnormal_output_voltage = (ep_ip2000status & (1<<8))?T:F;
+
+  char *unable_to_stop_discharging = (ep_ip2000status & (1<<9))?T:F;
+
+  char *unable_to_discharge = (ep_ip2000status & (1<<10))?T:F;
+
+  char *short_circuit = (ep_ip2000status & (1<<11))?T:F;
+
+  int len_or_error = snprintf(buf, buf_sz,
+    "{\"InputVoltageStatus\": %s,"\
+    "\"OutputPowerStatus\": %s,"
+    "\"State\": %s,"
+    "\"Status\": %s,"
+    "\"OutputFail\": %s,"
+    "\"HighVoltageSideShortCircuit\": %s,"
+    "\"InputOverCurrent\": %s,"
+    "\"AbnormalOutputVoltage\": %s,"
+    "\"UnableToStopDischarging\": %s,"
+    "\"UnableToDischarge\": %s,"
+    "\"ShortCircuit\": %s"
+    "}",
+     input_voltage_status,
+     output_power_status,
+     state,
+     status,
+     output_fail,
+     high_voltage_side_short_circuit,
+     input_over_current,
+     abnormal_output_voltage,
+     unable_to_stop_discharging,
+     unable_to_discharge,
+     short_circuit
+  );
+
+  if (len_or_error < 0) {
+    len_or_error = E_EP_IP2000_STATUS_JSON_UNABLE_TO_PARSE;
+    goto ep2000_status_as_json_error;
+  }
+
+  if ((size_t)len_or_error >= buf_sz) {
+    len_or_error = E_EP_IP2000_STATUS_JSON_BUF_OVERFLOW;
+
+ep2000_status_as_json_error:
+    error_handler(len_or_error);
+    len_or_error = 0;
+  }
+
+  buf[len_or_error] = 0;
+
+  if (len)
+    *len = len_or_error;
+#undef F
+#undef T
+  return buf;
+}
+
 int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;

@@ -194,6 +194,7 @@ int usb_receive_complete_process(void *ctx)
 
 #ifdef WITH_EPEVER_IP_2000
   COMMAND_CHECK_CALL_ARG(readep2000)
+  COMMAND_CHECK_CALL_ARG(readep2000_status)
 #endif
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);

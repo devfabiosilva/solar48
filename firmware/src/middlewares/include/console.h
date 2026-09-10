@@ -15,6 +15,7 @@ void sensors_cmd(char *);
 
 #ifdef WITH_EPEVER_IP_2000
 void readep2000_cmd(char *);
+void readep2000_status_cmd(char *);
 #endif
 
 int read_sensors_process(void *);
