@@ -202,11 +202,15 @@ _Static_assert(sizeof(HELP_USAGE04) < APP_TX_DATA_SIZE, "HELP_USAGE04 Help too l
 
 _Static_assert(sizeof(HELP_USAGE05) < APP_TX_DATA_SIZE, "HELP_USAGE05 Help too long");
 
-#define HELP_USAGE05_1    "readep2000_status                -> Reads EPEVER 2000 status\n"
+#define HELP_USAGE05_1    "readep2000_status                  -> Reads EPEVER 2000 status\n"
 
 _Static_assert(sizeof(HELP_USAGE05_1) < APP_TX_DATA_SIZE, "HELP_USAGE05_1 Help too long");
 
- #define  WITH_EPEVER_IP_2000_COUNT 2
+#define HELP_USAGE05_2    "readep2000_ovr_temp                -> Reads EPEVER 2000 over temperature status\n"
+
+_Static_assert(sizeof(HELP_USAGE05_2) < APP_TX_DATA_SIZE, "HELP_USAGE05_2 Help too long");
+
+ #define  WITH_EPEVER_IP_2000_COUNT 3
 
 #elif
  #define  WITH_EPEVER_IP_2000_COUNT 0
@@ -217,13 +221,14 @@ CMD_BEGIN_NOARG(help)
   const char *help_usage[] = {
     HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04,
 #ifdef WITH_EPEVER_IP_2000
-    HELP_USAGE05, HELP_USAGE05_1,
+    HELP_USAGE05, HELP_USAGE05_1, HELP_USAGE05_2,
 #endif
     NULL};
   size_t help_usage_len[] = {
     sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1
 #ifdef WITH_EPEVER_IP_2000
-    , sizeof(HELP_USAGE05) - 1, sizeof(HELP_USAGE05_1) - 1
+    , sizeof(HELP_USAGE05) - 1, sizeof(HELP_USAGE05_1) - 1,
+    sizeof(HELP_USAGE05_2) - 1
 #endif
   };
 
@@ -303,6 +308,7 @@ CMD_END
 
 static void _readep2000_callback(int *err, EP_IP2000 *values)
 {
+  (void)values;
   if (*err == 0) {
     char buffer[128];
     int len;
@@ -325,6 +331,7 @@ CMD_END
 
 static void _read_ep2000_status_callback(int *err, uint16_t *status)
 {
+  (void)status;
   if (*err == 0) {
     char buffer[128];
     int len;
@@ -342,6 +349,29 @@ CMD_BEGIN_NOARG(readep2000_status)
     usb_printf("Reading EPEVER 2000 status ...\n");
   else
     usb_printf("read_ep2000_status error %d\n", err);
+
+CMD_END
+
+static void _read_ep2000_ovr_temp_callback(int *err, uint16_t *status)
+{
+  (void)status;
+  if (*err == 0) {
+    char buffer[48];
+    int len;
+    char *p = read_ep2000_over_temperature_as_json(buffer, sizeof(buffer), &len);
+    usb_printf("%.*s", len, p);
+  } else
+    usb_printf("_read_ep2000_ovr_temp_callback error %d\n", *err);
+}
+
+CMD_BEGIN_NOARG(readep2000_ovr_temp)
+
+  int err = read_ep2000_over_temperature(_read_ep2000_ovr_temp_callback, EPEVER_IP2000_TIMEOUT);
+
+  if (err == 0)
+    usb_printf("Reading EPEVER 2000 over temperature ...\n");
+  else
+    usb_printf("read_ep2000_over_temperature error %d\n", err);
 
 CMD_END
 #endif

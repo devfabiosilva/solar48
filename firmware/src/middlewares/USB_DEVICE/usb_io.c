@@ -193,8 +193,9 @@ int usb_receive_complete_process(void *ctx)
   COMMAND_CHECK_CALL_ARG(sensors)
 
 #ifdef WITH_EPEVER_IP_2000
+  COMMAND_CHECK_CALL_ARG(readep2000_status) // Must be before COMMAND_CHECK_CALL_ARG(readep2000)
+  COMMAND_CHECK_CALL_ARG(readep2000_ovr_temp) // Must be before COMMAND_CHECK_CALL_ARG(readep2000)
   COMMAND_CHECK_CALL_ARG(readep2000)
-  COMMAND_CHECK_CALL_ARG(readep2000_status)
 #endif
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);

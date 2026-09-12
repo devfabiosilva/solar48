@@ -49,14 +49,17 @@ static void rs485_ep_ip2000_receive_status(int status, MB_FUNCTION function, uin
   switch (ep_ip2000err = status) {
     case MASTER_TRANSFER_SUCCESS:
 
-      if (data_size == 1)// Is redundant. ModBus checker guarantees that element has same size
-        memcpy((void *)&ep_ip2000status, (void *)data, sizeof(ep_ip2000status)); // TODO REFACTOR. Avoid unalign implementation
-        
-     else
-        ep_ip2000err = E_EP_IP2000_READ_STATUS_ELEM_NOT_MATCH;
+    if (data_size == 1)// Is redundant. ModBus checker guarantees that element has same size
+      memcpy((void *)&ep_ip2000status, (void *)data, sizeof(ep_ip2000status)); // TODO REFACTOR. Avoid unalign implementation  
+    else
+      ep_ip2000err = E_EP_IP2000_READ_STATUS_ELEM_NOT_MATCH;
 
     default:
-      ep_ip2000status_callback(&ep_ip2000err, &ep_ip2000status);
+      if (ep_ip2000status_callback)
+        ep_ip2000status_callback(&ep_ip2000err, &ep_ip2000status);
+      else
+        error_handler(E_EP_ILLEGAL_IP2000_EP_IP2000_STATUS_RECEIVE);
+
       ep_ip2000status_callback = NULL;
       sys_unlock(&ep2000_lock);
   }
@@ -75,7 +78,11 @@ static void rs485_ep_ip2000_receive_over_temperature(int status, MB_FUNCTION fun
         ep_ip2000err = E_EP_IP2000_READ_OVERTEMP_ELEM_NOT_MATCH;
 
     default:
-      ep_ip2000device_over_temp_callback(&ep_ip2000err, &ep_ip2000over_temperature);
+      if (ep_ip2000device_over_temp_callback)
+        ep_ip2000device_over_temp_callback(&ep_ip2000err, &ep_ip2000over_temperature);
+      else
+        error_handler(E_EP_ILLEGAL_IP2000_EP_IP2000_OVR_TEMP_RECEIVE);
+
       ep_ip2000device_over_temp_callback = NULL;
       sys_unlock(&ep2000_lock);
   }
@@ -175,11 +182,12 @@ int read_ep2000_status(ep_ip2000status_cb callback, uint32_t wait_unlock_timeout
   return E_EP_IP2000_READ_STATUS_BUSY;
 }
 
+#define T "true"
+#define F "false"
+
 char *ep2000_status_as_json(char *buf, size_t buf_sz, int *len)
 {
 
-#define T "true"
-#define F "false"
   char *input_voltage_status;
   switch (ep_ip2000status >> 14) {
     case 0:
@@ -271,8 +279,7 @@ ep2000_status_as_json_error:
 
   if (len)
     *len = len_or_error;
-#undef F
-#undef T
+
   return buf;
 }
 
@@ -295,6 +302,37 @@ int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb callback, uint32_t
   return E_EP_IP2000_READ_OVER_TEMPERATURE_BUSY;
 }
 
+char *read_ep2000_over_temperature_as_json(char *buf, size_t buf_sz, int *len)
+{
+  int len_or_error = snprintf(buf, buf_sz, 
+    "{\"OverTemperature\": %s}",
+    (ep_ip2000over_temperature & 1)?T:F
+  );
+
+  if (len_or_error < 0) {
+    len_or_error = E_EP_IP2000_OVER_TEMP_JSON_UNABLE_TO_PARSE;
+    goto read_ep2000_over_temperature_as_json_error;
+  }
+
+  if ((size_t)len_or_error >= buf_sz) {
+    len_or_error = E_EP_IP2000_OVER_TEMP_JSON_BUF_OVERFLOW;
+
+read_ep2000_over_temperature_as_json_error:
+    error_handler(len_or_error);
+    len_or_error = 0;
+  }
+
+  buf[len_or_error] = 0;
+
+  if (len)
+    *len = len_or_error;
+
+  return buf;
+}
+
+#undef F
+#undef T
+
 static ep_ip2000coils_read_write_cb ep_ip2000coils_read_write_callback = NULL;
 static uint16_t ep_ip2000_coil_rd_wr_value = 0;
 
@@ -311,7 +349,11 @@ static void rs485_ep_ip2000_receive_read_write_coils(int status, MB_FUNCTION fun
         ep_ip2000err = E_EP_IP2000_READ_WRITE_COIL_NOT_MATCH;
 
     default:
-      ep_ip2000coils_read_write_callback(&ep_ip2000err, &ep_ip2000_coil_rd_wr_value);
+      if (ep_ip2000coils_read_write_callback)
+        ep_ip2000coils_read_write_callback(&ep_ip2000err, &ep_ip2000_coil_rd_wr_value);
+      else
+        error_handler(E_EP_ILLEGAL_IP2000_EP_IP2000_RD_WR_COIL_RECEIVE);
+
       ep_ip2000coils_read_write_callback = NULL;
       sys_unlock(&ep2000_lock);
   }

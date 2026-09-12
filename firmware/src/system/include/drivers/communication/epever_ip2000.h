@@ -113,5 +113,6 @@ int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb, uint32_t);
 
 char *ep2000_as_json(char *, size_t, int *);
 char *ep2000_status_as_json(char *, size_t, int *);
+char *read_ep2000_over_temperature_as_json(char *, size_t, int *);
 #endif
 
