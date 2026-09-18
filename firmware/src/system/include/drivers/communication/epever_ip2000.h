@@ -98,6 +98,8 @@ typedef void (*ep_ip2000coils_read_write_cb)(int *, uint16_t *);
 int read_ep2000(ep_ip2000cb, uint32_t);
 int read_ep2000_status(ep_ip2000status_cb, uint32_t);
 int read_ep2000_over_temperature(ep_ip2000device_over_temp_cb, uint32_t);
+int read_ep2000_read_coil(uint8_t, ep_ip2000coils_read_write_cb, uint32_t);
+int read_ep2000_write_coil(uint8_t, uint16_t, ep_ip2000coils_read_write_cb, uint32_t);
 
 //read coils
 #define read_ep2000_clear_faults(callback, timeout) read_ep2000_read_coil(CLEAR_THE_FAULTS, callback, timeout)

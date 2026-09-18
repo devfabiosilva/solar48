@@ -237,6 +237,7 @@ _Static_assert(E_UART2_DMA1_CH6_RECEIVE_ERROR > E_UART2_RECEIVE_ERROR_BASE_LIMIT
 
 void error_handler(int);
 void init_error_handler_queue();
+char *error_name(int);
 
 #ifndef RTOS_SOLAR48
 void run_error_handler();

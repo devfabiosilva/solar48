@@ -15,6 +15,7 @@
 #include <usbd_def.h>
 #include <watchdog.h>
 #include <hal_usb.h>
+#include <rs485.h>
 
 #ifdef WITH_EPEVER_IP_2000
 #include <drivers/communication/epever_ip2000.h>
@@ -31,6 +32,7 @@
 
 extern int cdc_transmit_is_busy();
 
+#define ARG_COMPARE(cst_chr, arg) (strncmp(cst_chr, argc_max_vec[arg], sizeof(cst_chr))==0)
 #define ARG_MAX_VEC_SZ (size_t)32 // Max argument list
 #define ARGUMENT_BUFFER_MAX_SIZE (size_t)384 // Max buffer size
 static char *argc_max_vec[ARG_MAX_VEC_SZ];
@@ -210,7 +212,11 @@ _Static_assert(sizeof(HELP_USAGE05_1) < APP_TX_DATA_SIZE, "HELP_USAGE05_1 Help t
 
 _Static_assert(sizeof(HELP_USAGE05_2) < APP_TX_DATA_SIZE, "HELP_USAGE05_2 Help too long");
 
- #define  WITH_EPEVER_IP_2000_COUNT 3
+#define HELP_USAGE05_3    "ctf_ep2000 [r|w0|w1]               -> Read|Write Clear the Faults coil.\n"
+
+_Static_assert(sizeof(HELP_USAGE05_3) < APP_TX_DATA_SIZE, "HELP_USAGE05_3 Help too long");
+
+#define  WITH_EPEVER_IP_2000_COUNT 4
 
 #elif
  #define  WITH_EPEVER_IP_2000_COUNT 0
@@ -221,14 +227,14 @@ CMD_BEGIN_NOARG(help)
   const char *help_usage[] = {
     HELP_USAGE01, HELP_USAGE02, HELP_USAGE03, HELP_USAGE04,
 #ifdef WITH_EPEVER_IP_2000
-    HELP_USAGE05, HELP_USAGE05_1, HELP_USAGE05_2,
+    HELP_USAGE05, HELP_USAGE05_1, HELP_USAGE05_2, HELP_USAGE05_3,
 #endif
     NULL};
   size_t help_usage_len[] = {
     sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1
 #ifdef WITH_EPEVER_IP_2000
     , sizeof(HELP_USAGE05) - 1, sizeof(HELP_USAGE05_1) - 1,
-    sizeof(HELP_USAGE05_2) - 1
+    sizeof(HELP_USAGE05_2) - 1, sizeof(HELP_USAGE05_3) - 1
 #endif
   };
 
@@ -374,6 +380,70 @@ CMD_BEGIN_NOARG(readep2000_ovr_temp)
     usb_printf("read_ep2000_over_temperature error %d\n", err);
 
 CMD_END
+
+static void _read_write_ctf_ep2000_callback(int *err, uint16_t *value)
+{
+    if (*err == 0)
+      usb_printf("Result: %s\n", (int)(*value)?"1":"0");
+    else
+      usb_printf("_read_write_ctf_ep2000_callback error %d\n", *err);
+}
+
+CMD_BEGIN_ARG(ctf_ep2000)
+
+  if (argc == 1) {
+
+    int err;
+    const char *msg;
+
+    if ARG_COMPARE("r", 0) {
+      err = read_ep2000_clear_faults(_read_write_ctf_ep2000_callback, EPEVER_IP2000_TIMEOUT);
+      if (err == 0)
+        msg = "Reading EPEVER 2000 Clear the faults coil status ...\n";
+      else {
+        msg = "read_ep2000_clear_faults error %d\n";
+        goto ctf_ep2000_cmd_error;
+      }
+    } else if ARG_COMPARE("w0", 0) {
+      err = write_ep2000_clear_faults(WRITE_COIL_OFF, _read_write_ctf_ep2000_callback, EPEVER_IP2000_TIMEOUT);
+      if (err == 0)
+        msg = "Writting OFF on EPEVER 2000 Clear the faults coil ...\n";
+      else {
+        msg = "write_ep2000_clear_faults(OFF) error %d\n";
+        goto ctf_ep2000_cmd_error;
+      }
+    } else if ARG_COMPARE("w1", 0) {
+      err = write_ep2000_clear_faults(WRITE_COIL_ON, _read_write_ctf_ep2000_callback, EPEVER_IP2000_TIMEOUT);
+
+      if (err == 0)
+        msg = "Writting ON on EPEVER 2000 Clear the faults coil ...\n";
+      else {
+
+        msg = "write_ep2000_clear_faults(ON) error %d\n";
+ctf_ep2000_cmd_error:
+
+        usb_printf(msg, err);
+
+        return;
+      }
+    } else {
+      usb_printf("ctf_ep2000 error. Invalid argument \"%s\"\n", argc_max_vec[0]);
+      return;
+    }
+
+    // ON SUCCESS
+    usb_printf(msg);
+
+    return;
+  }
+
+  if (argc > 1)
+    usb_printf("ctf_ep2000. Too many arguments %d\n", (int)argc);
+  else
+    usb_printf("ctf_ep2000. Missing argument\n");
+
+CMD_END
+
 #endif
 
 static uint16_t build_argc(char *argument)

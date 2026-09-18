@@ -264,6 +264,8 @@ master_send_req(_slave_address, READ_COILS, _start_address, _number_of_registers
 #define MASTER_WRITE_SINGLE_COIL(_slave_address, _start_address, _data, _timeout, _callback) \
 master_send_req(_slave_address, WRITE_SINGLE_COIL, _start_address, _data, 0, 0, NULL, _timeout, _callback)
 
+#define WRITE_COIL_ON (uint16_t)0xFF00
+#define WRITE_COIL_OFF (uint16_t)0x0000
 
 #endif
 

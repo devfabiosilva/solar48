@@ -1,6 +1,7 @@
 #include <sys_queue.h>
 #include <solar48_config.h>
 #include <stddef.h>
+#include <errors.h>
 
 #ifdef USE_USB_PRINTF_IN_ERROR_LOGS
  #include <usb_io.h>
@@ -48,3 +49,37 @@ void run_error_handler()
   run_queue_run(&error_handler_queue);
 }
 
+#define SET_ERROR_LIST_NAME(name) { #name, name },
+static struct error_list_name_t {
+  char *error_name;
+  int value;
+} error_list_name [] = 
+{
+// USB INITIALIZATION ERROR
+  SET_ERROR_LIST_NAME(E_USB_INIT)
+  SET_ERROR_LIST_NAME(E_USB_REGISTER_CLASS)
+  SET_ERROR_LIST_NAME(E_USB_REGISTER_INTERFACE)
+  SET_ERROR_LIST_NAME(E_USB_START)
+// USB TRANSMIT ERROR
+  SET_ERROR_LIST_NAME(E_USB_TRANSMIT_BUSY)
+  SET_ERROR_LIST_NAME(E_USB_TRANSMIT_FAIL)
+// USB HAL CALBACK ERROR
+  SET_ERROR_LIST_NAME(E_USB_HAL_PCD_HS)
+  {NULL, 0}
+};
+
+char *error_name(int value)
+{
+  struct error_list_name_t *lst = &error_list_name[0];
+
+  do {
+    if (lst->value == value)
+      break;
+
+    ++lst;
+  } while (lst->error_name);
+
+  return (lst->error_name)?(lst->error_name):"Unknown error code";
+}
+
+#undef SET_ERROR_LIST_NAME

@@ -336,7 +336,7 @@ read_ep2000_over_temperature_as_json_error:
 static ep_ip2000coils_read_write_cb ep_ip2000coils_read_write_callback = NULL;
 static uint16_t ep_ip2000_coil_rd_wr_value = 0;
 
-static void rs485_ep_ip2000_receive_read_write_coils(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
+static void rs485_ep_ip2000_receive_read_write_coils_callback(int status, MB_FUNCTION function, uint8_t *data, uint16_t data_size)
 {
   (void)function;
 
@@ -359,13 +359,13 @@ static void rs485_ep_ip2000_receive_read_write_coils(int status, MB_FUNCTION fun
   }
 }
 
-int read_ep2000_read_coil(uint8_t func, ep_ip2000coils_read_write_cb callback, uint32_t wait_unlock_timeout)
+int read_ep2000_read_coil(uint8_t mem_address, ep_ip2000coils_read_write_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
   if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
     ep_ip2000coils_read_write_callback = callback;
-    ep_ip2000err = MASTER_READ_COILS(EPEVER_IP2000_SLAVE_ADDRESS, func, 1, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_read_write_coils); 
+    ep_ip2000err = MASTER_READ_COILS(EPEVER_IP2000_SLAVE_ADDRESS, mem_address, 1, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_read_write_coils_callback); 
 
     if (ep_ip2000err) {
       ep_ip2000coils_read_write_callback = NULL;
@@ -378,13 +378,13 @@ int read_ep2000_read_coil(uint8_t func, ep_ip2000coils_read_write_cb callback, u
   return E_EP_IP2000_READ_COIL_BUSY;
 }
 
-int read_ep2000_write_coil(uint8_t func, uint16_t value, ep_ip2000coils_read_write_cb callback, uint32_t wait_unlock_timeout)
+int read_ep2000_write_coil(uint8_t mem_address, uint16_t value, ep_ip2000coils_read_write_cb callback, uint32_t wait_unlock_timeout)
 {
   TIMEOUT_MS timeout_ms;
 
   if (sys_try_lock(&ep2000_lock, &timeout_ms, wait_unlock_timeout, NULL)) {
     ep_ip2000coils_read_write_callback = callback;
-    ep_ip2000err = MASTER_WRITE_SINGLE_COIL(EPEVER_IP2000_SLAVE_ADDRESS, func, value, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_read_write_coils); 
+    ep_ip2000err = MASTER_WRITE_SINGLE_COIL(EPEVER_IP2000_SLAVE_ADDRESS, mem_address, value, EPEVER_IP2000_TIMEOUT, rs485_ep_ip2000_receive_read_write_coils_callback); 
 
     if (ep_ip2000err) {
       ep_ip2000coils_read_write_callback = NULL;

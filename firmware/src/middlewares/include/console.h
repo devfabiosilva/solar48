@@ -17,6 +17,7 @@ void sensors_cmd(char *);
 void readep2000_cmd(char *);
 void readep2000_status_cmd(char *);
 void readep2000_ovr_temp_cmd(char *);
+void ctf_ep2000_cmd(char *);
 #endif
 
 int read_sensors_process(void *);
