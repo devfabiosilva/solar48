@@ -191,6 +191,7 @@ int usb_receive_complete_process(void *ctx)
   COMMAND_CHECK_CALL_ARG(milliseconds)
   COMMAND_CHECK_CALL_ARG(cpuinfo)
   COMMAND_CHECK_CALL_ARG(sensors)
+  COMMAND_CHECK_CALL_ARG(error)
 
 #ifdef WITH_EPEVER_IP_2000
   COMMAND_CHECK_CALL_ARG(readep2000_status) // Must be before COMMAND_CHECK_CALL_ARG(readep2000)

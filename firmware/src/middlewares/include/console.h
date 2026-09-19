@@ -20,6 +20,8 @@ void readep2000_ovr_temp_cmd(char *);
 void ctf_ep2000_cmd(char *);
 #endif
 
+void error_cmd(char *);
+
 int read_sensors_process(void *);
 
 #endif

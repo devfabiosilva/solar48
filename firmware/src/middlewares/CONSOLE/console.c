@@ -222,6 +222,9 @@ _Static_assert(sizeof(HELP_USAGE05_3) < APP_TX_DATA_SIZE, "HELP_USAGE05_3 Help t
  #define  WITH_EPEVER_IP_2000_COUNT 0
 #endif
 
+#define HELP_USAGE06    "error N                            -> returns error details from code\n"
+_Static_assert(sizeof(HELP_USAGE06) < APP_TX_DATA_SIZE, "HELP_USAGE06 Help too long");
+
 CMD_BEGIN_NOARG(help)
 
   const char *help_usage[] = {
@@ -229,16 +232,18 @@ CMD_BEGIN_NOARG(help)
 #ifdef WITH_EPEVER_IP_2000
     HELP_USAGE05, HELP_USAGE05_1, HELP_USAGE05_2, HELP_USAGE05_3,
 #endif
+    HELP_USAGE06,
     NULL};
   size_t help_usage_len[] = {
-    sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1
+    sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1,
 #ifdef WITH_EPEVER_IP_2000
-    , sizeof(HELP_USAGE05) - 1, sizeof(HELP_USAGE05_1) - 1,
-    sizeof(HELP_USAGE05_2) - 1, sizeof(HELP_USAGE05_3) - 1
+    sizeof(HELP_USAGE05) - 1, sizeof(HELP_USAGE05_1) - 1,
+    sizeof(HELP_USAGE05_2) - 1, sizeof(HELP_USAGE05_3) - 1,
 #endif
+    sizeof(HELP_USAGE06) - 1
   };
 
-_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == (4 + WITH_EPEVER_IP_2000_COUNT), "print_help error parameters");
+_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == (5 + WITH_EPEVER_IP_2000_COUNT), "print_help error parameters");
   usb_send_chunk((uint8_t **)help_usage, help_usage_len);
 
 CMD_END
@@ -446,6 +451,19 @@ CMD_END
 
 #endif
 
+CMD_BEGIN_ARG(error)
+
+  if (argc == 1) {
+    long int n;
+    if (has_longint_error(&n, argc_max_vec[0], "N") == 0)
+      usb_printf("%s\n", error_name((int)n));
+  } else if (argc)
+    usb_printf("error list error. Too many arguments %d\n", (int)argc);
+  else
+    usb_printf("error list error. Missing argument\n");
+
+CMD_END
+
 static uint16_t build_argc(char *argument)
 {
   char *p = argument, *r, **argc_vec;
@@ -510,4 +528,3 @@ static uint16_t build_argc(char *argument)
 
   return argc;
 }
-
