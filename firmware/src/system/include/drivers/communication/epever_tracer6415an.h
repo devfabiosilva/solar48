@@ -150,5 +150,7 @@ int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statist
 
 typedef void (*epever_tracer6415an_setting_parameters_cb)(int *, EP_TRACER6415AN_SETTING_PARAMETERS *);
 
+char *rs485_epever_tracer6415an_read_rated_datum_as_json(char *, size_t, int *);
+
 #endif
 

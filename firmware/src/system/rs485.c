@@ -715,10 +715,10 @@ int slave_send_resp(uint8_t **data, size_t *data_size)
 {
 
 //TODO TEST ONLY. REMOVE
-  rs485_slave_holding_register_memory_area.sector000.block = 0x00010203;
-  rs485_slave_holding_register_memory_area.sector001.block = 0x04050607;
-  rs485_slave_holding_register_memory_area.sector002.block = 0x08090a0b;
-  rs485_slave_holding_register_memory_area.sector003.block = 0x0c0d0e0f;
+//  rs485_slave_holding_register_memory_area.sector000.block = 0x00010203;
+//  rs485_slave_holding_register_memory_area.sector001.block = 0x04050607;
+//  rs485_slave_holding_register_memory_area.sector002.block = 0x08090a0b;
+//  rs485_slave_holding_register_memory_area.sector003.block = 0x0c0d0e0f;
 //TODO END TEST. REMOVE
   *data = NULL;
 

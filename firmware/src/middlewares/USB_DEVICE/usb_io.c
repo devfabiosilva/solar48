@@ -200,6 +200,10 @@ int usb_receive_complete_process(void *ctx)
   COMMAND_CHECK_CALL_ARG(ctf_ep2000)
 #endif
 
+#ifdef EPEVER_TRACER6415AN
+  COMMAND_CHECK_CALL_ARG(rd_tr6415_rated_datum)
+#endif
+
   usb_printf("Invalid command %.*s\n\n", text_sz, text);
 
 usb_receive_complete_process_finish:

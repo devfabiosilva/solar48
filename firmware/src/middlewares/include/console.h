@@ -22,6 +22,10 @@ void ctf_ep2000_cmd(char *);
 
 void error_cmd(char *);
 
+#ifdef EPEVER_TRACER6415AN
+void rd_tr6415_rated_datum_cmd(char *);
+#endif
+
 int read_sensors_process(void *);
 
 #endif

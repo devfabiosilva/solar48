@@ -3,7 +3,11 @@
 #include <system.h>
 #include <time.h>
 #include <drivers/communication/epever_tracer6415an.h>
+#include <drivers/communication/epever_tracer6415an_macros.h>
 #include <string.h>
+#include <errors.h>
+#include <types.h>
+#include <stdio.h>
 
 static EP_TRACER6415AN_RATED_DATUM epever_tracer6415an_rated_datum_record = {0};
 static volatile bool epever_tracer6415an_lock = false;
@@ -47,7 +51,11 @@ static void rs485_epever_tracer6415an_read_rated_datum_receive(int status, MB_FU
         epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_ELEM_NOT_MATCH;
   }
 
-  tracer6415an_read_rated_datum_cb(&epever_tracer6415an_err, &epever_tracer6415an_rated_datum_record);
+  if (tracer6415an_read_rated_datum_cb)
+    tracer6415an_read_rated_datum_cb(&epever_tracer6415an_err, &epever_tracer6415an_rated_datum_record);
+  else 
+    error_handler(E_EPEVER_TRACER_6415AN_ILLEGAL_CALLBACK_RATED_DATUM);
+
   tracer6415an_read_rated_datum_cb = NULL;
   sys_unlock(&epever_tracer6415an_lock);
 }
@@ -76,6 +84,56 @@ int rs485_epever_tracer6415an_read_rated_datum(epever_tracer6415an_read_rated_da
 
   return epever_tracer6415an_err;
 }
+#define REAL_FROM_U32(parent, buf, prec) \
+  real_u32_prec(buf, sizeof(buf), NULL, (uint32_t)parent.buf, prec)
+
+FUNC_AS_JSON(
+  rs485_epever_tracer6415an_read_rated_datum,
+  char array_rated_votage[16];
+  char array_rated_current[16];
+  char array_rated_power[16];
+  char battery_rated_voltage[16];
+  char battery_rated_current[16];
+  char battery_rated_power[16];
+  char rated_current_load[16];
+  char *charging_mode;
+
+  switch (epever_tracer6415an_rated_datum_record.charging_mode) {
+    case 0:
+      charging_mode = "Connect/disconnect";
+      break;
+    case 1:
+      charging_mode = "PWM";
+      break;
+    case 2:
+      charging_mode = "MPPT";
+      break;
+    default:
+      charging_mode = "Unknown status";
+  }
+  ,
+  E_EPEVER_TRACER_6415AN_RATED_DATUM,
+  "{"
+  "  \"ArrayRatedVotage\": %s,"
+  "  \"ArrayRatedCurrent\": %s,"
+  "  \"ArrayRatedPower\": %s,"
+  "  \"BatteryRatedVoltage\": %s,"
+  "  \"BatteryRatedCurrent\": %s,"
+  "  \"BatteryRatedPower\": %s,"
+  "  \"CharginMode\": %s,"
+  "  \"RatedCurrentOfLoad\": %s"
+  "}",
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, array_rated_votage, 100),
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, array_rated_current, 100),
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, array_rated_power, 100),
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, battery_rated_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, battery_rated_current, 100),
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, battery_rated_power, 100),
+  charging_mode,
+  REAL_FROM_U32(epever_tracer6415an_rated_datum_record, rated_current_load, 100)
+)
+
+#undef REAL_FROM_U32
 
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(dest) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record.dest))

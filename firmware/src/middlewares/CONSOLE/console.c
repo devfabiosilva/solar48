@@ -21,6 +21,10 @@
 #include <drivers/communication/epever_ip2000.h>
 #endif
 
+#ifdef EPEVER_TRACER6415AN
+ #include <drivers/communication/epever_tracer6415an.h>
+#endif
+
 //dmesg -w
 //sudo modprobe usbmon
 //sudo cat /sys/kernel/debug/usb/usbmon/1u
@@ -222,8 +226,18 @@ _Static_assert(sizeof(HELP_USAGE05_3) < APP_TX_DATA_SIZE, "HELP_USAGE05_3 Help t
  #define  WITH_EPEVER_IP_2000_COUNT 0
 #endif
 
-#define HELP_USAGE06    "error N                            -> returns error details from code\n"
+#define HELP_USAGE06    "error N                            -> returns error details from code.\n"
 _Static_assert(sizeof(HELP_USAGE06) < APP_TX_DATA_SIZE, "HELP_USAGE06 Help too long");
+
+#ifdef EPEVER_TRACER6415AN
+
+#define HELP_USAGE07    "\nrd_tr6415_rated_datum              -> Read TRACER 6415AN rated datum.\n"
+_Static_assert(sizeof(HELP_USAGE07) < APP_TX_DATA_SIZE, "HELP_USAGE07 Help too long");
+
+ #define EPEVER_TRACER6415AN_COUNT 1
+#elif
+ #define EPEVER_TRACER6415AN_COUNT 0
+#endif
 
 CMD_BEGIN_NOARG(help)
 
@@ -233,6 +247,9 @@ CMD_BEGIN_NOARG(help)
     HELP_USAGE05, HELP_USAGE05_1, HELP_USAGE05_2, HELP_USAGE05_3,
 #endif
     HELP_USAGE06,
+#ifdef WITH_EPEVER_IP_2000
+    HELP_USAGE07,
+#endif
     NULL};
   size_t help_usage_len[] = {
     sizeof(HELP_USAGE01) - 1, sizeof(HELP_USAGE02) - 1, sizeof(HELP_USAGE03) - 1, sizeof(HELP_USAGE04) - 1,
@@ -240,10 +257,15 @@ CMD_BEGIN_NOARG(help)
     sizeof(HELP_USAGE05) - 1, sizeof(HELP_USAGE05_1) - 1,
     sizeof(HELP_USAGE05_2) - 1, sizeof(HELP_USAGE05_3) - 1,
 #endif
+
+#ifdef WITH_EPEVER_IP_2000
+    sizeof(HELP_USAGE07) - 1,
+#endif
+
     sizeof(HELP_USAGE06) - 1
   };
 
-_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == (5 + WITH_EPEVER_IP_2000_COUNT), "print_help error parameters");
+_Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == (5 + WITH_EPEVER_IP_2000_COUNT + EPEVER_TRACER6415AN_COUNT), "print_help error parameters");
   usb_send_chunk((uint8_t **)help_usage, help_usage_len);
 
 CMD_END
@@ -446,6 +468,32 @@ ctf_ep2000_cmd_error:
     usb_printf("ctf_ep2000. Too many arguments %d\n", (int)argc);
   else
     usb_printf("ctf_ep2000. Missing argument\n");
+
+CMD_END
+
+#endif
+
+
+#ifdef EPEVER_TRACER6415AN
+
+static void _rd_tr6415_rated_datum_callback(int *err, EP_TRACER6415AN_RATED_DATUM *data)
+{
+  (void)data;
+  if (*err == 0) {
+    char buf[128];
+    usb_printf("%s", rs485_epever_tracer6415an_read_rated_datum_as_json(buf, sizeof(buf), NULL));
+  } else
+    usb_printf("_rd_tr6415_rated_datum_callback error %d\n", *err);
+}
+
+CMD_BEGIN_NOARG(rd_tr6415_rated_datum)
+
+  int err = rs485_epever_tracer6415an_read_rated_datum(_rd_tr6415_rated_datum_callback, EPEVER_TRACER6415AN_TIMEOUT);
+
+  if (err == 0)
+    usb_printf("Reading TRACER 6415AN rated datum ...\n");
+  else
+    usb_printf("rs485_epever_tracer6415an_read_rated_datum error %d\n", err);
 
 CMD_END
 
