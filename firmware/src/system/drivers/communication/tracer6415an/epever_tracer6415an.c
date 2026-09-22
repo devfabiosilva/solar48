@@ -133,8 +133,6 @@ FUNC_AS_JSON(
   REAL_FROM_U32(epever_tracer6415an_rated_datum_record, rated_current_load, 100)
 )
 
-#undef REAL_FROM_U32
-
 #define TRACER6415AN_REAL_TIME_DATA_COPY_AND_ADVANCE(dest) \
   TRACER6415AN_COPY_AND_ADVANCE_N(epever_tracer6415an_real_time_data_record, dest, sizeof(epever_tracer6415an_real_time_data_record.dest))
 
@@ -172,7 +170,11 @@ static void rs485_epever_tracer6415an_real_time_data_receive(int status, MB_FUNC
         epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_REAL_TIME_ELEM_NOT_MATCH;
   }
 
-  tracer6415an_real_time_data_cb(&epever_tracer6415an_err, &epever_tracer6415an_real_time_data_record);
+  if (tracer6415an_real_time_data_cb)
+    tracer6415an_real_time_data_cb(&epever_tracer6415an_err, &epever_tracer6415an_real_time_data_record);
+  else
+    error_handler(E_EPEVER_TRACER_6415AN_ILLEGAL_CALLBACK_REAL_TIME);
+
   tracer6415an_real_time_data_cb = NULL;
   sys_unlock(&epever_tracer6415an_lock);
 }
@@ -197,6 +199,52 @@ int rs485_epever_tracer6415an_real_time_data(epever_tracer6415an_real_time_data_
 
   return epever_tracer6415an_err;
 }
+
+FUNC_AS_JSON(
+  rs485_epever_tracer6415an_real_time_data,
+  char pv_array_input_voltage[16];
+  char pv_array_input_current[16];
+  char pv_array_input_power[16];
+  char battery_power[16];
+  char load_voltage[16];
+  char load_current[16];
+  char load_power[16];
+  char battery_temperature[16];
+  char temperature_inside_equipament[16];
+  char battery_soc[16];
+  char remote_battery_temperature[16];
+  char battery_real_rated_power[16];
+  ,
+  E_EPEVER_TRACER_6415AN_REAL_TIME,
+  "{"
+  "  \"PVArrayInputVoltage\": %s,"
+  "  \"PVArrayInputCurrent\": %s,"
+  "  \"PVArrayInputPower\": %s,"
+  "  \"BatteryPower\": %s,"
+  "  \"LoadVoltage\": %s,"
+  "  \"LoadCurrent\": %s,"
+  "  \"LoadPower\": %s,"
+  "  \"BatteryTemperature\": %s,"
+  "  \"TemperatureInsideEquipament\": %s,"
+  "  \"BatterySoc\": %s,"
+  "  \"RemoteBatteryTemperature\": %s,"
+  "  \"BatteryRealRatedPower\": %s"
+  "}",
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, pv_array_input_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, pv_array_input_current, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, pv_array_input_power, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, battery_power, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, load_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, load_current, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, load_power, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, battery_temperature, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, temperature_inside_equipament, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, battery_soc, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, remote_battery_temperature, 100),
+  REAL_FROM_U32(epever_tracer6415an_real_time_data_record, battery_real_rated_power, 100)
+)
+
+#undef REAL_FROM_U32
 
 static EP_TRACER6415AN_REAL_TIME_STATUS epever_tracer6415an_real_time_status_record =  {0};
 static epever_tracer6415an_real_time_status_cb tracer6415an_real_time_status_cb = NULL;

@@ -234,7 +234,10 @@ _Static_assert(sizeof(HELP_USAGE06) < APP_TX_DATA_SIZE, "HELP_USAGE06 Help too l
 #define HELP_USAGE07    "\nrd_tr6415_rated_datum              -> Read TRACER 6415AN rated datum.\n"
 _Static_assert(sizeof(HELP_USAGE07) < APP_TX_DATA_SIZE, "HELP_USAGE07 Help too long");
 
- #define EPEVER_TRACER6415AN_COUNT 1
+#define HELP_USAGE07_1    "\nrd_tr6415_real_time                -> Read TRACER 6415AN real time.\n"
+_Static_assert(sizeof(HELP_USAGE07_1) < APP_TX_DATA_SIZE, "HELP_USAGE07_1 Help too long");
+
+ #define EPEVER_TRACER6415AN_COUNT 2
 #elif
  #define EPEVER_TRACER6415AN_COUNT 0
 #endif
@@ -248,7 +251,7 @@ CMD_BEGIN_NOARG(help)
 #endif
     HELP_USAGE06,
 #ifdef WITH_EPEVER_IP_2000
-    HELP_USAGE07,
+    HELP_USAGE07, HELP_USAGE07_1,
 #endif
     NULL};
   size_t help_usage_len[] = {
@@ -259,7 +262,7 @@ CMD_BEGIN_NOARG(help)
 #endif
 
 #ifdef WITH_EPEVER_IP_2000
-    sizeof(HELP_USAGE07) - 1,
+    sizeof(HELP_USAGE07) - 1, sizeof(HELP_USAGE07_1) - 1,
 #endif
 
     sizeof(HELP_USAGE06) - 1
@@ -494,6 +497,28 @@ CMD_BEGIN_NOARG(rd_tr6415_rated_datum)
     usb_printf("Reading TRACER 6415AN rated datum ...\n");
   else
     usb_printf("rs485_epever_tracer6415an_read_rated_datum error %d\n", err);
+
+CMD_END
+
+void _rd_tr6415_real_time_callback(int *err, EP_TRACER6415AN_REAL_TIME_DATA *data)
+{
+  (void)data;
+
+  if (*err == 0) {
+    char buf[128];
+    usb_printf("%s", rs485_epever_tracer6415an_real_time_data_as_json(buf, sizeof(buf), NULL));
+  } else
+    usb_printf("_rd_tr6415_real_time_callback error %d\n", *err);
+}
+
+CMD_BEGIN_NOARG(rd_tr6415_real_time)
+
+  int err = rs485_epever_tracer6415an_real_time_data(_rd_tr6415_real_time_callback, EPEVER_TRACER6415AN_TIMEOUT);
+
+  if (err == 0)
+    usb_printf("Reading TRACER 6415AN real time ...\n");
+  else
+    usb_printf("rs485_epever_tracer6415an_real_time_data_receive error %d\n", err);
 
 CMD_END
 
