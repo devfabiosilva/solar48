@@ -244,8 +244,6 @@ FUNC_AS_JSON(
   REAL_FROM_U32(epever_tracer6415an_real_time_data_record, battery_real_rated_power, 100)
 )
 
-#undef REAL_FROM_U32
-
 static EP_TRACER6415AN_REAL_TIME_STATUS epever_tracer6415an_real_time_status_record =  {0};
 static epever_tracer6415an_real_time_status_cb tracer6415an_real_time_status_cb = NULL;
 
@@ -274,7 +272,11 @@ static void rs485_epever_tracer6415an_real_time_status_receive(int status, MB_FU
         epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_REAL_TIME_STATUS_ELEM_NOT_MATCH;
   }
 
-  tracer6415an_real_time_status_cb(&epever_tracer6415an_err, &epever_tracer6415an_real_time_status_record);
+  if (tracer6415an_real_time_status_cb)
+    tracer6415an_real_time_status_cb(&epever_tracer6415an_err, &epever_tracer6415an_real_time_status_record);
+  else
+    error_handler(E_EPEVER_TRACER_6415AN_ILLEGAL_CALLBACK_REAL_TIME_STATUS);
+
   tracer6415an_real_time_status_cb = NULL;
   sys_unlock(&epever_tracer6415an_lock);
 }
@@ -299,6 +301,124 @@ int rs485_epever_tracer6415an_real_time_status(epever_tracer6415an_real_time_sta
 
   return epever_tracer6415an_err;
 }
+
+FUNC_AS_JSON(
+  rs485_epever_tracer6415an_real_time_status,
+  char *battery_voltage;
+  char *battery_temp;
+
+  switch (epever_tracer6415an_real_time_status_record.battery_status & 0x07) {
+    case 0:
+      battery_voltage = NORMAL;
+      break;
+    case 1:
+      battery_voltage = "Overvolt";
+      break;
+    case 2:
+      battery_voltage = "Under volt";
+      break;
+    case 3:
+      battery_voltage = "Low Volt Disconnect";
+      break;
+    case 4:
+      battery_voltage = "Fault";
+      break;
+    default:
+      battery_voltage = UNKNOWN_STATUS;
+  }
+
+  switch (epever_tracer6415an_real_time_status_record.battery_status & ((0x07)>>4)) {
+    case 0:
+      battery_temp = NORMAL;
+      break;
+    case 1:
+      battery_temp = "Over temp. (Higher than the warning settings)";
+      break;
+    case 2:
+      battery_temp = "Low temp. (Lower than the warning settings)";
+      break;
+    default:
+      battery_temp = UNKNOWN_STATUS;
+  }
+
+  DECL_STR_ARR(charg_eq_input_volt, NORMAL, "No power connected", "Higher volt input", "Input volt error")
+
+  DECL_STR_ARR(charging_status, "No charging", "Float", "Boost", "Equalization")
+
+  DECL_STR_ARR(charging_equip__input_volt, NORMAL, "Low", "High", "No access")
+
+  DECL_STR_ARR(charging_equip__output_power, "Light load", "Moderate", "Rated", "Overload")
+
+  ,
+  E_EPEVER_TRACER_6415AN_REAL_TIME_STATUS
+  ,
+  "{"
+  "  \"Battery\": {"
+  "    \"Voltage\": %s,"
+  "    \"Temp\": %s,"
+  "    \"InnerResistence\": %s,"
+  "    \"IsWrongRatedVoltage\": %s"
+  "  },"
+  "  \"ChargingEquipment\": {"
+  "     \"InputVolt\": %s,"
+  "     \"Charging_MOSFET_IsShort\": %s,"
+  "     \"ChargingOrAntiReverse_MOSFET_IsShort\": %s,"
+  "     \"AntiReverse_MOSFET_IsShort\": %s,"
+  "     \"InputIsOverCurrent\": %s,"
+  "     \"TheLoadIsOverCurrent\": %s,"
+  "     \"TheLoadIsShort\": %s,"
+  "     \"Load_MOSFET_IsShort\": %s,"
+  "     \"PVInputIsShort\": %s,"
+  "     \"Charging\": %s,"
+  "     \"IsFault\": %s,"
+  "     \"RunningMode\": %s"
+  "  },"
+  "  \"DischargingEquipmentStatus\": {"
+  "     \"InputVolt\": %s,"
+  "     \"OutputPower\": %s,"
+  "     \"ShortCircuit\": %s,"
+  "     \"UnableToDischarge\": %s,"
+  "     \"UnableToStopDischarging\": %s,"
+  "     \"OutputVoltageAbnormal\": %s,"
+  "     \"InputOverPressure\": %s,"
+  "     \"HighVoltageSideShortCircuit\": %s,"
+  "     \"BoostOverPressure\": %s,"
+  "     \"OutputOverPressure\": %s,"
+  "     \"IsFault\": %s,"
+  "     \"IsRunning\": %s"
+  "  }"
+  "}",
+  battery_voltage,
+  battery_temp,
+  (epever_tracer6415an_real_time_status_record.battery_status & (1<<8))?ABNORMAL:NORMAL,
+  (epever_tracer6415an_real_time_status_record.battery_status & (1<<15))?T:F,
+  charg_eq_input_volt[(size_t)((epever_tracer6415an_real_time_status_record.charging_equipment_status>>14)&3)],
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<13))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<12))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<11))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<10))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<9))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<8))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<7))?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&(1<<4))?T:F,
+  charging_status[(size_t)((epever_tracer6415an_real_time_status_record.charging_equipment_status>>2)&3)],
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&2)?T:F,
+  (epever_tracer6415an_real_time_status_record.charging_equipment_status&1)?"Running":"StandBy",
+  charging_equip__input_volt[(size_t)((epever_tracer6415an_real_time_status_record.discharging_equipment_status>>14)&3)],
+  charging_equip__output_power[(size_t)((epever_tracer6415an_real_time_status_record.discharging_equipment_status>>12)&3)],
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<11))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<10))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<9))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<8))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<7))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<6))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<5))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<4))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<1))?T:F,
+  (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<0))?T:F
+)
+
+#undef REAL_FROM_U32
 
 static EP_TRACER6415AN_STATISTICAL_PARAMETERS epever_tracer6415an_statistical_parameters_record =  {0};
 static epever_tracer6415an_statistical_parameters_cb tracer6415an_statistical_parameters_cb = NULL;

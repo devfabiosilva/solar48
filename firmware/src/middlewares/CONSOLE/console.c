@@ -237,7 +237,10 @@ _Static_assert(sizeof(HELP_USAGE07) < APP_TX_DATA_SIZE, "HELP_USAGE07 Help too l
 #define HELP_USAGE07_1    "\nrd_tr6415_real_time                -> Read TRACER 6415AN real time.\n"
 _Static_assert(sizeof(HELP_USAGE07_1) < APP_TX_DATA_SIZE, "HELP_USAGE07_1 Help too long");
 
- #define EPEVER_TRACER6415AN_COUNT 2
+#define HELP_USAGE07_2    "\nrd_tr6415_real_time_status         -> Read TRACER 6415AN real time status.\n"
+_Static_assert(sizeof(HELP_USAGE07_2) < APP_TX_DATA_SIZE, "HELP_USAGE07_2 Help too long");
+
+ #define EPEVER_TRACER6415AN_COUNT 3
 #elif
  #define EPEVER_TRACER6415AN_COUNT 0
 #endif
@@ -250,8 +253,8 @@ CMD_BEGIN_NOARG(help)
     HELP_USAGE05, HELP_USAGE05_1, HELP_USAGE05_2, HELP_USAGE05_3,
 #endif
     HELP_USAGE06,
-#ifdef WITH_EPEVER_IP_2000
-    HELP_USAGE07, HELP_USAGE07_1,
+#ifdef EPEVER_TRACER6415AN
+    HELP_USAGE07, HELP_USAGE07_1, HELP_USAGE07_2,
 #endif
     NULL};
   size_t help_usage_len[] = {
@@ -261,11 +264,11 @@ CMD_BEGIN_NOARG(help)
     sizeof(HELP_USAGE05_2) - 1, sizeof(HELP_USAGE05_3) - 1,
 #endif
 
-#ifdef WITH_EPEVER_IP_2000
-    sizeof(HELP_USAGE07) - 1, sizeof(HELP_USAGE07_1) - 1,
-#endif
+    sizeof(HELP_USAGE06) - 1,
 
-    sizeof(HELP_USAGE06) - 1
+#ifdef EPEVER_TRACER6415AN
+    sizeof(HELP_USAGE07) - 1, sizeof(HELP_USAGE07_1) - 1, sizeof(HELP_USAGE07_2) - 1,
+#endif
   };
 
 _Static_assert(((sizeof(help_usage)/sizeof(const char *)) - 1) == (5 + WITH_EPEVER_IP_2000_COUNT + EPEVER_TRACER6415AN_COUNT), "print_help error parameters");
@@ -500,7 +503,7 @@ CMD_BEGIN_NOARG(rd_tr6415_rated_datum)
 
 CMD_END
 
-void _rd_tr6415_real_time_callback(int *err, EP_TRACER6415AN_REAL_TIME_DATA *data)
+static void _rd_tr6415_real_time_callback(int *err, EP_TRACER6415AN_REAL_TIME_DATA *data)
 {
   (void)data;
 
@@ -517,6 +520,27 @@ CMD_BEGIN_NOARG(rd_tr6415_real_time)
 
   if (err == 0)
     usb_printf("Reading TRACER 6415AN real time ...\n");
+  else
+    usb_printf("rs485_epever_tracer6415an_real_time_data_receive error %d\n", err);
+
+CMD_END
+
+static void _rd_tr6415_real_time_status_callback(int *err, EP_TRACER6415AN_REAL_TIME_STATUS *real_time_status)
+{
+  (void)real_time_status;
+  if (*err == 0) {
+    char buf[512];
+    usb_printf("%s", rs485_epever_tracer6415an_real_time_status_as_json(buf, sizeof(buf), NULL));
+  } else
+    usb_printf("_rd_tr6415_real_time_status_callback error %d\n", *err);
+}
+
+CMD_BEGIN_NOARG(rd_tr6415_real_time_status)
+
+  int err = rs485_epever_tracer6415an_real_time_status(_rd_tr6415_real_time_status_callback, EPEVER_TRACER6415AN_TIMEOUT);
+
+  if (err == 0)
+    usb_printf("Reading TRACER 6415AN real time status ...\n");
   else
     usb_printf("rs485_epever_tracer6415an_real_time_data_receive error %d\n", err);
 
