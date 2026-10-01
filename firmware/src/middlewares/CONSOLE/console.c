@@ -222,7 +222,7 @@ _Static_assert(sizeof(HELP_USAGE05_3) < APP_TX_DATA_SIZE, "HELP_USAGE05_3 Help t
 
 #define  WITH_EPEVER_IP_2000_COUNT 4
 
-#elif
+#else
  #define  WITH_EPEVER_IP_2000_COUNT 0
 #endif
 
@@ -241,7 +241,7 @@ _Static_assert(sizeof(HELP_USAGE07_1) < APP_TX_DATA_SIZE, "HELP_USAGE07_1 Help t
 _Static_assert(sizeof(HELP_USAGE07_2) < APP_TX_DATA_SIZE, "HELP_USAGE07_2 Help too long");
 
  #define EPEVER_TRACER6415AN_COUNT 3
-#elif
+#else
  #define EPEVER_TRACER6415AN_COUNT 0
 #endif
 
