@@ -240,7 +240,10 @@ _Static_assert(sizeof(HELP_USAGE07_1) < APP_TX_DATA_SIZE, "HELP_USAGE07_1 Help t
 #define HELP_USAGE07_2    "\nrd_tr6415_real_time_status         -> Read TRACER 6415AN real time status.\n"
 _Static_assert(sizeof(HELP_USAGE07_2) < APP_TX_DATA_SIZE, "HELP_USAGE07_2 Help too long");
 
- #define EPEVER_TRACER6415AN_COUNT 3
+#define HELP_USAGE07_3    "\nrd_tr6415_stat_param               -> Read TRACER 6415AN statatistical param.\n"
+_Static_assert(sizeof(HELP_USAGE07_3) < APP_TX_DATA_SIZE, "HELP_USAGE07_3 Help too long");
+
+ #define EPEVER_TRACER6415AN_COUNT 4
 #else
  #define EPEVER_TRACER6415AN_COUNT 0
 #endif
@@ -254,7 +257,7 @@ CMD_BEGIN_NOARG(help)
 #endif
     HELP_USAGE06,
 #ifdef EPEVER_TRACER6415AN
-    HELP_USAGE07, HELP_USAGE07_1, HELP_USAGE07_2,
+    HELP_USAGE07, HELP_USAGE07_1, HELP_USAGE07_2, HELP_USAGE07_3,
 #endif
     NULL};
   size_t help_usage_len[] = {
@@ -267,7 +270,7 @@ CMD_BEGIN_NOARG(help)
     sizeof(HELP_USAGE06) - 1,
 
 #ifdef EPEVER_TRACER6415AN
-    sizeof(HELP_USAGE07) - 1, sizeof(HELP_USAGE07_1) - 1, sizeof(HELP_USAGE07_2) - 1,
+    sizeof(HELP_USAGE07) - 1, sizeof(HELP_USAGE07_1) - 1, sizeof(HELP_USAGE07_2) - 1, sizeof(HELP_USAGE07_3) - 1,
 #endif
   };
 
@@ -543,6 +546,29 @@ CMD_BEGIN_NOARG(rd_tr6415_real_time_status)
     usb_printf("Reading TRACER 6415AN real time status ...\n");
   else
     usb_printf("rs485_epever_tracer6415an_real_time_data_receive error %d\n", err);
+
+CMD_END
+
+static void _rd_tr6415_statistical_parameters_callback(int *err, EP_TRACER6415AN_STATISTICAL_PARAMETERS *data)
+{
+  (void)data;
+
+  if (*err == 0) {
+    char buf[256];
+    usb_printf("%s", rs485_epever_tracer6415an_statistical_parameters_as_json(buf, sizeof(buf), NULL));
+  } else
+    usb_printf("_rd_tr6415_statistical_parameters_callback error %d\n", *err);
+
+}
+
+CMD_BEGIN_NOARG(rd_tr6415_stat_param)
+
+  int err = rs485_epever_tracer6415an_statistical_parameters(_rd_tr6415_statistical_parameters_callback, EPEVER_TRACER6415AN_TIMEOUT);
+
+  if (err == 0)
+    usb_printf("Reading TRACER 6415AN statistical parameters ...\n");
+  else
+    usb_printf("rs485_epever_tracer6415an_statistical_parameters error %d\n", err);
 
 CMD_END
 

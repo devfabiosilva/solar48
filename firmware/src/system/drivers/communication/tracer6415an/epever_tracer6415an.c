@@ -418,8 +418,6 @@ FUNC_AS_JSON(
   (epever_tracer6415an_real_time_status_record.discharging_equipment_status&(1<<0))?T:F
 )
 
-#undef REAL_FROM_U32
-
 static EP_TRACER6415AN_STATISTICAL_PARAMETERS epever_tracer6415an_statistical_parameters_record =  {0};
 static epever_tracer6415an_statistical_parameters_cb tracer6415an_statistical_parameters_cb = NULL;
 
@@ -458,7 +456,11 @@ static void rs485_epever_tracer6415an_statistical_parameters_receive(int status,
         epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS_ELEM_NOT_MATCH;
   }
 
-  tracer6415an_statistical_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_statistical_parameters_record);
+  if (tracer6415an_statistical_parameters_cb)
+    tracer6415an_statistical_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_statistical_parameters_record);
+  else
+    error_handler(E_EPEVER_TRACER_6415AN_ILLEGAL_CALLBACK_STATISTICAL_PARAMETERS_RECEIVE);
+
   tracer6415an_statistical_parameters_cb = NULL;
   sys_unlock(&epever_tracer6415an_lock);
 }
@@ -483,6 +485,58 @@ int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statist
 
   return epever_tracer6415an_err;
 }
+
+FUNC_AS_JSON(
+  rs485_epever_tracer6415an_statistical_parameters,
+  char maximum_pv_voltage_today[16];
+  char minimum_pv_voltage_today[16];
+  char maximum_battery_voltage_today[16];
+  char minimum_battery_voltage_today[16];
+  char consumed_energy_today[16];
+  char consumed_energy_this_month[16];
+  char consumed_energy_this_year[16];
+  char total_consumed_energy[16];
+  char generated_energy_today[16];
+  char generated_energy_this_month[16];
+  char generated_energy_this_year[16];
+  char battery_voltage[16];
+  char battery_current[16];
+  ,
+  E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS
+  ,
+  "{"
+  "  \"MaximumPVVoltageToday\": %s,"
+  "  \"MinimumPVVoltageToday\": %s,"
+  "  \"MaximumBatteryVoltageToday\": %s,"
+  "  \"MinimumBatteryVoltageToday\": %s,"
+  "  \"ConsumedEnergyToday\": %s,"
+  "  \"ConsumedEnergyThisMonth\": %s,"
+  "  \"ConsumedEnergyThisYear\": %s,"
+  "  \"TotalConsumedEnergy\": %s,"
+  "  \"GeneratedEnergyToday\": %s,"
+  "  \"GeneratedEnergyThisMonth\": %s,"
+  "  \"GeneratedEnergyThisYear\": %s,"
+  "  \"BatteryVoltage\": %s,"
+  "  \"BatteryCurrent\": %s"
+  "}"
+  ,
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, maximum_pv_voltage_today, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, minimum_pv_voltage_today, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, maximum_battery_voltage_today, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, minimum_battery_voltage_today, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, consumed_energy_today, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, consumed_energy_this_month, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, consumed_energy_this_year, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, total_consumed_energy, 100),
+
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, generated_energy_today, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, generated_energy_this_month, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, generated_energy_this_year, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, battery_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, battery_current, 100)
+)
+
+#undef REAL_FROM_U32
 
 static EP_TRACER6415AN_SETTING_PARAMETERS epever_tracer6415an_setting_parameters_record =  {0};
 //

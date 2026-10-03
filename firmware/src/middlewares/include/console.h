@@ -26,6 +26,7 @@ void error_cmd(char *);
 void rd_tr6415_rated_datum_cmd(char *);
 void rd_tr6415_real_time_cmd(char *);
 void rd_tr6415_real_time_status_cmd(char *);
+void rd_tr6415_stat_param_cmd(char *);
 #endif
 
 int read_sensors_process(void *);
