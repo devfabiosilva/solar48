@@ -613,7 +613,11 @@ static void rs485_epever_tracer6415an_setting_parameters_receive(int status, MB_
         epever_tracer6415an_err = E_EPEVER_TRACER_6415AN_SETTING_PARAMETERS_ELEM_NOT_MATCH;
   }
 
-  tracer6415an_setting_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_setting_parameters_record);
+  if (tracer6415an_setting_parameters_cb)
+    tracer6415an_setting_parameters_cb(&epever_tracer6415an_err, &epever_tracer6415an_setting_parameters_record);
+  else
+    error_handler(E_EPEVER_TRACER_6415AN_ILLEGAL_CALLBACK_SETTING_PARAMETERS_RECEIVE);
+
   tracer6415an_setting_parameters_cb = NULL;
   sys_unlock(&epever_tracer6415an_lock);
 }
@@ -638,3 +642,13 @@ int rs485_epever_tracer6415an_setting_parameters(epever_tracer6415an_setting_par
 
   return epever_tracer6415an_err;
 }
+
+FUNC_AS_JSON(
+  //TODO IMPLEMENT
+  rs485_epever_tracer6415an_setting_parameters,
+  ,
+  E_EPEVER_TRACER_6415AN_SETTING_PARAMETERS,
+  "%d"
+  ,
+  1
+)

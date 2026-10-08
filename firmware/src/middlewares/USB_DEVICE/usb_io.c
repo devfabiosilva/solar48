@@ -205,6 +205,7 @@ int usb_receive_complete_process(void *ctx)
   COMMAND_CHECK_CALL_ARG(rd_tr6415_real_time_status)
   COMMAND_CHECK_CALL_ARG(rd_tr6415_real_time)
   COMMAND_CHECK_CALL_ARG(rd_tr6415_stat_param)
+  COMMAND_CHECK_CALL_ARG(rd_tr6415_setting_param)
 #endif
 
   usb_printf("Invalid command %.*s\n\n", text_sz, text);

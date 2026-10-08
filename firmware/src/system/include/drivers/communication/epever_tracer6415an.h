@@ -149,9 +149,11 @@ typedef void (*epever_tracer6415an_statistical_parameters_cb)(int *, EP_TRACER64
 int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statistical_parameters_cb, uint32_t);
 
 typedef void (*epever_tracer6415an_setting_parameters_cb)(int *, EP_TRACER6415AN_SETTING_PARAMETERS *);
+int rs485_epever_tracer6415an_setting_parameters(epever_tracer6415an_setting_parameters_cb, uint32_t);
 
 char *rs485_epever_tracer6415an_read_rated_datum_as_json(char *, size_t, int *);
 char *rs485_epever_tracer6415an_real_time_data_as_json(char *, size_t, int *);
 char *rs485_epever_tracer6415an_real_time_status_as_json(char *, size_t, int *);
 char *rs485_epever_tracer6415an_statistical_parameters_as_json(char *, size_t, int *);
+char *rs485_epever_tracer6415an_setting_parameters_as_json(char *, size_t, int *);
 #endif
