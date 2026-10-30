@@ -1,3 +1,6 @@
+
+[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/devfabiosilva/badge.svg)](https://hub.xerj.org/contributors/devfabiosilva)
+
 # Solar48
 
 Bare-metal embedded system for monitoring and controlling off-grid solar power systems (48V / MPPT).
@@ -85,7 +88,6 @@ It represents an approach to engineering:
 ## Author
 
 Fábio Pereira
-Embedded & Software Engineer
 
 ## License
 
