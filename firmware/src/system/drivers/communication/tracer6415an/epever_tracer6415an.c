@@ -89,13 +89,13 @@ int rs485_epever_tracer6415an_read_rated_datum(epever_tracer6415an_read_rated_da
 
 FUNC_AS_JSON(
   rs485_epever_tracer6415an_read_rated_datum,
-  char array_rated_votage[16];
-  char array_rated_current[16];
-  char array_rated_power[16];
-  char battery_rated_voltage[16];
-  char battery_rated_current[16];
-  char battery_rated_power[16];
-  char rated_current_load[16];
+  char array_rated_votage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char array_rated_current[REAL_FROM_U32_TRACER6415AN_PREC];
+  char array_rated_power[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_rated_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_rated_current[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_rated_power[REAL_FROM_U32_TRACER6415AN_PREC];
+  char rated_current_load[REAL_FROM_U32_TRACER6415AN_PREC];
   char *charging_mode;
 
   switch (epever_tracer6415an_rated_datum_record.charging_mode) {
@@ -202,18 +202,18 @@ int rs485_epever_tracer6415an_real_time_data(epever_tracer6415an_real_time_data_
 
 FUNC_AS_JSON(
   rs485_epever_tracer6415an_real_time_data,
-  char pv_array_input_voltage[16];
-  char pv_array_input_current[16];
-  char pv_array_input_power[16];
-  char battery_power[16];
-  char load_voltage[16];
-  char load_current[16];
-  char load_power[16];
-  char battery_temperature[16];
-  char temperature_inside_equipament[16];
-  char battery_soc[16];
-  char remote_battery_temperature[16];
-  char battery_real_rated_power[16];
+  char pv_array_input_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char pv_array_input_current[REAL_FROM_U32_TRACER6415AN_PREC];
+  char pv_array_input_power[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_power[REAL_FROM_U32_TRACER6415AN_PREC];
+  char load_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char load_current[REAL_FROM_U32_TRACER6415AN_PREC];
+  char load_power[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_temperature[REAL_FROM_U32_TRACER6415AN_PREC];
+  char temperature_inside_equipament[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_soc[REAL_FROM_U32_TRACER6415AN_PREC];
+  char remote_battery_temperature[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_real_rated_power[REAL_FROM_U32_TRACER6415AN_PREC];
   ,
   E_EPEVER_TRACER_6415AN_REAL_TIME,
   "{"
@@ -488,19 +488,19 @@ int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statist
 
 FUNC_AS_JSON(
   rs485_epever_tracer6415an_statistical_parameters,
-  char maximum_pv_voltage_today[16];
-  char minimum_pv_voltage_today[16];
-  char maximum_battery_voltage_today[16];
-  char minimum_battery_voltage_today[16];
-  char consumed_energy_today[16];
-  char consumed_energy_this_month[16];
-  char consumed_energy_this_year[16];
-  char total_consumed_energy[16];
-  char generated_energy_today[16];
-  char generated_energy_this_month[16];
-  char generated_energy_this_year[16];
-  char battery_voltage[16];
-  char battery_current[16];
+  char maximum_pv_voltage_today[REAL_FROM_U32_TRACER6415AN_PREC];
+  char minimum_pv_voltage_today[REAL_FROM_U32_TRACER6415AN_PREC];
+  char maximum_battery_voltage_today[REAL_FROM_U32_TRACER6415AN_PREC];
+  char minimum_battery_voltage_today[REAL_FROM_U32_TRACER6415AN_PREC];
+  char consumed_energy_today[REAL_FROM_U32_TRACER6415AN_PREC];
+  char consumed_energy_this_month[REAL_FROM_U32_TRACER6415AN_PREC];
+  char consumed_energy_this_year[REAL_FROM_U32_TRACER6415AN_PREC];
+  char total_consumed_energy[REAL_FROM_U32_TRACER6415AN_PREC];
+  char generated_energy_today[REAL_FROM_U32_TRACER6415AN_PREC];
+  char generated_energy_this_month[REAL_FROM_U32_TRACER6415AN_PREC];
+  char generated_energy_this_year[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char battery_current[REAL_FROM_U32_TRACER6415AN_PREC];
   ,
   E_EPEVER_TRACER_6415AN_STATISTICAL_PARAMETERS
   ,
@@ -536,7 +536,7 @@ FUNC_AS_JSON(
   REAL_FROM_U32(epever_tracer6415an_statistical_parameters_record, battery_current, 100)
 )
 
-#undef REAL_FROM_U32
+
 
 static EP_TRACER6415AN_SETTING_PARAMETERS epever_tracer6415an_setting_parameters_record =  {0};
 //
@@ -558,7 +558,7 @@ static void rs485_epever_tracer6415an_setting_parameters_receive(int status, MB_
   if ((epever_tracer6415an_err = status) == MASTER_TRANSFER_SUCCESS) {
       if (EP_TRACER6415AN_SETTING_PARAMETERS_ELEMENTS == data_size) { // Is redundant. ModBus checker guarantees that element has same size
 
-        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battey_type)
+        TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battery_type)
         TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(battery_capacity)
         TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(temperature_compensation_coeficient)
         TRACER6415AN_SETTING_PARAMETERS_COPY_AND_ADVANCE(high_volt_disconnect)
@@ -642,13 +642,94 @@ int rs485_epever_tracer6415an_setting_parameters(epever_tracer6415an_setting_par
 
   return epever_tracer6415an_err;
 }
+/*
+typedef struct ep_tracer6415an_setting_parameters_t {
+  uint16_t battey_type;
+  uint16_t battery_capacity;
+  uint16_t temperature_compensation_coeficient;
+  uint16_t high_volt_disconnect;
+  uint16_t changing_limit_voltage;
+  uint16_t over_voltage_reconnect;
+  uint16_t equalization_voltage;
+  uint16_t boost_voltage;
+  uint16_t float_voltage;
+  uint16_t boost_reconnect_voltage;
+  uint16_t low_voltage_reconnect;
+  uint16_t under_voltage_warning;
+  uint16_t low_voltage_disconnect;
+  uint16_t dischanging_limit_voltage;
+  uint32_t real_time_clock_A;
+  uint32_t real_time_clock_B;
+  uint16_t battery_temperature_warning_upper_limit;
+  uint16_t battery_temperature_warning_lower_limit;
+  uint16_t controller_inner_temperature_upper_limit;
+  uint16_t controller_inner_temperature_lower_limit;
+  uint16_t day_time_threshold_vold;
+  uint16_t light_signal_startup_night_delay_time;
+  uint16_t light_time_threshold_volt;
+  uint16_t light_signal_close_day_delay_time;
+  uint16_t load_controlling_nodes;
+  uint16_t working_time_lenght_1;
+  uint16_t working_time_lenght_2;
+  uint16_t turn_on_timer_1_A;
+  uint16_t turn_on_timer_1_B;
+  uint16_t turn_on_timer_1_C;
+  uint16_t turn_off_timer_1_A;
+  uint16_t turn_off_timer_1_B;
+  uint16_t turn_off_timer_1_C;
+  uint16_t turn_on_timer_2_A;
+  uint16_t turn_on_timer_2_B;
+  uint16_t turn_on_timer_2_C;
+  uint16_t turn_off_timer_2_A;
+  uint16_t turn_off_timer_2_B;
+  uint16_t turn_off_timer_2_C;
+  uint16_t backlight_time;
+  uint16_t lenght_of_time;
+  uint16_t device_configure_of_main_power_supply;
+  uint16_t battery_rated_voltage_code;
+  uint16_t default_load_on_off_in_manual_mode;
+  uint16_t equalize_duration;
+  uint16_t boost_duration;
+  uint16_t discharge_percentage;
+  uint16_t charging_percentage;
+  uint16_t management_modes_of_battery_charging_and_discharging;
+} EP_TRACER6415AN_SETTING_PARAMETERS;
+*/
+
+static const char *_rs485_epever_tracer6415an_setting_parameters_battery_type(uint16_t value)
+{
+  const char *_battery_type_ls[] = {
+    "User defined",
+    "Sealed",
+    "GEL",
+    "Fooded"
+  };
+
+  _Static_assert(sizeof(_battery_type_ls)/sizeof(const char *) == 4, "_battery_type_ls must have 4 elements");
+
+  return ((value & 3) == value)?_battery_type_ls[value]:"Unknown battery type";
+}
 
 FUNC_AS_JSON(
   //TODO IMPLEMENT
   rs485_epever_tracer6415an_setting_parameters,
+  char temperature_compensation_coeficient[REAL_FROM_U32_TRACER6415AN_PREC];
+  char high_volt_disconnect[REAL_FROM_U32_TRACER6415AN_PREC];
+  char changing_limit_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
   ,
   E_EPEVER_TRACER_6415AN_SETTING_PARAMETERS,
-  "%d"
+  "{"
+  "  \"BatteryType\": %s,"
+  "  \"BatteryCapacity\": %d,"
+  "  \"BatteryCompCoeff\": %s,"
+  "  \"HighVoltDisconnect\": %s,"
+  "  \"ChergingLimitVoltage\": %s"
+  "}"
   ,
-  1
+  _rs485_epever_tracer6415an_setting_parameters_battery_type(epever_tracer6415an_setting_parameters_record.battery_type),
+  (int)epever_tracer6415an_setting_parameters_record.battery_capacity,
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, temperature_compensation_coeficient, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, high_volt_disconnect, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, changing_limit_voltage, 100)
 )
+#undef REAL_FROM_U32

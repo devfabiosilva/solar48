@@ -9,6 +9,8 @@
 
 #define DECL_STR_ARR(name, ...) char *name[] = {__VA_ARGS__};
 
+#define REAL_FROM_U32_TRACER6415AN_PREC 16
+
 #define FUNC_AS_JSON(func, text, error_prefix, json_txt, ...) \
 char *func##_as_json(char *buf, size_t buf_sz, int *len) \
 { \

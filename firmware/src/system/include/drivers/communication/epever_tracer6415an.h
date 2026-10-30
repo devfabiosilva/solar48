@@ -90,7 +90,7 @@ int rs485_epever_tracer6415an_statistical_parameters(epever_tracer6415an_statist
 //Setting Parameter (Read and Write)
 //Read Holding Register (0x03) and Write Multiple Holding Register (0x10)
 typedef struct ep_tracer6415an_setting_parameters_t {
-  uint16_t battey_type;
+  uint16_t battery_type;
   uint16_t battery_capacity;
   uint16_t temperature_compensation_coeficient;
   uint16_t high_volt_disconnect;
