@@ -723,7 +723,7 @@ FUNC_AS_JSON(
   "  \"BatteryCapacity\": %d,"
   "  \"BatteryCompCoeff\": %s,"
   "  \"HighVoltDisconnect\": %s,"
-  "  \"ChergingLimitVoltage\": %s"
+  "  \"ChargingLimitVoltage\": %s"
   "}"
   ,
   _rs485_epever_tracer6415an_setting_parameters_battery_type(epever_tracer6415an_setting_parameters_record.battery_type),
