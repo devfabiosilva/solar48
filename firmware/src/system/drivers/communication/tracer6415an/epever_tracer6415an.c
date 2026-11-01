@@ -716,6 +716,12 @@ FUNC_AS_JSON(
   char temperature_compensation_coeficient[REAL_FROM_U32_TRACER6415AN_PREC];
   char high_volt_disconnect[REAL_FROM_U32_TRACER6415AN_PREC];
   char changing_limit_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char over_voltage_reconnect[REAL_FROM_U32_TRACER6415AN_PREC];
+  char equalization_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char boost_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char float_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char boost_reconnect_voltage[REAL_FROM_U32_TRACER6415AN_PREC];
+  char low_voltage_reconnect[REAL_FROM_U32_TRACER6415AN_PREC];
   ,
   E_EPEVER_TRACER_6415AN_SETTING_PARAMETERS,
   "{"
@@ -723,13 +729,25 @@ FUNC_AS_JSON(
   "  \"BatteryCapacity\": %d,"
   "  \"BatteryCompCoeff\": %s,"
   "  \"HighVoltDisconnect\": %s,"
-  "  \"ChargingLimitVoltage\": %s"
+  "  \"ChargingLimitVoltage\": %s,"
+  "  \"OverVoltageReconnect\": %s,"
+  "  \"EqualizationVoltage\": %s,"
+  "  \"BoostVoltage\": %s,"
+  "  \"FloatVoltage\": %s,"
+  "  \"BoostReconnectVoltage\": %s,"
+  "  \"LowVoltageReconnect\": %s,"
   "}"
   ,
   _rs485_epever_tracer6415an_setting_parameters_battery_type(epever_tracer6415an_setting_parameters_record.battery_type),
   (int)epever_tracer6415an_setting_parameters_record.battery_capacity,
   REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, temperature_compensation_coeficient, 100),
   REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, high_volt_disconnect, 100),
-  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, changing_limit_voltage, 100)
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, changing_limit_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, over_voltage_reconnect, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, equalization_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, boost_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, float_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, boost_reconnect_voltage, 100),
+  REAL_FROM_U32(epever_tracer6415an_setting_parameters_record, low_voltage_reconnect, 100)
 )
 #undef REAL_FROM_U32
